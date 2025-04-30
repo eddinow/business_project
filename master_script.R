@@ -2,7 +2,6 @@
 
 rm(list = ls())
 set.seed(1)
-setwd("~/Documents/R Projekte/business_project")
 
 # load required packages
 library(tidyverse)
