@@ -6,7 +6,7 @@ library(dplyr)
 
 # Import -----------------------------------------------------------------------
 
-file_path <- "C:\\Users\\Uzun\\Downloads\\business_project\\2025-04-08_Auftragsköpfe SAP.xlsx"
+file_path <- "2025-04-08_Auftragsköpfe SAP.xlsx"
 
 excel_sheets(file_path)
 
