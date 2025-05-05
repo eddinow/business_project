@@ -6,11 +6,8 @@ library(dplyr)
 
 # Import -----------------------------------------------------------------------
 
-file_path <- "2025-04-08_Auftragsköpfe SAP.xlsx"
+df <- read_excel("2025-04-08_Auftragsköpfe SAP.xlsx", sheet = 1)
 
-excel_sheets(file_path)
-
-df <- read_excel(file_path, sheet = 1)
 # Tidy -------------------------------------------------------------------------
 
 df <- df %>%
