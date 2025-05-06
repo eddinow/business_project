@@ -12,6 +12,7 @@ library(MASS)
 
 # Import -----------------------------------------------------------------------
 
+
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
