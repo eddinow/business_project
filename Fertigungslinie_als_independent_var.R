@@ -1,4 +1,5 @@
 #Initialize ------
+setwd("C:\\Users\\julia\\OneDrive\\Dokumente\\04 Supply Chain Management Master\\13 Business Project\\Github Verbindung\\business_project")
 
 rm(list = ls())
 set.seed(1)
@@ -73,3 +74,4 @@ View(abc_material_linien)
 #testdddd
 
 # Communicate ------
+

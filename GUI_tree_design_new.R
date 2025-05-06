@@ -1,4 +1,6 @@
 # Initialize ------
+setwd("C:\\Users\\julia\\OneDrive\\Dokumente\\04 Supply Chain Management Master\\13 Business Project\\Github Verbindung\\business_project")
+
 rm(list = ls())
 set.seed(1)
 
@@ -9,7 +11,7 @@ library(readxl)
 
 # Import -----------------------------------------------------------------------
 # Achtung: Stelle sicher, dass abc_material_linien vorher erstellt oder gesourced wurde!
-source("Fertigungslinie_als independent_var.R")
+source("Fertigungslinie_als_independent_var.R")
 
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
@@ -77,3 +79,4 @@ server <- function(input, output, session) {
 
 # Run App ----------------------------------------------------------------------
 shinyApp(ui, server)
+getwd()
