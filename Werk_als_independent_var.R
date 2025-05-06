@@ -12,8 +12,8 @@ library(MASS)
 
 # Import -----------------------------------------------------------------------
 
-auftraege_raw <- read_excel("2025-04-08_Auftragsköpfe SAP.xlsx")
-vorgaenge_raw <- read_excel("2025-04-08_Vorgänge SAP.xlsx")
+auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
+vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
 
 # Tidy -------------------------------------------------------------------------
