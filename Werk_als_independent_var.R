@@ -1,20 +1,43 @@
-# load packages
+#Initialize ------
 
+rm(list = ls())
+set.seed(1)
+
+library(tidyverse)
+library(tidyr)
 library(readxl)
-
 library(dplyr)
+library(ggplot2)
+library(MASS)
 
 # Import -----------------------------------------------------------------------
 
-file_path <- "C:\\Users\\Uzun\\Downloads\\business_project\\2025-04-08_Auftragsköpfe SAP.xlsx"
+auftraege_raw <- read_excel("2025-04-08_Auftragsköpfe SAP.xlsx")
+vorgaenge_raw <- read_excel("2025-04-08_Vorgänge SAP.xlsx")
 
-df <- read_excel(file_path)
 
 # Tidy -------------------------------------------------------------------------
 
-df$Werk<- as.character(df$Werk)
-
-Werk_list <- split(df, df$Werk)
 # Transform --------------------------------------------------------------------
 
-Werk_counts <- table(df$Werk)
+#Werke und Linien (welche Linien gibt es in welchen Werken?)
+werk_linie_kreuztabelle <- auftraege_raw %>%
+    count(Werk, Fertigungslinie) %>%
+    pivot_wider(
+        names_from = Fertigungslinie,
+        values_from = n,
+        values_fill = 0
+    )
+
+View(werk_linie_kreuztabelle)
+
+#Werke und Planer (welche Planer gibt es für welche Werke?)
+werk_planer_kreuztabelle <- auftraege_raw %>%
+    count(Werk, Planer) %>%
+    pivot_wider(
+        names_from = Planer,
+        values_from = n,
+        values_fill = 0
+    )
+
+View(werk_planer_kreuztabelle)
