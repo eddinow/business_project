@@ -1,21 +1,69 @@
-# load packages
+#Initialize ------
 
+rm(list = ls())
+set.seed(1)
+
+library(tidyverse)
+library(tidyr)
 library(readxl)
-
 library(dplyr)
+library(ggplot2)
+library(MASS)
 
 # Import -----------------------------------------------------------------------
 
-file_path <- "C:\\Users\\Uzun\\Downloads\\business_project\\2025-04-08_Auftragsköpfe SAP.xlsx"
-
-df <- read_excel(file_path)
+auftraege_raw <- read_excel("2025-04-08_Auftragsköpfe SAP.xlsx")
+vorgaenge_raw <- read_excel("2025-04-08_Vorgänge SAP.xlsx")
 
 # Tidy -------------------------------------------------------------------------
 
-df$Planer <- as.character(df$Planer)
+auftraege_nach_material <- auftraege_raw %>%
+    group_split(Materialnummer)
 
-planer_list <- split(df, df$Planer)
+names(auftraege_nach_material) <- auftraege_raw %>% pull(Materialnummer) %>% unique()
+
 # Transform --------------------------------------------------------------------
 
-planer_counts <- table(df$Planer)
-sum(planer_counts)
+
+# Model -----------
+
+#ABC Material und Planer
+planer_linien_klassifiziert <- auftraege_raw %>%
+    count(Planer, Fertigungslinie, name = "anzahl") %>%
+    group_by(Planer) %>%
+    arrange(desc(anzahl)) %>%
+    mutate(
+        gesamt = sum(anzahl),
+        kum_anteil = cumsum(anzahl) / gesamt,
+        klasse = case_when(
+            kum_anteil <= 0.70 ~ "Top70",
+            kum_anteil <= 0.90 ~ "Top20",
+            TRUE ~ "Top10"
+        )
+    ) %>%
+    ungroup()
+
+planer_linien_abgestuft <- planer_linien_klassifiziert %>%
+    group_by(Planer, klasse) %>%
+    summarise(
+        linien = paste(Fertigungslinie, collapse = ", "),
+        anzahl_linien = n(),
+        auftraege = sum(anzahl),
+        gesamt_auftraege = first(gesamt),
+        anteil = round(auftraege / gesamt_auftraege, 3),
+        .groups = "drop"
+    ) %>%
+    pivot_wider(
+        names_from = klasse,
+        values_from = c(linien, anzahl_linien, auftraege, anteil),
+        names_glue = "{klasse}_{.value}",
+        names_expand = TRUE,
+        values_fill = list(
+            linien = "-", 
+            anzahl_linien = 0,
+            auftraege = 0,
+            anteil = 0
+        )
+    )
+
+View(planer_linien_abgestuft)
