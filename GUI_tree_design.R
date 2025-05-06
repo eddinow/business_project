@@ -9,7 +9,7 @@ library(dplyr)
 
 # Import -----------------------------------------------------------------------
 
-#source("Arbeitsschritte_gebuendelt_als independent_var.R")
+source("Arbeitsschritte_gebuendelt_als independent_var.R")
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
@@ -22,7 +22,7 @@ werke <- unique(auftraege_raw$Werk)
 linien <- unique(auftraege_raw$Fertigungslinie)
 planer <- unique(auftraege_raw$Planer)
 material <- unique(auftraege_raw$Materialnummer)
-#workflows <- unique(auftraege_inkl_vorgangsfolgen$Vorgangsfolge)
+workflows <- unique(auftraege_inkl_vorgangsfolgen$Vorgangsfolge)
 
 # Model -----------
 
@@ -49,15 +49,15 @@ server <- function(input, output, session) {
         linien <- auftraege_raw %>% pull(Fertigungslinie) %>% unique() %>% sort()
         planer <- auftraege_raw %>% pull(Planer) %>% unique() %>% sort()
         material <- auftraege_raw %>% pull(Materialnummer) %>% unique() %>% sort()
-        #workflows <- auftraege_inkl_vorgangsfolgen %>% pull(Vorgangsfolge) %>% unique() %>% sort()
+        workflows <- auftraege_inkl_vorgangsfolgen %>% pull(Vorgangsfolge) %>% unique() %>% sort()
         
         # Rückgabe als verschachtelte Liste
         list(
             "Werke" = as.list(setNames(rep("", length(werke)), werke)),
             "Linien" = as.list(setNames(rep("", length(linien)), linien)),
             "Planer" = as.list(setNames(rep("", length(planer)), planer)),
-            "Material" = as.list(setNames(rep("", length(material)), material))
-            #"Workflows" = as.list(setNames(rep("", length(workflows)), workflows)),
+            "Material" = as.list(setNames(rep("", length(material)), material)),
+            "Workflows" = as.list(setNames(rep("", length(workflows)), workflows))
             
         )
     })
