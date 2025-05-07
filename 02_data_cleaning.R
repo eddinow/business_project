@@ -30,20 +30,3 @@ clean_names_simple <- function(df) {
 order_headers <- clean_names_simple(order_headers)
 operations    <- clean_names_simple(operations)
 
-# 2) Basic cleaning on both tables:
-#    - Trim whitespace in all character columns
-#    - Remove exact duplicates
-#    - Drop rows without an order number
-order_headers <- order_headers %>%
-    mutate(across(where(is.character), str_trim)) %>%
-    distinct() %>%
-    filter(!is.na(auftragsnummer) & auftragsnummer != "")
-
-operations <- operations %>%
-    mutate(across(where(is.character), str_trim)) %>%
-    distinct() %>%
-    filter(!is.na(auftragsnummer) & auftragsnummer != "")
-
-# 3) Print missing-value summary for each column
-print(order_headers %>% summarise(across(everything(), ~ sum(is.na(.)))))
-print(operations    %>% summarise(across(everything(), ~ sum(is.na(.)))))
