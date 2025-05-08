@@ -12,6 +12,7 @@ library(readxl)
 # Import -----------------------------------------------------------------------
 # Achtung: Stelle sicher, dass abc_material_linien vorher erstellt oder gesourced wurde!
 source("Fertigungslinie_als_independent_var.R")
+source("Werk_als_independent_var.R")
 
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
@@ -77,6 +78,29 @@ server <- function(input, output, session) {
     })
 }
 
+output$planer_info <- renderText({
+    selected <- get_selected(input$tree, format = "names")
+    
+    if (length(selected) == 1) {
+        werk <- selected[[1]]
+        if (exists("werk_planer_kreuztabelle") && werk %in% werk_planer_kreuztabelle$Werk) {
+            zugeordnete_planer <- werk_planer_kreuztabelle %>%
+                filter(Werk == werk) %>%
+                select(-Werk) %>%
+                pivot_longer(everything(), names_to = "Planer", values_to = "Anzahl") %>%
+                filter(Anzahl > 0) %>%
+                pull(Planer)
+            
+            if (length(zugeordnete_planer) > 0) {
+                return(paste("Zuständige Planer für Werk", werk, ":\n", paste(zugeordnete_planer, collapse = ", ")))
+            } else {
+                return(paste("Keine Planer für Werk", werk))
+            }
+        }
+    }
+    return("Bitte ein Werk auswählen.")
+})
+
 # Run App ----------------------------------------------------------------------
 shinyApp(ui, server)
-getwd()
+
