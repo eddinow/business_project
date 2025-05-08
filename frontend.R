@@ -79,59 +79,160 @@ mapping$`Vorgangsfolge pro Material` <- auftraege_inkl_vorgangsfolgen %>% distin
 mapping$`Arbeitsplatz pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer, Arbeitsplatzfolge) %>% group_by(Materialnummer) %>% summarise(Arbeitsplatz = list(unique(Arbeitsplatzfolge)), .groups = "drop")
 mapping$`Material pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer) %>% group_by(Materialnummer) %>% summarise(Material = list(unique(Materialnummer)), .groups = "drop")
 
-# Visualize-----------------------------------------
+# Visualize---------------
 
 ui <- fluidPage(
-    titlePanel("Einstiegsseite"),
-    
-    sidebarLayout(
-        sidebarPanel(
-            selectInput("quelle",
-                        "Wähle eine Quelle:",
-                        choices = c("Werk", "Fertigungslinie", "Planer", "Vorgangsfolge", "Arbeitsplatzfolge", "Materialnummer")),
-            
-            uiOutput("auspraegung_ui")
-        ),
-        
-        mainPanel(
-            h4("Verfügbare Ausprägungen:"),
-            DTOutput("auspraegungstabelle")
-        )
-    )
+    titlePanel("Lead Time Calculator"),
+    uiOutput("main_ui")
 )
 
 # Server ------------------------------------------------------------------------
 server <- function(input, output, session) {
     
-    # Dynamischer UI-Output für Auswahlfeld der Ausprägungen
-    output$auspraegung_ui <- renderUI({
-        req(input$quelle)
-        auspraegungen <- unique(auftraege_inkl_vorgangsfolgen[[input$quelle]])
-        selectInput("ausgewaehlte_auspraegung",
-                    label = paste("Wähle eine", input$quelle, "aus:"),
-                    choices = sort(auspraegungen))
+    # Reactive values to track navigation state
+    nav <- reactiveValues(
+        seite = "start",
+        quelle = NULL,
+        auspraegung = NULL,
+        mappingziel = NULL
+    )
+    
+    # Dynamisches UI je nach Zustand
+    output$main_ui <- renderUI({
+        if (nav$seite == "start") {
+            fluidRow(
+                column(12,
+                       h2("Kategorie auswählen, um zu beginnen:"),
+                       br(),
+                       fluidRow(
+                           column(2, actionButton("btn_werk", "Werk", class = "btn btn-primary", style = "width:100px; height:100px;")),
+                           column(2, actionButton("btn_linien", "Fertigungslinie", class = "btn btn-primary", style = "width:100px; height:100px;")),
+                           column(2, actionButton("btn_planer", "Planer", class = "btn btn-primary", style = "width:100px; height:100px;")),
+                           column(2, actionButton("btn_workflows", "Workflows", class = "btn btn-primary", style = "width:100px; height:100px;")),
+                           column(2, actionButton("btn_ap", "Arbeitsplätze", class = "btn btn-primary", style = "width:100px; height:100px;")),
+                           column(2, actionButton("btn_material", "Material", class = "btn btn-primary", style = "width:100px; height:100px;"))
+                       )
+                )
+            )
+        } else if (nav$seite == "uebersicht") {
+            fluidPage(
+                h3(paste("Übersicht", nav$quelle)),
+                DTOutput("auspraegungstabelle"),
+                br(),
+                selectInput("ausgewaehlte_auspraegung", paste("Wähle eine", nav$quelle, "aus:"), choices = NULL),
+                actionButton("bestaetige_auswahl", "Auswahl bestätigen"),
+                br(), br(),
+                actionButton("back_to_start", "Zurück zur Startseite")
+            )
+        } else if (nav$seite == "detail") {
+            fluidPage(
+                h3(paste(nav$mappingziel, "für", nav$auspraegung)),
+                DTOutput("detailtabelle"),
+                actionButton("back_to_uebersicht", "Zurück zur Übersicht"),
+                br(), br(),
+                actionButton("back_to_start", "Zurück zur Startseite")
+            )
+        }
     })
     
-    # Tabelle mit allen Ausprägungen dieser Quelle (und Platzhalter-Spalten)
+    # Navigation durch Buttons
+    observeEvent(input$btn_werk, {
+        nav$quelle <- "Werk"
+        nav$seite <- "uebersicht"
+    })
+    observeEvent(input$btn_linien, {
+        nav$quelle <- "Fertigungslinie"
+        nav$seite <- "uebersicht"
+    })
+    observeEvent(input$btn_planer, {
+        nav$quelle <- "Planer"
+        nav$seite <- "uebersicht"
+    })
+    observeEvent(input$btn_workflows, {
+        nav$quelle <- "Vorgangsfolge"
+        nav$seite <- "uebersicht"
+    })
+    observeEvent(input$btn_ap, {
+        nav$quelle <- "Arbeitsplatzfolge"
+        nav$seite <- "uebersicht"
+    })
+    observeEvent(input$btn_material, {
+        nav$quelle <- "Materialnummer"
+        nav$seite <- "uebersicht"
+    })
+    
+    # Dynamische Auswahl aktualisieren
+    observe({
+        if (!is.null(nav$quelle)) {
+            auspraegungen <- sort(unique(auftraege_inkl_vorgangsfolgen[[nav$quelle]]))
+            updateSelectInput(session, "ausgewaehlte_auspraegung", choices = auspraegungen)
+        }
+    })
+    
+    # Tabelle mit allen Ausprägungen
     output$auspraegungstabelle <- renderDT({
-        req(input$quelle)
-        
-        quelle <- input$quelle
+        req(nav$quelle)
         
         df <- auftraege_inkl_vorgangsfolgen %>%
-            group_by_at(quelle) %>%
-            summarise(
-                `Anzahl Aufträge` = n(),
-                `Current LT` = "Platzhalter LT",
-                `Performance` = "Platzhalter Performance",
-                .groups = "drop"
-            ) %>%
-            rename(Auspraegung = all_of(quelle))
+            group_by_at(nav$quelle) %>%
+            summarise(`Anzahl Aufträge` = n(),
+                      `Current LT` = "Platzhalter LT",
+                      `Performance` = "Platzhalter Perf",
+                      .groups = "drop") %>%
+            rename(Auspraegung = all_of(nav$quelle))
         
         datatable(df, selection = "single")
+    })
+    
+    # Auswahl über Klick auf Tabelle
+    observeEvent(input$auspraegungstabelle_rows_selected, {
+        req(input$auspraegungstabelle_rows_selected)
+        df <- auftraege_inkl_vorgangsfolgen %>%
+            group_by_at(nav$quelle) %>%
+            summarise(`Anzahl Aufträge` = n(), .groups = "drop") %>%
+            rename(Auspraegung = all_of(nav$quelle))
+        
+        auswahl <- df$Auspraegung[input$auspraegungstabelle_rows_selected]
+        updateSelectInput(session, "ausgewaehlte_auspraegung", selected = auswahl)
+    })
+    
+    # Auswahl bestätigen und zur Detailansicht
+    observeEvent(input$bestaetige_auswahl, {
+        req(input$ausgewaehlte_auspraegung)
+        nav$auspraegung <- input$ausgewaehlte_auspraegung
+        nav$seite <- "detail"
+    })
+    
+    # Zurück zur Übersicht
+    observeEvent(input$back_to_uebersicht, {
+        nav$seite <- "uebersicht"
+        auspraegungen <- sort(unique(auftraege_inkl_vorgangsfolgen[[nav$quelle]]))
+        updateSelectInput(session, "ausgewaehlte_auspraegung", choices = auspraegungen, selected = NULL)
+    })
+    
+    # Zurück zur Startseite
+    observeEvent(input$back_to_start, {
+        nav$seite <- "start"
+        nav$auspraegung <- NULL
+        nav$mappingziel <- NULL
+        nav$quelle <- NULL
+    })
+    
+    # Detailtabelle basierend auf mapping
+    output$detailtabelle <- renderDT({
+        req(nav$auspraegung, nav$mappingziel)
+        
+        key <- paste(nav$mappingziel, "pro", nav$quelle)
+        if (key %in% names(mapping)) {
+            df <- mapping[[key]]
+            df <- df[df[[nav$quelle]] == nav$auspraegung, ]
+            df[[nav$quelle]] <- NULL
+            return(datatable(df))
+        } else {
+            return(datatable(data.frame(Hinweis = "Kein Mapping vorhanden.")))
+        }
     })
 }
 
 # Run App -----------------------------------------------------------------------
 shinyApp(ui, server)
-
