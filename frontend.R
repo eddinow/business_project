@@ -82,26 +82,56 @@ mapping$`Material pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Ma
 # Visualize-----------------------------------------
 
 ui <- fluidPage(
-    titlePanel("Mapping-Explorer"),
+    titlePanel("Einstiegsseite"),
+    
     sidebarLayout(
         sidebarPanel(
-            selectInput("mapping_auswahl",
-                        "Wähle ein Mapping:",
-                        choices = names(mapping),
-                        selected = names(mapping)[1])
+            selectInput("quelle",
+                        "Wähle eine Quelle:",
+                        choices = c("Werk", "Fertigungslinie", "Planer", "Vorgangsfolge", "Arbeitsplatzfolge", "Materialnummer")),
+            
+            uiOutput("auspraegung_ui")
         ),
+        
         mainPanel(
-            DTOutput("mapping_tabelle")
+            h4("Verfügbare Ausprägungen:"),
+            DTOutput("auspraegungstabelle")
         )
     )
 )
 
+# Server ------------------------------------------------------------------------
 server <- function(input, output, session) {
-    output$mapping_tabelle <- renderDT({
-        req(input$mapping_auswahl)
-        mapping[[input$mapping_auswahl]]
+    
+    # Dynamischer UI-Output für Auswahlfeld der Ausprägungen
+    output$auspraegung_ui <- renderUI({
+        req(input$quelle)
+        auspraegungen <- unique(auftraege_inkl_vorgangsfolgen[[input$quelle]])
+        selectInput("ausgewaehlte_auspraegung",
+                    label = paste("Wähle eine", input$quelle, "aus:"),
+                    choices = sort(auspraegungen))
+    })
+    
+    # Tabelle mit allen Ausprägungen dieser Quelle (und Platzhalter-Spalten)
+    output$auspraegungstabelle <- renderDT({
+        req(input$quelle)
+        
+        quelle <- input$quelle
+        
+        df <- auftraege_inkl_vorgangsfolgen %>%
+            group_by_at(quelle) %>%
+            summarise(
+                `Anzahl Aufträge` = n(),
+                `Current LT` = "Platzhalter LT",
+                `Performance` = "Platzhalter Performance",
+                .groups = "drop"
+            ) %>%
+            rename(Auspraegung = all_of(quelle))
+        
+        datatable(df, selection = "single")
     })
 }
 
+# Run App -----------------------------------------------------------------------
 shinyApp(ui, server)
 
