@@ -33,4 +33,51 @@ arbeitsplatzfolgen <- vorgaenge_raw %>%
 auftraege_inkl_vorgangsfolgen <- auftraege_inkl_vorgangsfolgen %>%
     left_join(arbeitsplatzfolgen, by = "Auftragsnummer")
 
-view(auftraege_inkl_vorgangsfolgen)
+
+#Code fürs Mappen in der App
+
+#Arbeitsschrittfolgen und Linien (welche Linien für welche AS-Folgen?)
+linie_pro_AS <- auftraege_raw %>%
+    count(Vorgangsfolge, Fertigungslinie) %>%
+    pivot_wider(
+        names_from = Fertigungslinie,
+        values_from = n,
+        values_fill = 0
+    )
+
+
+#Werke und Planer (welche Planer gibt es für welche Werke?)
+planer_pro_AS <- auftraege_raw %>%
+    count(Vorgangsfolge, Planer) %>%
+    pivot_wider(
+        names_from = Planer,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Werke und Workflows 
+workflow_pro_AS <- auftraege_inkl_vorgangsfolgen %>%
+    count(Vorgangsfolge, ) %>%
+    pivot_wider(
+        names_from = Vorgangsfolge,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Werke und arbeitsplatz 
+arbeitsplatz_pro_werk <- auftraege_inkl_vorgangsfolgen %>%
+    count(Werk, Vorgangsfolge) %>%
+    pivot_wider(
+        names_from = Vorgangsfolge,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Werke und material 
+material_pro_werk <- auftraege_inkl_vorgangsfolgen %>%
+    count(Werk, Materialnummer) %>%
+    pivot_wider(
+        names_from = Materialnummer,
+        values_from = n,
+        values_fill = 0
+    )

@@ -12,8 +12,9 @@ library(MASS)
 
 # Import -----------------------------------------------------------------------
 
-auftraege_raw <- read_excel("2025-04-08_Auftragsköpfe SAP.xlsx")
-vorgaenge_raw <- read_excel("2025-04-08_Vorgänge SAP.xlsx")
+auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
+vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
+source("Arbeitsschritte_gebuendelt_als independent_var.R")
 
 # Tidy -------------------------------------------------------------------------
 
@@ -67,3 +68,50 @@ planer_linien_abgestuft <- planer_linien_klassifiziert %>%
     )
 
 View(planer_linien_abgestuft)
+
+
+#Planer und Linien (welche Linien von welchen Planern?
+linie_pro_planer <- auftraege_raw %>%
+    count(Planer, Fertigungslinie) %>%
+    pivot_wider(
+        names_from = Fertigungslinie,
+        values_from = n,
+        values_fill = 0
+    )
+
+
+#Planer und Werk 
+werk_pro_planer <- auftraege_raw %>%
+    count(Planer, Werk) %>%
+    pivot_wider(
+        names_from = Werk,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Planer und Workflows 
+workflow_pro_planer <- auftraege_inkl_vorgangsfolgen %>%
+    count(Planer, Vorgangsfolge) %>%
+    pivot_wider(
+        names_from = Vorgangsfolge,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Planer und arbeitsplatz 
+arbeitsplatz_pro_planer <- auftraege_inkl_vorgangsfolgen %>%
+    count(Planer, Vorgangsfolge) %>%
+    pivot_wider(
+        names_from = Vorgangsfolge,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Planer und material 
+material_pro_planer <- auftraege_inkl_vorgangsfolgen %>%
+    count(Planer, Materialnummer) %>%
+    pivot_wider(
+        names_from = Materialnummer,
+        values_from = n,
+        values_fill = 0
+    )

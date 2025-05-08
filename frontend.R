@@ -126,8 +126,16 @@ server <- function(input, output, session) {
             )
         } else if (nav$seite == "detail") {
             fluidPage(
-                h3(paste(nav$mappingziel, "für", nav$auspraegung)),
-                DTOutput("detailtabelle"),
+                h3(paste("Performance Dashboard Ausprägung für", nav$auspraegung)),
+                tags$div(
+                    tags$strong("Work in Progress"), ": Anzahl aller Aufträge in dieser Ausprägung", tags$br(),
+                    tags$strong("Average LT"), ": ", tags$em("Text: Formel muss noch formuliert werden"), tags$br(),
+                    tags$strong("Performance"), ": ", tags$em("Text: Formel muss noch formuliert werden"), tags$br(),
+                    tags$strong("Platzhalter"), ": Platzhalter", tags$br(), tags$br(),
+                    tags$h4("Siehe nähere Details:"),
+                    tableOutput("auspraegung_detail"),
+                    br()
+                ),
                 actionButton("back_to_uebersicht", "Zurück zur Übersicht"),
                 br(), br(),
                 actionButton("back_to_start", "Zurück zur Startseite")
@@ -165,7 +173,7 @@ server <- function(input, output, session) {
     observe({
         if (!is.null(nav$quelle)) {
             auspraegungen <- sort(unique(auftraege_inkl_vorgangsfolgen[[nav$quelle]]))
-            updateSelectInput(session, "ausgewaehlte_auspraegung", choices = auspraegungen)
+            updateSelectInput(session, "ausgewaehlte_auspraegung", choices = auspraegungen, selected = nav$auspraegung)
         }
     })
     
@@ -206,8 +214,6 @@ server <- function(input, output, session) {
     # Zurück zur Übersicht
     observeEvent(input$back_to_uebersicht, {
         nav$seite <- "uebersicht"
-        auspraegungen <- sort(unique(auftraege_inkl_vorgangsfolgen[[nav$quelle]]))
-        updateSelectInput(session, "ausgewaehlte_auspraegung", choices = auspraegungen, selected = NULL)
     })
     
     # Zurück zur Startseite
@@ -218,19 +224,13 @@ server <- function(input, output, session) {
         nav$quelle <- NULL
     })
     
-    # Detailtabelle basierend auf mapping
-    output$detailtabelle <- renderDT({
-        req(nav$auspraegung, nav$mappingziel)
-        
-        key <- paste(nav$mappingziel, "pro", nav$quelle)
-        if (key %in% names(mapping)) {
-            df <- mapping[[key]]
-            df <- df[df[[nav$quelle]] == nav$auspraegung, ]
-            df[[nav$quelle]] <- NULL
-            return(datatable(df))
-        } else {
-            return(datatable(data.frame(Hinweis = "Kein Mapping vorhanden.")))
-        }
+    # Detailansicht - Platzhalter Tabelle
+    output$auspraegung_detail <- renderTable({
+        data.frame(
+            Kategorie = c("Linien", "Planer", "Workflows", "Arbeitsplätze", "Material"),
+            Insgesamt = rep("Platzhalter", 5),
+            QuickView = paste("Liste Namen der ersten", 15:19)
+        )
     })
 }
 
