@@ -85,3 +85,4 @@ Vorgangsfolgen_und_Materialnummern <- Vorgangsfolgen_und_Materialnummern %>%
 
 # Ergebnis anzeigen
 View(Vorgangsfolgen_und_Materialnummern)
+view(auftraege_inkl_vorgangsfolgen)
