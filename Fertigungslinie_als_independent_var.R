@@ -44,9 +44,9 @@ abc_material_linien_klassifiziert <- auftraege_raw %>%
         gesamt = sum(anzahl),
         kum_anteil = cumsum(anzahl) / gesamt,
         klasse = case_when(
-            kum_anteil <= 0.10 ~ "A",
+            kum_anteil <= 0.10 ~ "C",
             kum_anteil <= 0.30 ~ "B",
-            TRUE ~ "C"
+            TRUE ~ "A"
         )
     ) %>%
     ungroup()

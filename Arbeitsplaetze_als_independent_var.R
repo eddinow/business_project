@@ -23,27 +23,21 @@ source("Arbeitsschritte_gebuendelt_als independent_var.R")
 
 # Transform --------------------------------------------------------------------
 
-# Arbeitsplatzfolge aus vorgaenge_raw erzeugen
-arbeitsplatzfolgen <- vorgaenge_raw %>%
-    arrange(Auftragsnummer, Vorgangsnummer) %>%
-    group_by(Auftragsnummer) %>%
-    summarise(Arbeitsplatzfolge = paste(Arbeitsplatz, collapse = " → "), .groups = "drop")
 
-# An den bestehenden DataFrame anhängen
-auftraege_inkl_vorgangsfolgen <- auftraege_inkl_vorgangsfolgen %>%
-    left_join(arbeitsplatzfolgen, by = "Auftragsnummer")
+#Hinzufügen der Arbeitsplätze für jeden Auftrag im auftragskopf data frame.
 
+#hier noch spalte arbeitsplätze für auftrag in auftragsdatei ergänzen
 
 #Code fürs Mappen in der App
 
 #Arbeitsschrittfolgen und Linien (welche Linien für welche AS-Folgen?)
-linie_pro_AS <- auftraege_raw %>%
-    count(Vorgangsfolge, Fertigungslinie) %>%
-    pivot_wider(
-        names_from = Fertigungslinie,
-        values_from = n,
-        values_fill = 0
-    )
+#linie_pro_AS <- auftraege_raw %>%
+ #   count(Vorgangsfolge, Fertigungslinie) %>%
+  #  pivot_wider(
+   #     names_from = Fertigungslinie,
+    #    values_from = n,
+     #   values_fill = 0
+    #)
 
 
 #Werke und Planer (welche Planer gibt es für welche Werke?)
