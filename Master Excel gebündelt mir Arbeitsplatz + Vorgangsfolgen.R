@@ -1,7 +1,10 @@
 # Initialize -------------------------------------------------------------------
+#RM müssen wir hier aussschalten weil für create all data finalized die datei 
+# aus zwei skripten erstellt wird und wir sonst dieses data frame hier wieder
+#"sperren"
 
-rm(list = ls())
-set.seed(1)
+#rm(list = ls())
+#set.seed(1)
 
 library(tidyverse)
 library(tidyr)
@@ -61,4 +64,4 @@ anzahl_auftraege <- auftraege_inkl_vorgangsfolgen %>%
 Vorgangsfolgen_und_Materialnummern <- Vorgangsfolgen_und_Materialnummern %>%
     left_join(anzahl_auftraege, by = "Vorgangsfolge")
 
-view(auftraege_inkl_vorgangsfolgen)
+#view(auftraege_inkl_vorgangsfolgen)
