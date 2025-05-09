@@ -214,5 +214,47 @@ vorgaenge_sap_ohne_na %>%
     filter(auftragsnummer == "1068473") %>%
     print()
 
-#1.2 fertig 
+#1.2 fertig                                             
 
+# Aufträge mit gelieferte Menge = 0 entfernen, da diese nur Versuchsaufträge waren
+
+# 1. Auftragsnummern mit 0 in gelieferter Menge finden
+auftraege_mit_null <- auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge %>%
+    filter(gelieferte_menge == 0) %>%
+    pull(auftragsnummer)
+
+# 2. Diese Aufträge aus df_lieferungen entfernen
+auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge_ohne0 <- auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge %>%
+    filter(!auftragsnummer %in% auftraege_mit_null)
+
+# 3. Auch die Vorgänge dieser Aufträge entfernen
+vorgaenge_sap_ohne_na_ohne0 <- vorgaenge_sap_ohne_na %>%
+    filter(!auftragsnummer %in% auftraege_mit_null)
+# sollen wir an dieser Stelle auch die restlichen 0 in den Vorgängen rausnehmen? Die könnten ja irgendein Kontrollprozess sein der zur lead Time dazugehört aber keine Menge produziert
+
+#Gibt es noch fehlende Werte?
+sum(is.na(auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge_ohne0))
+sum(is.na(vorgaenge_sap_ohne_na_ohne0))
+
+# Ist Leadtimes berechnen um statistische Ausreißer zu ermitteln. 
+
+# Lead Times berechen
+fast_fertiger_datensatz <- auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge_ohne0 %>%
+    mutate(
+        lead_time_ist = as.numeric(difftime(endtermin_ist, starttermin_ist, units = "days")),
+        lead_time_soll = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days"))
+)
+# Abweichungen berechnen
+fast_fertiger_datensatz <- fast_fertiger_datensatz %>%
+    mutate(
+        abweichung = lead_time_ist - lead_time_soll)
+# Abweichungen visualisieren
+ggplot(fast_fertiger_datensatz, aes(y = abweichung)) +
+    geom_boxplot(fill = "skyblue") +
+    labs(title = "Verteilung der abweichungen", y = "Tage") +
+    theme_minimal()
+
+ggplot(fast_fertiger_datensatz, aes(x = abweichung)) +
+    geom_histogram(binwidth = 1, fill = "steelblue", color = "yellow") +
+    labs(title = "Histogramm der Abweichungen", x = "Lead Time (Tage)", y = "Anzahl") +
+    theme_minimal()

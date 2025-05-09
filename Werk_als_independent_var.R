@@ -14,6 +14,7 @@ library(MASS)
 
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
+source("Arbeitsschritte_gebuendelt_als independent_var.R")
 
 
 # Tidy -------------------------------------------------------------------------
@@ -21,7 +22,7 @@ vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 # Transform --------------------------------------------------------------------
 
 #Werke und Linien (welche Linien gibt es in welchen Werken?)
-werk_linie_kreuztabelle <- auftraege_raw %>%
+linie_pro_werk <- auftraege_raw %>%
     count(Werk, Fertigungslinie) %>%
     pivot_wider(
         names_from = Fertigungslinie,
@@ -29,10 +30,9 @@ werk_linie_kreuztabelle <- auftraege_raw %>%
         values_fill = 0
     )
 
-View(werk_linie_kreuztabelle)
 
 #Werke und Planer (welche Planer gibt es für welche Werke?)
-werk_planer_kreuztabelle <- auftraege_raw %>%
+planer_pro_werk <- auftraege_raw %>%
     count(Werk, Planer) %>%
     pivot_wider(
         names_from = Planer,
@@ -40,4 +40,29 @@ werk_planer_kreuztabelle <- auftraege_raw %>%
         values_fill = 0
     )
 
-View(werk_planer_kreuztabelle)
+#Werke und Workflows 
+workflow_pro_werk <- auftraege_inkl_vorgangsfolgen %>%
+    count(Werk, Vorgangsfolge) %>%
+    pivot_wider(
+        names_from = Vorgangsfolge,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Werke und arbeitsplatz 
+arbeitsplatz_pro_werk <- auftraege_inkl_vorgangsfolgen %>%
+    count(Werk, Vorgangsfolge) %>%
+    pivot_wider(
+        names_from = Vorgangsfolge,
+        values_from = n,
+        values_fill = 0
+    )
+
+#Werke und material 
+material_pro_werk <- auftraege_inkl_vorgangsfolgen %>%
+    count(Werk, Materialnummer) %>%
+    pivot_wider(
+        names_from = Materialnummer,
+        values_from = n,
+        values_fill = 0
+    )

@@ -27,21 +27,62 @@ vorgangsfolgen <- vorgaenge_raw %>%
     group_by(Auftragsnummer) %>%
     summarise(Vorgangsfolge = paste(Vorgangsnummer, collapse = " → "), .groups = "drop")
 
-einzigartige_folgen <- vorgangsfolgen %>%
+einzigartige_folgen_inkl_anzahl <- vorgangsfolgen %>%
     count(Vorgangsfolge, sort = TRUE)
 
-View(einzigartige_folgen)
+#View(einzigartige_folgen_inkl_anzahl)
 
-#Arbeitsschritte und Linien
+#Vorgänge und Linien
 
 vorgangsfolgen <- vorgaenge_raw %>%
     arrange(Auftragsnummer, Vorgangsnummer) %>%
     group_by(Auftragsnummer) %>%
     summarise(Vorgangsfolge = paste(Vorgangsnummer, collapse = " → "), .groups = "drop")
 
-# Schritt 2: Diese Information an die Auftragsköpfe anhängen
 auftraege_inkl_vorgangsfolgen <- auftraege_raw %>%
     left_join(vorgangsfolgen, by = "Auftragsnummer")
 
-# Ergebnis prüfen
-View(auftraege_inkl_vorgangsfolgen)
+#View(auftraege_inkl_vorgangsfolgen)
+
+Vorgangsfolgen_und_Fertigungslinien <- auftraege_inkl_vorgangsfolgen %>%
+    filter(!is.na(Fertigungslinie)) %>%
+    count(Vorgangsfolge, Fertigungslinie) %>%
+    pivot_wider(names_from = Fertigungslinie,
+                values_from = n,
+                values_fill = 0)
+Vorgangsfolgen_und_Fertigungslinien <- Vorgangsfolgen_und_Fertigungslinien %>%
+    mutate(Gesamt = rowSums(.[, -1]))
+
+#View(einzigartige_folgen_mit_gesamt)
+
+View(Vorgangsfolgen_und_Fertigungslinien)
+
+#Material und Vorgänge
+
+Vorgangsfolgen_und_Materialnummern <- auftraege_inkl_vorgangsfolgen %>%
+    count(Vorgangsfolge, Materialnummer) %>%
+    group_by(Vorgangsfolge) %>%
+    summarise(
+        Alle_Materialnummern = paste(Materialnummer, collapse = ", "),
+        Anzahl_Materialien = n(),
+        Top_Material = Materialnummer[which.max(n)],
+        .groups = "drop"
+    )
+
+# Schritt 2: Spaltennamen anpassen
+Vorgangsfolgen_und_Materialnummern <- Vorgangsfolgen_und_Materialnummern %>%
+    rename(
+        Materialnummern = Alle_Materialnummern,
+        Anzahl_Materialnummern = Anzahl_Materialien
+    )
+
+# Schritt 3: Anzahl Aufträge hinzufügen
+anzahl_auftraege <- auftraege_inkl_vorgangsfolgen %>%
+    count(Vorgangsfolge, name = "Anzahl_Auftraege")
+
+Vorgangsfolgen_und_Materialnummern <- Vorgangsfolgen_und_Materialnummern %>%
+    left_join(anzahl_auftraege, by = "Vorgangsfolge")
+
+# Ergebnis anzeigen
+View(Vorgangsfolgen_und_Materialnummern)
+view(auftraege_inkl_vorgangsfolgen)
