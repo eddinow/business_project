@@ -203,6 +203,17 @@ replacement_summary <- auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_dat
 
 print(replacement_summary)
 
+# 6) Remove helper columns
+auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge <-
+    auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge %>%
+    select(
+        -min_iststart,
+        -max_istende,
+        -replaced_start,
+        -replaced_end
+    )
+
+
 # test ob es geklappt hat. Hab auf die Schnelle Aufrag gefunden, bei der sich die Daten unterschieden haben
 # 1) Show the header row in your enriched headers object
 auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge %>%
@@ -214,5 +225,57 @@ vorgaenge_sap_ohne_na %>%
     filter(auftragsnummer == "1068473") %>%
     print()
 
-#1.2 fertig 
+#1.2 fertig                                             
 
+# Aufträge mit gelieferte Menge = 0 entfernen, da diese nur Versuchsaufträge waren
+
+# 1. Auftragsnummern mit 0 in gelieferter Menge finden
+auftraege_mit_null <- auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge %>%
+    filter(gelieferte_menge == 0) %>%
+    pull(auftragsnummer)
+
+# 2. Diese Aufträge aus df_lieferungen entfernen
+auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge_ohne0 <- auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge %>%
+    filter(!auftragsnummer %in% auftraege_mit_null)
+
+# 3. Auch die Vorgänge dieser Aufträge entfernen
+vorgaenge_sap_ohne_na_ohne0 <- vorgaenge_sap_ohne_na %>%
+    filter(!auftragsnummer %in% auftraege_mit_null)
+
+
+#Gibt es noch fehlende Werte?
+sum(is.na(auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge_ohne0))
+sum(is.na(vorgaenge_sap_ohne_na_ohne0))
+
+# Ist Leadtimes berechnen um statistische Ausreißer zu ermitteln. 
+
+# Lead Times berechen
+fast_fertiger_datensatz_auftragskoepfe <- auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge_ohne0 %>%
+    mutate(
+        lead_time_ist = as.numeric(difftime(endtermin_ist, starttermin_ist, units = "days")),
+        lead_time_soll = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days"))
+    )
+#von Datum auf Produktionstage umstellen
+fast_fertiger_datensatz_auftragskoepfe <- fast_fertiger_datensatz_auftragskoepfe %>%
+    mutate(
+        lead_time_ist = lead_time_ist + 1,
+        lead_time_soll = lead_time_soll + 1
+    )
+
+# Abweichungen berechnen
+fast_fertiger_datensatz_auftragskoepfe <- fast_fertiger_datensatz_auftragskoepfe %>%
+    mutate(
+        abweichung = lead_time_ist - lead_time_soll)
+
+mean(fast_fertiger_datensatz_auftragskoepfe$abweichung)
+
+# Abweichungen visualisieren
+ggplot(fast_fertiger_datensatz_auftragskoepfe, aes(y = abweichung)) +
+    geom_boxplot(fill = "skyblue") +
+    labs(title = "Verteilung der Abweichungen", y = "Tage") +
+    theme_minimal()
+
+ggplot(fast_fertiger_datensatz_auftragskoepfe, aes(x = abweichung)) +
+    geom_histogram(binwidth = 1, fill = "steelblue", color = "yellow") +
+    labs(title = "Histogramm der Abweichungen", x = "Lead Time (Tage)", y = "Anzahl") +
+    theme_minimal()
