@@ -19,12 +19,11 @@ source("02_data_cleaning.R")
 source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
 
 
-all_data_finalized <- vorgaenge_sap_ohne_na_ohne0 %>%
+all_data_finalized <- fast_fertiger_datensatz_auftragskoepfe %>%
     left_join(
         auftraege_inkl_vorgangsfolgen %>%
             dplyr::select(
                 Auftragsnummer,
-                werk = Werk,
                 vorgangsfolge = Vorgangsfolge,
                 arbeitsplatzfolge = Arbeitsplatzfolge
             ),

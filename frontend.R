@@ -1,5 +1,4 @@
-#Initialize ------
-setwd("C:\\Users\\julia\\OneDrive\\Dokumente\\04 Supply Chain Management Master\\13 Business Project\\Github Verbindung\\business_project")
+# Initialisierung ----------------------------------------------------------------
 
 rm(list = ls())
 set.seed(1)
@@ -13,74 +12,62 @@ library(MASS)
 library(shiny)
 library(DT)
 
-# Import -----------------------------------------------------------------------
+# Daten laden -------------------------------------------------------------------
+source("create_all_data_finalized.R")  # erzeugt 'all_data_finalized'
 
-auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
-vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
-
-#Diese Datei brauchen wir
-source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
-
-
-
-# Wir mappen die Daten: Erstellen einer Matrix mit Werk, Linie, Planer, 
-#Vorgangsfolge, Arbeitsplatz & Material pro Werk als Zeilen und Spalten. Zeilen
-# bilden die Oberkategorie und Spalten die Unterkategorie, also bspw Zeile Werk
-# Spalte Linie = Linien pro Werk. So haben wir gute Möglichkeit data frames 
-# gezielt einzubetten und UI aufzubauen
-
-
+# Mapping vorbereiten ----------------------------------------------------------
 mapping <- list()
 
 # Werk als Quelle
-mapping$`Werk pro Werk` <- auftraege_inkl_vorgangsfolgen %>% distinct(Werk) %>% group_by(Werk) %>% summarise(Werk = list(unique(Werk)), .groups = "drop")
-mapping$`Linie pro Werk` <- auftraege_inkl_vorgangsfolgen %>% distinct(Werk, Fertigungslinie) %>% group_by(Werk) %>% summarise(Linie = list(unique(Fertigungslinie)), .groups = "drop")
-mapping$`Planer pro Werk` <- auftraege_inkl_vorgangsfolgen %>% distinct(Werk, Planer) %>% group_by(Werk) %>% summarise(Planer = list(unique(Planer)), .groups = "drop")
-mapping$`Vorgangsfolge pro Werk` <- auftraege_inkl_vorgangsfolgen %>% distinct(Werk, Vorgangsfolge) %>% group_by(Werk) %>% summarise(Vorgangsfolge = list(unique(Vorgangsfolge)), .groups = "drop")
-mapping$`Arbeitsplatz pro Werk` <- auftraege_inkl_vorgangsfolgen %>% distinct(Werk, Arbeitsplatzfolge) %>% group_by(Werk) %>% summarise(Arbeitsplatz = list(unique(Arbeitsplatzfolge)), .groups = "drop")
-mapping$`Material pro Werk` <- auftraege_inkl_vorgangsfolgen %>% distinct(Werk, Materialnummer) %>% group_by(Werk) %>% summarise(Material = list(unique(Materialnummer)), .groups = "drop")
+mapping$`Werk pro Werk` <- all_data_finalized %>% distinct(werk) %>% group_by(werk) %>% summarise(werk = list(unique(werk)), .groups = "drop")
+mapping$`Linie pro Werk` <- all_data_finalized %>% distinct(werk, fertigungslinie) %>% group_by(werk) %>% summarise(linie = list(unique(fertigungslinie)), .groups = "drop")
+mapping$`Planer pro Werk` <- all_data_finalized %>% distinct(werk, planer) %>% group_by(werk) %>% summarise(planer = list(unique(planer)), .groups = "drop")
+mapping$`Vorgangsfolge pro Werk` <- all_data_finalized %>% distinct(werk, vorgangsfolge) %>% group_by(werk) %>% summarise(vorgangsfolge = list(unique(vorgangsfolge)), .groups = "drop")
+mapping$`Arbeitsplatz pro Werk` <- all_data_finalized %>% distinct(werk, arbeitsplatzfolge) %>% group_by(werk) %>% summarise(arbeitsplatz = list(unique(arbeitsplatzfolge)), .groups = "drop")
+mapping$`Material pro Werk` <- all_data_finalized %>% distinct(werk, materialnummer) %>% group_by(werk) %>% summarise(material = list(unique(materialnummer)), .groups = "drop")
 
 # Fertigungslinie als Quelle
-mapping$`Werk pro Linie` <- auftraege_inkl_vorgangsfolgen %>% distinct(Fertigungslinie, Werk) %>% group_by(Fertigungslinie) %>% summarise(Werk = list(unique(Werk)), .groups = "drop")
-mapping$`Linie pro Linie` <- auftraege_inkl_vorgangsfolgen %>% distinct(Fertigungslinie) %>% group_by(Fertigungslinie) %>% summarise(Linie = list(unique(Fertigungslinie)), .groups = "drop")
-mapping$`Planer pro Linie` <- auftraege_inkl_vorgangsfolgen %>% distinct(Fertigungslinie, Planer) %>% group_by(Fertigungslinie) %>% summarise(Planer = list(unique(Planer)), .groups = "drop")
-mapping$`Vorgangsfolge pro Linie` <- auftraege_inkl_vorgangsfolgen %>% distinct(Fertigungslinie, Vorgangsfolge) %>% group_by(Fertigungslinie) %>% summarise(Vorgangsfolge = list(unique(Vorgangsfolge)), .groups = "drop")
-mapping$`Arbeitsplatz pro Linie` <- auftraege_inkl_vorgangsfolgen %>% distinct(Fertigungslinie, Arbeitsplatzfolge) %>% group_by(Fertigungslinie) %>% summarise(Arbeitsplatz = list(unique(Arbeitsplatzfolge)), .groups = "drop")
-mapping$`Material pro Linie` <- auftraege_inkl_vorgangsfolgen %>% distinct(Fertigungslinie, Materialnummer) %>% group_by(Fertigungslinie) %>% summarise(Material = list(unique(Materialnummer)), .groups = "drop")
+mapping$`Werk pro Linie` <- all_data_finalized %>% distinct(fertigungslinie, werk) %>% group_by(fertigungslinie) %>% summarise(werk = list(unique(werk)), .groups = "drop")
+mapping$`Linie pro Linie` <- all_data_finalized %>% distinct(fertigungslinie) %>% group_by(fertigungslinie) %>% summarise(linie = list(unique(fertigungslinie)), .groups = "drop")
+mapping$`Planer pro Linie` <- all_data_finalized %>% distinct(fertigungslinie, planer) %>% group_by(fertigungslinie) %>% summarise(planer = list(unique(planer)), .groups = "drop")
+mapping$`Vorgangsfolge pro Linie` <- all_data_finalized %>% distinct(fertigungslinie, vorgangsfolge) %>% group_by(fertigungslinie) %>% summarise(vorgangsfolge = list(unique(vorgangsfolge)), .groups = "drop")
+mapping$`Arbeitsplatz pro Linie` <- all_data_finalized %>% distinct(fertigungslinie, arbeitsplatzfolge) %>% group_by(fertigungslinie) %>% summarise(arbeitsplatz = list(unique(arbeitsplatzfolge)), .groups = "drop")
+mapping$`Material pro Linie` <- all_data_finalized %>% distinct(fertigungslinie, materialnummer) %>% group_by(fertigungslinie) %>% summarise(material = list(unique(materialnummer)), .groups = "drop")
 
 # Planer als Quelle
-mapping$`Werk pro Planer` <- auftraege_inkl_vorgangsfolgen %>% distinct(Planer, Werk) %>% group_by(Planer) %>% summarise(Werk = list(unique(Werk)), .groups = "drop")
-mapping$`Linie pro Planer` <- auftraege_inkl_vorgangsfolgen %>% distinct(Planer, Fertigungslinie) %>% group_by(Planer) %>% summarise(Linie = list(unique(Fertigungslinie)), .groups = "drop")
-mapping$`Planer pro Planer` <- auftraege_inkl_vorgangsfolgen %>% distinct(Planer) %>% group_by(Planer) %>% summarise(Planer = list(unique(Planer)), .groups = "drop")
-mapping$`Vorgangsfolge pro Planer` <- auftraege_inkl_vorgangsfolgen %>% distinct(Planer, Vorgangsfolge) %>% group_by(Planer) %>% summarise(Vorgangsfolge = list(unique(Vorgangsfolge)), .groups = "drop")
-mapping$`Arbeitsplatz pro Planer` <- auftraege_inkl_vorgangsfolgen %>% distinct(Planer, Arbeitsplatzfolge) %>% group_by(Planer) %>% summarise(Arbeitsplatz = list(unique(Arbeitsplatzfolge)), .groups = "drop")
-mapping$`Material pro Planer` <- auftraege_inkl_vorgangsfolgen %>% distinct(Planer, Materialnummer) %>% group_by(Planer) %>% summarise(Material = list(unique(Materialnummer)), .groups = "drop")
+mapping$`Werk pro Planer` <- all_data_finalized %>% distinct(planer, werk) %>% group_by(planer) %>% summarise(werk = list(unique(werk)), .groups = "drop")
+mapping$`Linie pro Planer` <- all_data_finalized %>% distinct(planer, fertigungslinie) %>% group_by(planer) %>% summarise(linie = list(unique(fertigungslinie)), .groups = "drop")
+mapping$`Planer pro Planer` <- all_data_finalized %>% distinct(planer) %>% group_by(planer) %>% summarise(planer = list(unique(planer)), .groups = "drop")
+mapping$`Vorgangsfolge pro Planer` <- all_data_finalized %>% distinct(planer, vorgangsfolge) %>% group_by(planer) %>% summarise(vorgangsfolge = list(unique(vorgangsfolge)), .groups = "drop")
+mapping$`Arbeitsplatz pro Planer` <- all_data_finalized %>% distinct(planer, arbeitsplatzfolge) %>% group_by(planer) %>% summarise(arbeitsplatz = list(unique(arbeitsplatzfolge)), .groups = "drop")
+mapping$`Material pro Planer` <- all_data_finalized %>% distinct(planer, materialnummer) %>% group_by(planer) %>% summarise(material = list(unique(materialnummer)), .groups = "drop")
 
 # Vorgangsfolge als Quelle
-mapping$`Werk pro Vorgangsfolge` <- auftraege_inkl_vorgangsfolgen %>% distinct(Vorgangsfolge, Werk) %>% group_by(Vorgangsfolge) %>% summarise(Werk = list(unique(Werk)), .groups = "drop")
-mapping$`Linie pro Vorgangsfolge` <- auftraege_inkl_vorgangsfolgen %>% distinct(Vorgangsfolge, Fertigungslinie) %>% group_by(Vorgangsfolge) %>% summarise(Linie = list(unique(Fertigungslinie)), .groups = "drop")
-mapping$`Planer pro Vorgangsfolge` <- auftraege_inkl_vorgangsfolgen %>% distinct(Vorgangsfolge, Planer) %>% group_by(Vorgangsfolge) %>% summarise(Planer = list(unique(Planer)), .groups = "drop")
-mapping$`Vorgangsfolge pro Vorgangsfolge` <- auftraege_inkl_vorgangsfolgen %>% distinct(Vorgangsfolge) %>% group_by(Vorgangsfolge) %>% summarise(Vorgangsfolge = list(unique(Vorgangsfolge)), .groups = "drop")
-mapping$`Arbeitsplatz pro Vorgangsfolge` <- auftraege_inkl_vorgangsfolgen %>% distinct(Vorgangsfolge, Arbeitsplatzfolge) %>% group_by(Vorgangsfolge) %>% summarise(Arbeitsplatz = list(unique(Arbeitsplatzfolge)), .groups = "drop")
-mapping$`Material pro Vorgangsfolge` <- auftraege_inkl_vorgangsfolgen %>% distinct(Vorgangsfolge, Materialnummer) %>% group_by(Vorgangsfolge) %>% summarise(Material = list(unique(Materialnummer)), .groups = "drop")
+mapping$`Werk pro Vorgangsfolge` <- all_data_finalized %>% distinct(vorgangsfolge, werk) %>% group_by(vorgangsfolge) %>% summarise(werk = list(unique(werk)), .groups = "drop")
+mapping$`Linie pro Vorgangsfolge` <- all_data_finalized %>% distinct(vorgangsfolge, fertigungslinie) %>% group_by(vorgangsfolge) %>% summarise(linie = list(unique(fertigungslinie)), .groups = "drop")
+mapping$`Planer pro Vorgangsfolge` <- all_data_finalized %>% distinct(vorgangsfolge, planer) %>% group_by(vorgangsfolge) %>% summarise(planer = list(unique(planer)), .groups = "drop")
+mapping$`Vorgangsfolge pro Vorgangsfolge` <- all_data_finalized %>% distinct(vorgangsfolge) %>% group_by(vorgangsfolge) %>% summarise(vorgangsfolge = list(unique(vorgangsfolge)), .groups = "drop")
+mapping$`Arbeitsplatz pro Vorgangsfolge` <- all_data_finalized %>% distinct(vorgangsfolge, arbeitsplatzfolge) %>% group_by(vorgangsfolge) %>% summarise(arbeitsplatz = list(unique(arbeitsplatzfolge)), .groups = "drop")
+mapping$`Material pro Vorgangsfolge` <- all_data_finalized %>% distinct(vorgangsfolge, materialnummer) %>% group_by(vorgangsfolge) %>% summarise(material = list(unique(materialnummer)), .groups = "drop")
 
 # Arbeitsplatz als Quelle
-mapping$`Werk pro Arbeitsplatz` <- auftraege_inkl_vorgangsfolgen %>% distinct(Arbeitsplatzfolge, Werk) %>% group_by(Arbeitsplatzfolge) %>% summarise(Werk = list(unique(Werk)), .groups = "drop")
-mapping$`Linie pro Arbeitsplatz` <- auftraege_inkl_vorgangsfolgen %>% distinct(Arbeitsplatzfolge, Fertigungslinie) %>% group_by(Arbeitsplatzfolge) %>% summarise(Linie = list(unique(Fertigungslinie)), .groups = "drop")
-mapping$`Planer pro Arbeitsplatz` <- auftraege_inkl_vorgangsfolgen %>% distinct(Arbeitsplatzfolge, Planer) %>% group_by(Arbeitsplatzfolge) %>% summarise(Planer = list(unique(Planer)), .groups = "drop")
-mapping$`Vorgangsfolge pro Arbeitsplatz` <- auftraege_inkl_vorgangsfolgen %>% distinct(Arbeitsplatzfolge, Vorgangsfolge) %>% group_by(Arbeitsplatzfolge) %>% summarise(Vorgangsfolge = list(unique(Vorgangsfolge)), .groups = "drop")
-mapping$`Arbeitsplatz pro Arbeitsplatz` <- auftraege_inkl_vorgangsfolgen %>% distinct(Arbeitsplatzfolge) %>% group_by(Arbeitsplatzfolge) %>% summarise(Arbeitsplatz = list(unique(Arbeitsplatzfolge)), .groups = "drop")
-mapping$`Material pro Arbeitsplatz` <- auftraege_inkl_vorgangsfolgen %>% distinct(Arbeitsplatzfolge, Materialnummer) %>% group_by(Arbeitsplatzfolge) %>% summarise(Material = list(unique(Materialnummer)), .groups = "drop")
+mapping$`Werk pro Arbeitsplatz` <- all_data_finalized %>% distinct(arbeitsplatzfolge, werk) %>% group_by(arbeitsplatzfolge) %>% summarise(werk = list(unique(werk)), .groups = "drop")
+mapping$`Linie pro Arbeitsplatz` <- all_data_finalized %>% distinct(arbeitsplatzfolge, fertigungslinie) %>% group_by(arbeitsplatzfolge) %>% summarise(linie = list(unique(fertigungslinie)), .groups = "drop")
+mapping$`Planer pro Arbeitsplatz` <- all_data_finalized %>% distinct(arbeitsplatzfolge, planer) %>% group_by(arbeitsplatzfolge) %>% summarise(planer = list(unique(planer)), .groups = "drop")
+mapping$`Vorgangsfolge pro Arbeitsplatz` <- all_data_finalized %>% distinct(arbeitsplatzfolge, vorgangsfolge) %>% group_by(arbeitsplatzfolge) %>% summarise(vorgangsfolge = list(unique(vorgangsfolge)), .groups = "drop")
+mapping$`Arbeitsplatz pro Arbeitsplatz` <- all_data_finalized %>% distinct(arbeitsplatzfolge) %>% group_by(arbeitsplatzfolge) %>% summarise(arbeitsplatz = list(unique(arbeitsplatzfolge)), .groups = "drop")
+mapping$`Material pro Arbeitsplatz` <- all_data_finalized %>% distinct(arbeitsplatzfolge, materialnummer) %>% group_by(arbeitsplatzfolge) %>% summarise(material = list(unique(materialnummer)), .groups = "drop")
 
 # Materialnummer als Quelle
-mapping$`Werk pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer, Werk) %>% group_by(Materialnummer) %>% summarise(Werk = list(unique(Werk)), .groups = "drop")
-mapping$`Linie pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer, Fertigungslinie) %>% group_by(Materialnummer) %>% summarise(Linie = list(unique(Fertigungslinie)), .groups = "drop")
-mapping$`Planer pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer, Planer) %>% group_by(Materialnummer) %>% summarise(Planer = list(unique(Planer)), .groups = "drop")
-mapping$`Vorgangsfolge pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer, Vorgangsfolge) %>% group_by(Materialnummer) %>% summarise(Vorgangsfolge = list(unique(Vorgangsfolge)), .groups = "drop")
-mapping$`Arbeitsplatz pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer, Arbeitsplatzfolge) %>% group_by(Materialnummer) %>% summarise(Arbeitsplatz = list(unique(Arbeitsplatzfolge)), .groups = "drop")
-mapping$`Material pro Material` <- auftraege_inkl_vorgangsfolgen %>% distinct(Materialnummer) %>% group_by(Materialnummer) %>% summarise(Material = list(unique(Materialnummer)), .groups = "drop")
+mapping$`Werk pro Material` <- all_data_finalized %>% distinct(materialnummer, werk) %>% group_by(materialnummer) %>% summarise(werk = list(unique(werk)), .groups = "drop")
+mapping$`Linie pro Material` <- all_data_finalized %>% distinct(materialnummer, fertigungslinie) %>% group_by(materialnummer) %>% summarise(linie = list(unique(fertigungslinie)), .groups = "drop")
+mapping$`Planer pro Material` <- all_data_finalized %>% distinct(materialnummer, planer) %>% group_by(materialnummer) %>% summarise(planer = list(unique(planer)), .groups = "drop")
+mapping$`Vorgangsfolge pro Material` <- all_data_finalized %>% distinct(materialnummer, vorgangsfolge) %>% group_by(materialnummer) %>% summarise(vorgangsfolge = list(unique(vorgangsfolge)), .groups = "drop")
+mapping$`Arbeitsplatz pro Material` <- all_data_finalized %>% distinct(materialnummer, arbeitsplatzfolge) %>% group_by(materialnummer) %>% summarise(arbeitsplatz = list(unique(arbeitsplatzfolge)), .groups = "drop")
+mapping$`Material pro Material` <- all_data_finalized %>% distinct(materialnummer) %>% group_by(materialnummer) %>% summarise(material = list(unique(materialnummer)), .groups = "drop")
 
-# Visualize---------------
+
+# UI ---------------------------------------------------------------------------
 
 ui <- fluidPage(
     titlePanel("Lead Time Calculator"),
@@ -88,9 +75,9 @@ ui <- fluidPage(
 )
 
 # Server ------------------------------------------------------------------------
+
 server <- function(input, output, session) {
     
-    # Reactive values to track navigation state
     nav <- reactiveValues(
         seite = "start",
         quelle = NULL,
@@ -98,7 +85,6 @@ server <- function(input, output, session) {
         mappingziel = NULL
     )
     
-    # Dynamisches UI je nach Zustand
     output$main_ui <- renderUI({
         if (nav$seite == "start") {
             fluidRow(
@@ -144,45 +130,24 @@ server <- function(input, output, session) {
         }
     })
     
-    # Navigation durch Buttons
-    observeEvent(input$btn_werk, {
-        nav$quelle <- "Werk"
-        nav$seite <- "uebersicht"
-    })
-    observeEvent(input$btn_linien, {
-        nav$quelle <- "Fertigungslinie"
-        nav$seite <- "uebersicht"
-    })
-    observeEvent(input$btn_planer, {
-        nav$quelle <- "Planer"
-        nav$seite <- "uebersicht"
-    })
-   observeEvent(input$btn_workflows, {
-        nav$quelle <- "Vorgangsfolge"
-        nav$seite <- "uebersicht"
-    })
-    observeEvent(input$btn_ap, {
-        nav$quelle <- "Arbeitsplatzfolge"
-        nav$seite <- "uebersicht"
-    })
-    observeEvent(input$btn_material, {
-        nav$quelle <- "Materialnummer"
-        nav$seite <- "uebersicht"
-    })
+    observeEvent(input$btn_werk,            { nav$quelle <- "werk"; nav$seite <- "uebersicht" })
+    observeEvent(input$btn_linien,          { nav$quelle <- "fertigungslinie"; nav$seite <- "uebersicht" })
+    observeEvent(input$btn_planer,          { nav$quelle <- "planer"; nav$seite <- "uebersicht" })
+    observeEvent(input$btn_workflows,       { nav$quelle <- "vorgangsfolge"; nav$seite <- "uebersicht" })
+    observeEvent(input$btn_ap,              { nav$quelle <- "arbeitsplatzfolge"; nav$seite <- "uebersicht" })
+    observeEvent(input$btn_material,        { nav$quelle <- "materialnummer"; nav$seite <- "uebersicht" })
     
-    # Dynamische Auswahl aktualisieren
     observe({
         if (!is.null(nav$quelle)) {
-            auspraegungen <- sort(unique(auftraege_inkl_vorgangsfolgen[[nav$quelle]]))
+            auspraegungen <- sort(unique(all_data_finalized[[nav$quelle]]))
             updateSelectInput(session, "ausgewaehlte_auspraegung", choices = auspraegungen, selected = nav$auspraegung)
         }
     })
     
-    # Tabelle mit allen Ausprägungen
     output$auspraegungstabelle <- renderDT({
         req(nav$quelle)
         
-        df <- auftraege_inkl_vorgangsfolgen %>%
+        df <- all_data_finalized %>%
             group_by_at(nav$quelle) %>%
             summarise(`Anzahl Aufträge` = n(),
                       `Current LT` = "Platzhalter LT",
@@ -193,10 +158,9 @@ server <- function(input, output, session) {
         datatable(df, selection = "single")
     })
     
-    # Auswahl über Klick auf Tabelle
     observeEvent(input$auspraegungstabelle_rows_selected, {
         req(input$auspraegungstabelle_rows_selected)
-        df <- auftraege_inkl_vorgangsfolgen %>%
+        df <- all_data_finalized %>%
             group_by_at(nav$quelle) %>%
             summarise(`Anzahl Aufträge` = n(), .groups = "drop") %>%
             rename(Auspraegung = all_of(nav$quelle))
@@ -205,19 +169,16 @@ server <- function(input, output, session) {
         updateSelectInput(session, "ausgewaehlte_auspraegung", selected = auswahl)
     })
     
-    # Auswahl bestätigen und zur Detailansicht
     observeEvent(input$bestaetige_auswahl, {
         req(input$ausgewaehlte_auspraegung)
         nav$auspraegung <- input$ausgewaehlte_auspraegung
         nav$seite <- "detail"
     })
     
-    # Zurück zur Übersicht
     observeEvent(input$back_to_uebersicht, {
         nav$seite <- "uebersicht"
     })
     
-    # Zurück zur Startseite
     observeEvent(input$back_to_start, {
         nav$seite <- "start"
         nav$auspraegung <- NULL
@@ -225,7 +186,6 @@ server <- function(input, output, session) {
         nav$quelle <- NULL
     })
     
-    # Detailansicht - Platzhalter Tabelle
     output$auspraegung_detail <- renderTable({
         data.frame(
             Kategorie = c("Linien", "Planer", "Workflows", "Arbeitsplätze", "Material"),
@@ -235,5 +195,6 @@ server <- function(input, output, session) {
     })
 }
 
-# Run App -----------------------------------------------------------------------
+# App starten -------------------------------------------------------------------
+
 shinyApp(ui, server)
