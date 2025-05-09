@@ -69,20 +69,17 @@ Vorgangsfolgen_und_Materialnummern <- auftraege_inkl_vorgangsfolgen %>%
         .groups = "drop"
     )
 
-# Schritt 2: Spaltennamen anpassen
 Vorgangsfolgen_und_Materialnummern <- Vorgangsfolgen_und_Materialnummern %>%
     rename(
         Materialnummern = Alle_Materialnummern,
         Anzahl_Materialnummern = Anzahl_Materialien
     )
 
-# Schritt 3: Anzahl Aufträge hinzufügen
+
 anzahl_auftraege <- auftraege_inkl_vorgangsfolgen %>%
     count(Vorgangsfolge, name = "Anzahl_Auftraege")
 
 Vorgangsfolgen_und_Materialnummern <- Vorgangsfolgen_und_Materialnummern %>%
     left_join(anzahl_auftraege, by = "Vorgangsfolge")
 
-# Ergebnis anzeigen
-View(Vorgangsfolgen_und_Materialnummern)
 view(auftraege_inkl_vorgangsfolgen)

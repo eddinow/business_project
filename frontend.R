@@ -17,8 +17,9 @@ library(DT)
 
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
-source("Arbeitsschritte_gebuendelt_als independent_var.R")
-source("Arbeitsplaetze_als_independent_var.R")
+#source("Arbeitsschritte_gebuendelt_als independent_var.R")
+#source("Arbeitsplaetze_als_independent_var.R")
+source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
 
 
 
@@ -156,7 +157,7 @@ server <- function(input, output, session) {
         nav$quelle <- "Planer"
         nav$seite <- "uebersicht"
     })
-    observeEvent(input$btn_workflows, {
+   observeEvent(input$btn_workflows, {
         nav$quelle <- "Vorgangsfolge"
         nav$seite <- "uebersicht"
     })

@@ -16,7 +16,7 @@ library(MASS)
 
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
-source("Arbeitsschritte_gebuendelt_als independent_var.R")
+
 
 
 # Tidy -------------------------------------------------------------------------
@@ -24,9 +24,6 @@ source("Arbeitsschritte_gebuendelt_als independent_var.R")
 # Transform --------------------------------------------------------------------
 
 
-#Hinzufügen der Arbeitsplätze für jeden Auftrag im auftragskopf data frame.
-
-#hier noch spalte arbeitsplätze für auftrag in auftragsdatei ergänzen
 
 #Code fürs Mappen in der App
 

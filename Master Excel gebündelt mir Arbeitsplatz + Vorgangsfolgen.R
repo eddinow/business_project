@@ -61,8 +61,4 @@ anzahl_auftraege <- auftraege_inkl_vorgangsfolgen %>%
 Vorgangsfolgen_und_Materialnummern <- Vorgangsfolgen_und_Materialnummern %>%
     left_join(anzahl_auftraege, by = "Vorgangsfolge")
 
-# Ergebnis anzeigen ------------------------------------------------------------
-
-View(auftraege_inkl_vorgangsfolgen)
-View(Vorgangsfolgen_und_Fertigungslinien)
-View(Vorgangsfolgen_und_Materialnummern)
+view(auftraege_inkl_vorgangsfolgen)
