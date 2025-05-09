@@ -283,17 +283,4 @@ ggplot(fast_fertiger_datensatz_auftragskoepfe, aes(x = abweichung)) +
 # datei darf erst hier unten stehen, weil auftragskoepfe_sap_raw dadrin ver-
 # ändert wird und der code oben sonst nicht mehr funktioniert!
 
-source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
 
-all_data_finalized <- vorgaenge_sap_ohne_na_ohne0 %>%
-    left_join(
-        auftraege_inkl_vorgangsfolge %>%
-            select(
-                Auftragsnummern,
-                vorgangsfolge = Vorgangsfolge,
-                arbeitsplatzfolge = Arbeitsplatzfolge
-            ),
-        by = c("auftragsnummer" = "Auftragsnummern")
-    )
-
-view(all_data_finalized)
