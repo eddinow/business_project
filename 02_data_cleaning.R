@@ -18,7 +18,6 @@ library(dplyr)
 auftragskoepfe_sap_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_sap_raw    <- read_excel("vorgaenge_sap_raw.xlsx")
 
-
 # Tidy -------------------------------------------------------------------------
 
 # 1) Clean column names to snake_case
@@ -278,3 +277,23 @@ ggplot(fast_fertiger_datensatz_auftragskoepfe, aes(x = abweichung)) +
     geom_histogram(binwidth = 1, fill = "steelblue", color = "yellow") +
     labs(title = "Histogramm der Abweichungen", x = "Lead Time (Tage)", y = "Anzahl") +
     theme_minimal()
+
+# Im letzten Schritt ergänzen wir die fehlenden Informationen über die Workflows
+# und Arbeitsplätze für jeden Auftrag zu dem bereinigten data frame. Die source
+# datei darf erst hier unten stehen, weil auftragskoepfe_sap_raw dadrin ver-
+# ändert wird und der code oben sonst nicht mehr funktioniert!
+
+source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
+
+all_data_finalized <- vorgaenge_sap_ohne_na_ohne0 %>%
+    left_join(
+        auftraege_inkl_vorgangsfolge %>%
+            select(
+                Auftragsnummern,
+                vorgangsfolge = Vorgangsfolge,
+                arbeitsplatzfolge = Arbeitsplatzfolge
+            ),
+        by = c("auftragsnummer" = "Auftragsnummern")
+    )
+
+view(all_data_finalized)
