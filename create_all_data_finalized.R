@@ -15,15 +15,16 @@ library(dplyr)
 
 # Import -----------------------------------------------------------------------
 
-source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
-ls()
 source("02_data_cleaning.R")
+source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
+
 
 all_data_finalized <- vorgaenge_sap_ohne_na_ohne0 %>%
     left_join(
         auftraege_inkl_vorgangsfolgen %>%
             dplyr::select(
                 Auftragsnummer,
+                werk = Werk,
                 vorgangsfolge = Vorgangsfolge,
                 arbeitsplatzfolge = Arbeitsplatzfolge
             ),
@@ -31,4 +32,4 @@ all_data_finalized <- vorgaenge_sap_ohne_na_ohne0 %>%
     )
 
 view(all_data_finalized)
-glimpse(all_data_finalized)
+
