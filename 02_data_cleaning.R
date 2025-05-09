@@ -18,8 +18,7 @@ library(dplyr)
 auftragskoepfe_sap_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_sap_raw    <- read_excel("vorgaenge_sap_raw.xlsx")
 
-View(auftragskoepfe_sap_raw)
-View(vorgaenge_sap_raw) 
+
 # Tidy -------------------------------------------------------------------------
 
 # 1) Clean column names to snake_case
@@ -206,7 +205,7 @@ print(replacement_summary)
 # 6) Remove helper columns
 auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge <-
     auftragskoepfe_sap_angepasste_fertigungslinie_ohne_na_datumseinträge_von_vorgaenge %>%
-    select(
+    dplyr::select(
         -min_iststart,
         -max_istende,
         -replaced_start,
