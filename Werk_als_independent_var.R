@@ -66,3 +66,5 @@ material_pro_werk <- auftraege_inkl_vorgangsfolgen %>%
         values_from = n,
         values_fill = 0
     )
+
+view(arbeitsplatz_pro_werk)
