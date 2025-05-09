@@ -17,8 +17,8 @@ library(DT)
 
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
-#source("Arbeitsschritte_gebuendelt_als independent_var.R")
-#source("Arbeitsplaetze_als_independent_var.R")
+
+#Diese Datei brauchen wir
 source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
 
 
