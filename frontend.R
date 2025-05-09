@@ -15,6 +15,49 @@ library(DT)
 # Daten laden -------------------------------------------------------------------
 source("create_all_data_finalized.R")  # erzeugt 'all_data_finalized'
 
+
+#style_red_max_lt <- function(data) {
+ #   if (!"durchschnitt_lt" %in% names(data)) return(NULL)
+  #  max_row <- which.max(data$durchschnitt_lt)
+   # JS(
+    #    sprintf(
+     #       "function(row, data, index) {
+      #   if(index === %d) {
+       #    $('td', row).css('background-color', '#fdd');
+        #   $('td:eq(0)', row).css('color', 'red');
+         #}
+    #   }",
+     #       max_row - 1
+      #  )
+#    )
+#}
+
+einstieg_kategorie <- function(df, kategorie_spalte) {
+    df %>%
+        group_by(.data[[kategorie_spalte]]) %>%
+        summarise(
+            durchschnitt_lt = round(mean(lead_time_ist, na.rm = TRUE), 1),
+            work_in_progress = n(),
+            durchschnitt_performance = round(mean(abweichung, na.rm = TRUE), 1),
+            platzhalter = "",
+            .groups = "drop"
+        ) %>%
+        rename(Kategorie = !!kategorie_spalte) %>%
+        arrange(desc(durchschnitt_lt))
+}
+
+uebersichtswerte <- list(
+    werk              = einstieg_kategorie(all_data_finalized, "werk"),
+    fertigungslinie   = einstieg_kategorie(all_data_finalized, "fertigungslinie"),
+    planer            = einstieg_kategorie(all_data_finalized, "planer"),
+    vorgangsfolge     = einstieg_kategorie(all_data_finalized, "vorgangsfolge"),
+    arbeitsplatzfolge = einstieg_kategorie(all_data_finalized, "arbeitsplatzfolge"),
+    materialnummer    = einstieg_kategorie(all_data_finalized, "materialnummer")
+)
+
+
+
+
 # Mapping vorbereiten ----------------------------------------------------------
 mapping <- list()
 
@@ -65,6 +108,15 @@ mapping$`Planer pro Material` <- all_data_finalized %>% distinct(materialnummer,
 mapping$`Vorgangsfolge pro Material` <- all_data_finalized %>% distinct(materialnummer, vorgangsfolge) %>% group_by(materialnummer) %>% summarise(vorgangsfolge = list(unique(vorgangsfolge)), .groups = "drop")
 mapping$`Arbeitsplatz pro Material` <- all_data_finalized %>% distinct(materialnummer, arbeitsplatzfolge) %>% group_by(materialnummer) %>% summarise(arbeitsplatz = list(unique(arbeitsplatzfolge)), .groups = "drop")
 mapping$`Material pro Material` <- all_data_finalized %>% distinct(materialnummer) %>% group_by(materialnummer) %>% summarise(material = list(unique(materialnummer)), .groups = "drop")
+
+uebersichtswerte <- list(
+    werk = einstieg_kategorie(all_data_finalized, "werk"),
+    fertigungslinie = einstieg_kategorie(all_data_finalized, "fertigungslinie"),
+    planer = einstieg_kategorie(all_data_finalized, "planer"),
+    vorgangsfolge = einstieg_kategorie(all_data_finalized, "vorgangsfolge"),
+    arbeitsplatzfolge = einstieg_kategorie(all_data_finalized, "arbeitsplatzfolge"),
+    materialnummer = einstieg_kategorie(all_data_finalized, "materialnummer")
+)
 
 
 # UI ---------------------------------------------------------------------------
@@ -147,15 +199,26 @@ server <- function(input, output, session) {
     output$auspraegungstabelle <- renderDT({
         req(nav$quelle)
         
-        df <- all_data_finalized %>%
-            group_by_at(nav$quelle) %>%
-            summarise(`Anzahl Aufträge` = n(),
-                      `Current LT` = "Platzhalter LT",
-                      `Performance` = "Platzhalter Perf",
-                      .groups = "drop") %>%
-            rename(Auspraegung = all_of(nav$quelle))
+        df <- einstieg_kategorie(all_data_finalized, nav$quelle)
+        max_val <- max(df$durchschnitt_lt, na.rm = TRUE)
         
-        datatable(df, selection = "single")
+        df %>%
+            datatable(
+                selection = "single",
+                options = list(pageLength = 10)
+            ) %>%
+            formatStyle(
+                columns = names(df),
+                target = 'row',
+                backgroundColor = styleEqual(
+                    levels = df$durchschnitt_lt,
+                    values = ifelse(df$durchschnitt_lt == max_val, "#fdd", NA)
+                ),
+                color = styleEqual(
+                    levels = df$durchschnitt_lt,
+                    values = ifelse(df$durchschnitt_lt == max_val, "red", "black")
+                )
+            )
     })
     
     observeEvent(input$auspraegungstabelle_rows_selected, {
