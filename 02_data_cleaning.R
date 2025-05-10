@@ -71,6 +71,87 @@ str(vorgaenge_sap_raw)
 
 
 
+# Insights for Data Quality from raw data
+
+# Completeness checks: only show columns with missing values (console output)
+# 
+# Auftragskoepfe
+auftragskoepfe_sap_raw |>
+    summarise(
+        across(
+            everything(),
+            list(
+                n_missing   = ~ sum(is.na(.)),
+                pct_missing = ~ mean(is.na(.)) * 100
+            ),
+            .names = "{.col}_{.fn}"
+        )
+    ) |>
+    pivot_longer(
+        cols        = everything(),
+        names_to    = c("column", "metric"),
+        names_pattern = "(.*)_(n_missing|pct_missing)$"
+    ) |>
+    pivot_wider(
+        names_from  = metric,
+        values_from = value
+    ) |>
+    filter(n_missing > 0)
+
+# Vorgaenge
+vorgaenge_sap_raw |>
+    summarise(
+        across(
+            everything(),
+            list(
+                n_missing   = ~ sum(is.na(.)),
+                pct_missing = ~ mean(is.na(.)) * 100
+            ),
+            .names = "{.col}_{.fn}"
+        )
+    ) |>
+    pivot_longer(
+        cols        = everything(),
+        names_to    = c("column", "metric"),
+        names_pattern = "(.*)_(n_missing|pct_missing)$"
+    ) |>
+    pivot_wider(
+        names_from  = metric,
+        values_from = value
+    ) |>
+    filter(n_missing > 0)
+
+
+# Order number consistency check
+
+cat("### Auftragsnummern Übereinstimmung\n")
+
+# 1) Einzigartige Auftragsnummern aus beiden Datensätzen extrahieren
+orders_ids <- auftragskoepfe_sap_raw |>
+    pull(auftragsnummer) |>
+    unique()
+
+ops_ids <- vorgaenge_sap_raw |>
+    pull(auftragsnummer) |>
+    unique()
+
+# 2) Prüfen, ob beide Sets identisch sind
+if (setequal(orders_ids, ops_ids)) {
+    cat("✔️ Beide Dateien besitzen exakt dieselben Auftragsnummern.\n")
+} else {
+    cat("❌ Die Dateien unterscheiden sich in den Auftragsnummern.\n")
+    only_in_orders <- setdiff(orders_ids, ops_ids)
+    only_in_ops    <- setdiff(ops_ids, orders_ids)
+    cat("- Nur in 'Auftragsköpfe':", length(only_in_orders), "Aufträge\n")
+    if (length(only_in_orders) > 0) {
+        cat("  Beispiel-Aufträge (Auftragsköpfe):", head(only_in_orders, 10), "\n")
+    }
+    cat("- Nur in 'Vorgänge':", length(only_in_ops), "Aufträge\n")
+    if (length(only_in_ops) > 0) {
+        cat("  Beispiel-Aufträge (Vorgänge):", head(only_in_ops, 10), "\n")
+    }
+}
+
 
 # nun will ich die Zeilen mit den leeren Datumsangaben löschen.
 # Dafür schaue ich mir erstmal die vorgaenge an. Wenn dort ein Datum bei einem 
@@ -232,6 +313,63 @@ ggplot(fast_fertiger_datensatz_auftragskoepfe, aes(x = abweichung)) +
     geom_histogram(binwidth = 1, fill = "steelblue", color = "yellow") +
     labs(title = "Histogramm der Abweichungen", x = "Lead Time (Tage)", y = "Anzahl") +
     theme_minimal()
+
+
+
+#für data quality report:
+# Visualisierung der Soll- vs. Ist-Mengen --------------------------------------
+
+# 1) Balkendiagramm: Anzahl Unter-, Über- und exakte Lieferungen
+fast_fertiger_datensatz_auftragskoepfe |>
+    mutate(
+        lieferquote = gelieferte_menge / sollmenge,
+        status = case_when(
+            lieferquote < 1  ~ "Unterlieferung",
+            lieferquote == 1 ~ "Exakt",
+            lieferquote > 1  ~ "Überlieferung"
+        ),
+        # Faktor mit sinnvoller Reihenfolge
+        status = factor(status, levels = c("Unterlieferung", "Exakt", "Überlieferung"))
+    ) |>
+    count(status) |>
+    ggplot(aes(x = status, y = n)) +
+    geom_col(fill = "grey70", width = 0.6) +
+    geom_text(aes(label = n), 
+              vjust = -0.3, 
+              size  = 4) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+    labs(
+        title = "Übersicht: Unter-, Über- und exakte Lieferungen",
+        x     = NULL,
+        y     = "Anzahl Aufträge"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+        axis.text.x = element_text(face = "bold"),
+        plot.title  = element_text(face = "bold", hjust = 0.5)
+    )
+
+
+
+# 1) Mittlere Differenz (Ist – Soll) der gelieferten Menge vs. Sollmenge 
+mean_diff <- auftragskoepfe_sap_raw |>
+    mutate(diff = gelieferte_menge - sollmenge) |>
+    summarise(mean_diff = mean(diff, na.rm = TRUE)) |>
+    pull(mean_diff)
+
+# 2) Auswertung und Ausgabe
+if (mean_diff > 0) {
+    cat("📈 Im Schnitt gibt es eine Überlieferung um", 
+        round(mean_diff, 1), "Einheiten.\n")
+} else if (mean_diff < 0) {
+    cat("📉 Im Schnitt gibt es eine Unterlieferung um", 
+        abs(round(mean_diff, 1)), "Einheiten.\n")
+} else {
+    cat("✅ Im Schnitt wird exakt geliefert (0 Einheiten Abweichung).\n")
+}
+
+
+
 
 # Im letzten Schritt ergänzen wir die fehlenden Informationen über die Workflows
 # und Arbeitsplätze für jeden Auftrag zu dem bereinigten data frame. Die source
