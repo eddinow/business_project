@@ -24,7 +24,7 @@ vorgaenge_raw <- read_excel("2025-04-08_Vorgänge SAP.xlsx")
 
 vorgaenge_raw <- vorgaenge_raw %>%
     left_join(
-        dplyr::select(all_data_finalized, auftragsnummer, abweichung),
+        dplyr::select(all_data_finalized, auftragsnummer, abweichung, lead_time_soll),
         by = c("Auftragsnummer" = "auftragsnummer")
     )
 
@@ -37,5 +37,63 @@ vorgaenge_raw <- vorgaenge_raw %>%
         TRUE ~ NA_character_
     ))
 
-names(all_data_finalized)
-names(vorgaenge_raw)
+ampel_übersicht <- vorgaenge_raw %>%
+  filter(!is.na(ampelfarbe)) %>%
+  group_by(ampelfarbe) %>%
+  summarise(
+    anzahl = n()
+  ) %>%
+  mutate(
+    prozent = round(anzahl / sum(anzahl) * 100, 1)
+  )
+
+ui <- fluidPage(
+    titlePanel("Arbeitsplatz-Performance (Ampelsystem)"),
+    fluidRow(
+        column(
+            width = 12,
+            DTOutput("ampel_tabelle")
+        )
+    )
+)
+
+ui <- fluidPage(
+    titlePanel("Arbeitsplatz-Performance (Ampelsystem)"),
+    
+    fluidRow(
+        column(
+            width = 12,
+            h4("Übersicht der Ampelfarben (Anteil in %)"),
+            tableOutput("ampel_summary")
+        )
+    ),
+    
+    fluidRow(
+        column(
+            width = 12,
+            DTOutput("ampel_tabelle")
+        )
+    )
+)
+
+server <- function(input, output, session) {
+    
+    output$ampel_tabelle <- renderDT({
+        datatable(
+            vorgaenge_raw,
+            options = list(pageLength = 10),
+            rownames = FALSE
+        ) %>%
+            formatStyle(
+                "ampelfarbe",
+                target = "row",
+                backgroundColor = styleEqual(
+                    c("rot", "orange", "grün"),
+                    c("#f44336", "#ff9800", "#4caf50")
+                ),
+                color = "white"
+            )
+    })
+}
+
+shinyApp(ui, server)
