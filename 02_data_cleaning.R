@@ -377,3 +377,31 @@ if (mean_diff > 0) {
 # ändert wird und der code oben sonst nicht mehr funktioniert!
 
 
+# Ausreißer in der Liefermenge identifizieren und anzeigen
+
+# Top-Ausreißer mit diff so, dass positive Werte Überlieferung bedeuten
+
+# Schwellenwert für relative Abweichung (z.B. 5 %)
+threshold <- 0.05
+
+# Ermitteln und Sortieren der Ausreißer
+top_outliers <- fast_fertiger_datensatz_auftragskoepfe |>
+    mutate(
+        # diff positiv, wenn gelieferte Menge > Sollmenge
+        diff     = gelieferte_menge - sollmenge,
+        # relative Abweichung: diff geteilt durch Sollmenge
+        rel_diff = diff / sollmenge
+    ) |>
+    filter(abs(rel_diff) > threshold) |>
+    # nach absoluter Differenz absteigend sortieren und nur die Top 10 nehmen
+    slice_max(order_by = abs(diff), n = 10) |>
+    dplyr::select(
+        auftragsnummer,
+        sollmenge,
+        gelieferte_menge,
+        diff,       # jetzt positiv = Überlieferung, negativ = Unterlieferung
+        rel_diff    # rel_diff > 0 → Überlieferung, rel_diff < 0 → Unterlieferung
+    )
+
+# Ausgabe der Top 10
+print(top_outliers)
