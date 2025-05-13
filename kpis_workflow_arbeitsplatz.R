@@ -12,162 +12,198 @@ library(MASS)
 library(shiny)
 library(DT)
 library(stringr)
+library(plotly)
 
 # Daten laden -------------------------------------------------------------------
 source("create_all_data_finalized.R")  # erzeugt 'all_data_finalized'
-vorgaenge_raw <- read_excel("2025-04-08_Vorgänge SAP.xlsx")
+vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
 
-# Wir wollen ein Ampelsystem für alle Arbeitsplätze hinsichtlich ihrer Performance
-# schaffen. Negative Abweichungen über 60% = rot, 20-60% = orange, 0-10%=grün).
-# Dazu müssen wir zuerst die Spalte Abweichung aus all_data_finalized abhängig 
-# von der 'Auftragsnummer' dem df vorgaenge_raw hinzufügen
-
-
+# SÄULENDIAGRAMM ZEITEN FÜR WORKFLOWS
+#Um wieder die Lead Times auf Vorgangs- und Arbeitsplatzebene sehen zu können, 
+# müssen die sap_vorgaenge cleanen und dann pro Vorgang u Arbeitsplatz wieder die LT
+# ermitteln. Wir ermitteln außerdem die Liegezeiten als Differenz zwischen Enddatum
+# Vorgang 1 und Startdatum Folgevorgang. 
 
 vorgaenge_raw <- vorgaenge_raw %>%
+    filter(Auftragsnummer %in% all_data_finalized$auftragsnummer)
+
+vorgaenge_cleaned <- vorgaenge_raw %>%
     left_join(
-        dplyr::select(all_data_finalized, auftragsnummer, abweichung, lead_time_soll),
+        all_data_finalized %>%
+            dplyr::select(
+                auftragsnummer,
+                materialnummer,
+                werk,
+                starttermin_soll,
+                endtermin_soll,
+                fertigungslinie,
+                planer,
+                vorgangsfolge,
+                arbeitsplatzfolge
+            ),
         by = c("Auftragsnummer" = "auftragsnummer")
     )
 
+vorgaenge_cleaned <- vorgaenge_cleaned %>%
+    dplyr::select(-`ME`, -`Gutmenge Vorgang`, -`Ausschuss Vorgang`)
 
-df_long <- all_data_finalized %>%
+vorgaenge_cleaned <- vorgaenge_cleaned %>%
     mutate(
-        vorgangsfolge_list = str_split(vorgangsfolge, " → "),
-        arbeitsplatzfolge_list = str_split(arbeitsplatzfolge, " → ")
-    ) %>%
-    unnest_longer(vorgangsfolge_list) %>%
-    unnest_longer(arbeitsplatzfolge_list) %>%
-    rename(
-        Einzelvorgang = vorgangsfolge_list,
-        Einzelarbeitsplatz = arbeitsplatzfolge_list
-    ) %>%
-    mutate(Auftragsnummer = auftragsnummer)
-
-# Join mit vorgaenge_raw – basierend auf Einzelwerten
-arbeitsplatz_all_data_finalized <- df_long %>%
-    left_join(
-        dplyr::select(
-            vorgaenge_raw,
-            Auftragsnummer,
-            Vorgangsnummer,
-            Arbeitsplatz,
-            `Iststart Vorgang`,
-            `Istende Vorgang`
-        ),
-        by = c("Auftragsnummer", "Einzelvorgang" = "Vorgangsnummer", "Einzelarbeitsplatz" = "Arbeitsplatz")
+        `Iststart Vorgang` = as.Date(`Iststart Vorgang`),
+        `Istende Vorgang`  = as.Date(`Istende Vorgang`)
     )
 
-# abweichungen_je_vorgangsfolge <- arbeitsplatz_all_data_finalized %>%
-#     filter(!is.na(abweichung)) %>%
-#     group_by(vorgangsfolge, Einzelvorgang) %>%
-#     summarise(
-#         durchschnitt_abweichung = mean(abweichung, na.rm = TRUE),
-#         anzahl = n(),
-#         .groups = "drop"
-#     ) %>%
-#     arrange(vorgangsfolge, Einzelvorgang)
-
-abweichungen_je_vorgangsfolge <- arbeitsplatz_all_data_finalized %>%
-    filter(!is.na(abweichung) & abweichung < 0) %>%  # nur negative
-    group_by(vorgangsfolge, Einzelvorgang) %>%
-    summarise(
-        durchschnitt_abweichung = mean(abweichung, na.rm = TRUE),
-        anzahl = n(),
-        .groups = "drop"
-    )
-
-# Pro Vorgangsfolge den Einzelvorgang mit höchster Abweichung auswählen
-max_abweichung_je_folge <- abweichungen_je_vorgangsfolge %>%
-    group_by(vorgangsfolge) %>%
-    slice_max(durchschnitt_abweichung, with_ties = FALSE) %>%
-    ungroup()
-
-kritischster_vorgang <- abweichungen_je_vorgangsfolge %>%
-    group_by(vorgangsfolge) %>%
-    slice_min(durchschnitt_abweichung, with_ties = FALSE) %>%
-    ungroup() %>%
-    dplyr:select(vorgangsfolge, Einzelvorgang) %>%
-    rename(kritischster_vorgang = Einzelvorgang)
-
-
-# ggplot(max_abweichung_je_folge, aes(x = reorder(vorgangsfolge, durchschnitt_abweichung), 
-#                                     y = durchschnitt_abweichung,
-#                                     fill = Einzelvorgang)) +
-#     geom_col() +
-#     coord_flip() +
-#     labs(
-#         title = "Einzelvorgang mit höchster Abweichung je Vorgangsfolge",
-#         x = "Vorgangsfolge",
-#         y = "Ø Abweichung (Tage)",
-#         fill = "Einzelvorgang"
-#     ) +
-#     theme_minimal()
-
-# ⏱ Durchschnittliche Lead Time je Einzelvorgang pro Vorgangsfolge
-lt_pro_vorgang <- arbeitsplatz_all_data_finalized %>%
-    filter(!is.na(`Iststart Vorgang`) & !is.na(`Istende Vorgang`)) %>%
-    mutate(lt = as.numeric(difftime(`Istende Vorgang`, `Iststart Vorgang`, units = "days"))) %>%
-    group_by(vorgangsfolge, Einzelvorgang) %>%
-    summarise(
-        durchschnitt_lt = mean(lt, na.rm = TRUE),
-        durchschnitt_abweichung = mean(abweichung, na.rm = TRUE),
-        .groups = "drop"
-    )
-
-# 🧮 Durchschnittliche Gesamt-LT pro Vorgangsfolge
-lt_gesamt_pro_folge <- arbeitsplatz_all_data_finalized %>%
-    filter(!is.na(`Iststart Vorgang`) & !is.na(`Istende Vorgang`)) %>%
-    group_by(vorgangsfolge, Auftragsnummer) %>%
-    summarise(
-        gesamt_lt = as.numeric(difftime(max(`Istende Vorgang`), min(`Iststart Vorgang`), units = "days")),
-        .groups = "drop"
-    ) %>%
-    group_by(vorgangsfolge) %>%
-    summarise(
-        durchschnitt_gesamt_lt = mean(gesamt_lt, na.rm = TRUE),
-        .groups = "drop"
-    )
-
-# 🔴 Einzelvorgang mit höchster Abweichung je Folge
-# kritischster_vorgang <- lt_pro_vorgang %>%
-#     group_by(vorgangsfolge) %>%
-#     slice_max(durchschnitt_abweichung, with_ties = FALSE) %>%
-#     ungroup() %>%
-#     dplyr::select(vorgangsfolge, Einzelvorgang) %>%
-#     rename(kritischster_vorgang = Einzelvorgang)
-
-# 🔗 Alles zusammenführen
-# plot_df <- lt_pro_vorgang %>%
-#     left_join(lt_gesamt_pro_folge, by = "vorgangsfolge") %>%
-#     left_join(kritischster_vorgang, by = "vorgangsfolge") %>%
-#     mutate(
-#         ist_kritisch = Einzelvorgang == kritischster_vorgang
-#     )
-
-plot_df <- lt_pro_vorgang %>%
-    left_join(lt_gesamt_pro_folge, by = "vorgangsfolge") %>%
-    left_join(kritischster_vorgang, by = "vorgangsfolge") %>%
+vorgaenge_cleaned <- vorgaenge_cleaned %>%
     mutate(
-        ist_kritisch = Einzelvorgang == kritischster_vorgang
+        solldauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days")),
+        istdauer = as.numeric(difftime(`Istende Vorgang`, `Iststart Vorgang`, units = "days")),
+        abweichung = istdauer - solldauer
     )
-
-plot_vorgangsfolge <- function(folge_name) {
-    df <- filter(plot_df, vorgangsfolge == folge_name)
     
-    ggplot(df, aes(x = Einzelvorgang, y = durchschnitt_lt, fill = ist_kritisch)) +
-        geom_col() +
-        geom_hline(aes(yintercept = durchschnitt_gesamt_lt), color = "black", linetype = "dashed", size = 1) +
-        scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "steelblue")) +
-        labs(
-            title = paste("Vorgangsfolge:", folge_name),
-            y = "Ø Lead Time (Tage)",
-            x = "Einzelvorgang",
-            fill = "Höchste Abweichung"
-        ) +
-        theme_minimal()
-}
 
-plot_vorgangsfolge("0010 → 0020 → 0030")
+vorgaenge_cleaned <- vorgaenge_cleaned %>%
+    arrange(vorgangsfolge, Vorgangsnummer)
+    
+vorgaenge_cleaned <- vorgaenge_cleaned %>%
+    mutate(gesamtdauer = as.numeric(`Istende Vorgang` - `Iststart Vorgang`))
+
+vorgaenge_sorted <- vorgaenge_cleaned %>%
+    arrange(Auftragsnummer, `Iststart Vorgang`)
+
+liegezeiten_df <- vorgaenge_sorted %>%
+    group_by(Auftragsnummer) %>%
+    mutate(
+        vorheriges_ende = lag(`Istende Vorgang`),
+        aktuelles_start = `Iststart Vorgang`,
+        liegedauer = as.numeric(aktuelles_start - vorheriges_ende)
+    ) %>%
+    filter(!is.na(liegedauer) & liegedauer > 0) %>%  # Nur echte Liegezeiten
+    summarise(
+        Liegezeit_start = min(vorheriges_ende, na.rm = TRUE),
+        Liegezeit_ende   = max(aktuelles_start, na.rm = TRUE),
+        Liegedauer_gesamt = sum(liegedauer, na.rm = TRUE),
+        .groups = "drop"
+    )
+
+liegezeit_u_auftragszeit <- vorgaenge_sorted %>%
+    dplyr::select(Auftragsnummer, Vorgangsnummer, istdauer) %>%
+    pivot_wider(
+        names_from = Vorgangsnummer,
+        values_from = istdauer
+    )
+
+liegezeit_u_auftragszeit <- liegezeiten_df %>%
+    left_join(liegezeit_u_auftragszeit, by = "Auftragsnummer")
+view(liegezeit_u_auftragszeit)
+
+# Zusammenfassen der Aufträgen nach Vorgangsnummern um die Daten den einzelnen
+# Workflows zuordnen zu können. Hier nutzen wir Median Werte für Liegezeit und
+# Bearbeitungszeit
+
+liegezeiten_df_erweitert <- liegezeit_u_auftragszeit %>%
+    left_join(
+        vorgaenge_cleaned %>% dplyr::select(Auftragsnummer, vorgangsfolge) %>% distinct(),
+        by = "Auftragsnummer"
+    )
+
+vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
+    group_by(vorgangsfolge) %>%
+    summarise(across(
+        .cols = c(Liegedauer_gesamt, `0010`, `0020`, `0030`, `0040`, `0050`, `0060`, `0070`, `0005`, `0032`),
+        .fns = ~ median(.x, na.rm = TRUE),
+        .names = "{.col}_median"
+    )) 
+
+# visualize-----------------------------------
+
+ui <- fluidPage(
+    titlePanel("Gestapeltes Diagramm je Vorgangsfolge"),
+    sidebarLayout(
+        sidebarPanel(
+            selectInput(
+                inputId = "vorgangsfolge",
+                label = "Wähle eine Vorgangsfolge:",
+                choices = unique(vorgaenge_lz_bz$vorgangsfolge)
+            )
+        ),
+        mainPanel(
+            plotlyOutput("stackedPlot")
+        )
+    )
+)
+
+server <- function(input, output) {
+    
+    output$stackedPlot <- renderPlotly({
+        
+        # 1. Daten vorbereiten
+        daten <- vorgaenge_lz_bz %>%
+            filter(vorgangsfolge == input$vorgangsfolge) %>%
+            pivot_longer(
+                cols = -vorgangsfolge,
+                names_to = "Vorgang",
+                values_to = "Dauer"
+            ) %>%
+            filter(Dauer > 0) %>%
+            mutate(
+                Vorgang = gsub("_median", "", Vorgang),
+                Kategorie = ifelse(Vorgang == "Liegedauer_gesamt", "Liegezeit", Vorgang),
+                Kategorie = factor(Kategorie, levels = c(setdiff(Kategorie, "Liegezeit"), "Liegezeit"))
+            ) %>%
+            mutate(
+                Anteil = round(100 * Dauer / sum(Dauer), 1),
+                text = paste0(
+                    "Kategorie: ", Kategorie, "<br>",
+                    "Dauer: ", Dauer, " Tage<br>",
+                    "Anteil: ", Anteil, " %"
+                )
+            )
+        
+        # 2. Farbpalette wie gehabt
+        farben <- c(
+            "Liegezeit" = "#8B0000",
+            setNames(RColorBrewer::brewer.pal(n = 9, name = "Blues")[3 + seq_along(setdiff(unique(daten$Kategorie), "Liegezeit")) - 1],
+                     setdiff(unique(daten$Kategorie), "Liegezeit"))
+        )
+        
+        # 3. Interaktives Plotly-Diagramm
+        p <- ggplot(daten, aes(x = vorgangsfolge, y = Dauer, fill = Kategorie, text = text)) +
+            geom_bar(stat = "identity", width = 0.4) +
+            scale_fill_manual(values = farben) +
+            labs(
+                title = paste("Zeitaufteilung für:", input$vorgangsfolge),
+                x = NULL,
+                y = "Dauer (Median in Tagen)",
+                fill = "Vorgang"
+            ) +
+            theme_minimal(base_size = 14)
+        
+        ggplotly(p, tooltip = "text")
+    })
+}
+    
+    
+    # output$stackedPlot <- renderPlot({
+    #     
+    #     # Filtere nach gewählter vorgangsfolge
+    #     daten <- vorgaenge_lz_bz %>%
+    #         filter(vorgangsfolge == input$vorgangsfolge) %>%
+    #         pivot_longer(
+    #             cols = -vorgangsfolge,
+    #             names_to = "Vorgang",
+    #             values_to = "Dauer"
+    #         ) %>%
+    #         filter(Dauer > 0)  # Optional: nur positive Werte
+    #     
+    #     ggplot(daten, aes(x = vorgangsfolge, y = Dauer, fill = Vorgang)) +
+    #         geom_bar(stat = "identity") +
+    #         labs(
+    #             title = paste("Zeitaufteilung für:", input$vorgangsfolge),
+    #             x = NULL, y = "Dauer (Median in Tagen)"
+    #         ) +
+    #         theme_minimal()
+    # })
+
+shinyApp(ui = ui, server = server)
 
