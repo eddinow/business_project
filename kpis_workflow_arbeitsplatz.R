@@ -115,6 +115,34 @@ vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
         .names = "{.col}_median"
     )) 
 
+# BESTER ARBEITSPLATZ - Wir wollen jetzt schauen welcher Arbeitsplatz die niedrigste
+# Abweichung von den Soll Leadtimes hat
+
+arbeitsplatz_median_df <- vorgaenge_cleaned %>%
+    filter(!is.na(Arbeitsplatz), !is.na(abweichung), !is.na(solldauer)) %>%
+    group_by(Arbeitsplatz) %>%
+    summarise(
+        median_abweichung = median(abweichung),
+        median_solldauer  = median(solldauer),
+        .groups = "drop"
+    )
+
+# Schritt 2: Prüfungen
+gesamt <- nrow(arbeitsplatz_median_df)
+
+anzahl_median_0 <- sum(arbeitsplatz_median_df$median_abweichung == 0)
+anzahl_median_gt2x <- sum(arbeitsplatz_median_df$median_abweichung > 2 * arbeitsplatz_median_df$median_solldauer)
+
+# Schritt 3: Ergebnis-DataFrame
+arbeitsplatz_abweichung <- tibble(
+    kategorie = c("Median = 0", "Median > 2 * Solldauer"),
+    anteil_prozent = round(c(
+        anzahl_median_0 / gesamt * 100,
+        anzahl_median_gt2x / gesamt * 100
+    ), 1)
+)
+
+view(arbeitsplatz_abweichung)
 # visualize-----------------------------------
 
 ui <- fluidPage(
