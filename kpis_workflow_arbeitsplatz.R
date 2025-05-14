@@ -211,27 +211,27 @@ server <- function(input, output) {
     })
 }
     
-    
-    # output$stackedPlot <- renderPlot({
-    #     
-    #     # Filtere nach gewählter vorgangsfolge
-    #     daten <- vorgaenge_lz_bz %>%
-    #         filter(vorgangsfolge == input$vorgangsfolge) %>%
-    #         pivot_longer(
-    #             cols = -vorgangsfolge,
-    #             names_to = "Vorgang",
-    #             values_to = "Dauer"
-    #         ) %>%
-    #         filter(Dauer > 0)  # Optional: nur positive Werte
-    #     
-    #     ggplot(daten, aes(x = vorgangsfolge, y = Dauer, fill = Vorgang)) +
-    #         geom_bar(stat = "identity") +
-    #         labs(
-    #             title = paste("Zeitaufteilung für:", input$vorgangsfolge),
-    #             x = NULL, y = "Dauer (Median in Tagen)"
-    #         ) +
-    #         theme_minimal()
-    # })
+# 
+#     output$stackedPlot <- renderPlot({
+# 
+#         # Filtere nach gewählter vorgangsfolge
+#         daten <- vorgaenge_lz_bz %>%
+#             filter(vorgangsfolge == input$vorgangsfolge) %>%
+#             pivot_longer(
+#                 cols = -vorgangsfolge,
+#                 names_to = "Vorgang",
+#                 values_to = "Dauer"
+#             ) %>%
+#             filter(Dauer > 0)  # Optional: nur positive Werte
+# 
+#         ggplot(daten, aes(x = vorgangsfolge, y = Dauer, fill = Vorgang)) +
+#             geom_bar(stat = "identity") +
+#             labs(
+#                 title = paste("Zeitaufteilung für:", input$vorgangsfolge),
+#                 x = NULL, y = "Dauer (Median in Tagen)"
+#             ) +
+#             theme_minimal()
+#     })
 
 shinyApp(ui = ui, server = server)
 
