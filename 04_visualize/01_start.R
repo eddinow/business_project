@@ -1,5 +1,5 @@
 # Das ist die Benutzeroberfläche für die Einstiegsseite. Der User kann mit einem
-# schnellen Blick die avg abweichung insgesamt und den servicelevel als anteil aller
+# schnellen Blick die median abweichung insgesamt und den servicelevel als anteil aller
 # aufträge mit abweichung >= 0 (heißt entweder zu früh oder jit fertig)
 
 # Initialize ------
@@ -8,6 +8,8 @@ set.seed(1)
 
 library(shiny)
 library(argonDash)
+
+source("02_model/create_start_kpis.R")
 
 ui <- argonDashPage(
     title = "Dein Dashboard",
@@ -44,8 +46,18 @@ ui <- argonDashPage(
                 tabName = "start",
                 h1("Willkommen im Dashboard"),
                 fluidRow(
-                    argonInfoCard(title = "Lead Time aktuell", value = "3", icon = icon("clock")),
-                    argonInfoCard(title = "Servicelevel", value = "87%", icon = icon("check-circle"))
+                    column(6, div(
+                        class = "card shadow-sm p-3 mb-3 bg-white rounded",
+                        h5("Lead Time aktuell"),
+                        icon("clock", class = "fa-2x mb-2"),
+                        div(style = "font-size: 32px; font-weight: bold; color: #1b1e23;", shiny::textOutput("avg_lt"))
+                    )),
+                    column(6, div(
+                        class = "card shadow-sm p-3 mb-3 bg-white rounded",
+                        h5("Servicelevel"),
+                        icon("check-circle", class = "fa-2x mb-2"),
+                        div(style = "font-size: 32px; font-weight: bold; color: #1b1e23;", shiny::textOutput("avg_servicelevel"))
+                    ))
                 ),
                 h3("Kategorie wählen"),
                 fluidRow(
@@ -93,6 +105,20 @@ ui <- argonDashPage(
 )
 
 server <- function(input, output, session) {
+    
+    # KPI-Daten berechnen (Dummy für Demonstration)
+    if (exists("all_data_finalized")) {
+        start_kpis <- data.frame(
+            `Avg LT` = median(all_data_finalized$lead_time_ist, na.rm = TRUE),
+            `Avg Servicelevel` = round(mean(all_data_finalized$abweichung >= 0, na.rm = TRUE) * 100, 0)
+        )
+    } else {
+        start_kpis <- data.frame(`Avg LT` = NA, `Avg Servicelevel` = NA)
+    }
+    
+    output$avg_lt <- renderText({ as.character(start_kpis$`Avg LT`) })
+    output$avg_servicelevel <- renderText({ paste0(start_kpis$`Avg Servicelevel`, "%") })
+    
     output$text_planer <- renderText({ "Hier könnten deine Planer-Daten stehen." })
     output$text_werke <- renderText({ "Hier könnten deine Werke-Daten stehen." })
     output$text_fertigung <- renderText({ "Hier könnten deine Fertigungslinien-Daten stehen." })
