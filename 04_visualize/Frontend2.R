@@ -13,7 +13,7 @@ library(shiny)
 library(DT)
 
 # Daten laden -------------------------------------------------------------------
-source("create_all_data_finalized.R")  # erzeugt 'all_data_finalized'
+source("00_tidy/create_all_data_finalized.R") 
 
 
 #style_red_max_lt <- function(data) {

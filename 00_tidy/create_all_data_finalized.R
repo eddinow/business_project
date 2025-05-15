@@ -1,22 +1,19 @@
 # Initialize -------------------------------------------------------------------
 
-# Clear all objects from the environment
 rm(list = ls())
 
-# Set seed for reproducibility
 set.seed(1)
 
-# Load required packages
-library(tidyverse)    # data manipulation and visualization
-library(readxl)       # reading Excel files
-library(lubridate)    # working with dates
+library(tidyverse)    
+library(readxl)      
+library(lubridate)    
 library(janitor)
 library(dplyr)
 
 # Import -----------------------------------------------------------------------
 
-source("02_data_cleaning.R")
-source("Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
+source("00_tidy/02_data_cleaning.R")
+source("00_tidy/Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
 
 
 all_data_finalized <- fast_fertiger_datensatz_auftragskoepfe %>%
@@ -30,5 +27,5 @@ all_data_finalized <- fast_fertiger_datensatz_auftragskoepfe %>%
         by = c("auftragsnummer" = "Auftragsnummer")
     )
 
-view(all_data_finalized)
+
 

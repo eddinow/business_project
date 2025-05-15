@@ -2,7 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(plotly)
 
-source("kpis_workflow_arbeitsplatz.R")
+source("02_model/kpis_workflow_arbeitsplatz.R")
 
 
 # Wir erstellen ein Panel mit dem Workflow der die höchste Liegezeit hat. Klickt
