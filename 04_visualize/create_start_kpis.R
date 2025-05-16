@@ -12,8 +12,6 @@ library(dplyr)
 source("00_tidy/create_all_data_finalized.R")  
 
 # Transform------------------
+avg_lt <- median(all_data_finalized$lead_time_ist, na.rm = TRUE)
+avg_sl <- round(mean(all_data_finalized$abweichung >= 0, na.rm = TRUE) * 100, 0)
 
-start_kpis <- data.frame(
-    `Avg LT` = median(all_data_finalized$lead_time_ist, na.rm = TRUE),
-    `Avg Servicelevel` = round(mean(all_data_finalized$abweichung >= 0, na.rm = TRUE) * 100, 0)
-)
