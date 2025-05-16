@@ -1,10 +1,10 @@
 # Initialize -------------------------------------------------------------------
 
-# Clear all objects from the environment
-rm(list = ls())
-
-# Set seed for reproducibility
-set.seed(1)
+# # Clear all objects from the environment
+# rm(list = ls())
+# 
+# # Set seed for reproducibility
+# set.seed(1)
 
 # Load required packages
 library(tidyverse)    # data manipulation and visualization

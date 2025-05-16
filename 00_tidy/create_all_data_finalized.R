@@ -1,8 +1,8 @@
 # Initialize -------------------------------------------------------------------
 
-rm(list = ls())
-
-set.seed(1)
+# rm(list = ls())
+# 
+# set.seed(1)
 
 library(tidyverse)    
 library(readxl)      
