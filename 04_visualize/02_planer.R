@@ -62,5 +62,3 @@ planer_server <- function(input, output, session) {
         })
     }
 }
-
-shinyApp(planer_ui, planer_server)
