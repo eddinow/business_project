@@ -10,6 +10,66 @@ library(shiny)
 library(argonDash)
 
 source("02_model/create_start_kpis.R")
+source("04_visualize/02_fertigungslinien.R")
+source("04_visualize/02_planer.R")
+source("04_visualize/02_werke.R")
+source("04_visualize/02_workflows.R")
+
+planer_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        h2("Planer-Detailseite"),
+        verbatimTextOutput(ns("text"))
+    )
+}
+
+planer_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        source("04_visualize/02_planer.R", local = TRUE)
+    })
+}
+
+werke_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        h2("Werke-Detailseite"),
+        verbatimTextOutput(ns("text"))
+    )
+}
+
+werke_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        source("04_visualize/02_werke.R", local = TRUE)
+    })
+}
+
+fertigung_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        h2("Fertigungslinien-Detailseite"),
+        verbatimTextOutput(ns("text"))
+    )
+}
+
+fertigung_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        source("04_visualize/02_fertigungslinien.R", local = TRUE)
+    })
+}
+
+workflows_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        h2("Workflows-Detailseite"),
+        verbatimTextOutput(ns("text"))
+    )
+}
+
+workflows_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        source("04_visualize/02_workflows.R", local = TRUE)
+    })
+}
 
 ui <- argonDashPage(
     title = "Dein Dashboard",
@@ -20,7 +80,7 @@ ui <- argonDashPage(
         background = "white",
         size = "md",
         
-        # Branding oben (als Text ohne argonRow)
+        # Branding oben
         div(h3("Julia's App", class = "text-primary text-center mt-3")),
         
         argonSidebarMenu(
@@ -71,26 +131,22 @@ ui <- argonDashPage(
             
             argonTabItem(
                 tabName = "planer",
-                h2("Planer-Detailseite"),
-                verbatimTextOutput("text_planer")
+                planer_ui("planer")
             ),
             
             argonTabItem(
                 tabName = "werke",
-                h2("Werke-Detailseite"),
-                verbatimTextOutput("text_werke")
+                werke_ui("werke")
             ),
             
             argonTabItem(
                 tabName = "fertigung",
-                h2("Fertigungslinien-Detailseite"),
-                verbatimTextOutput("text_fertigung")
+                fertigung_ui("fertigung")
             ),
             
             argonTabItem(
                 tabName = "workflows",
-                h2("Workflows-Detailseite"),
-                verbatimTextOutput("text_workflows")
+                workflows_ui("workflows")
             ),
             
             argonTabItem(
@@ -105,8 +161,23 @@ ui <- argonDashPage(
 )
 
 server <- function(input, output, session) {
-    
-    # KPI-Daten berechnen (Dummy für Demonstration)
+    # Navigation über Buttons aktivieren
+    observeEvent(input$go_planer, {
+        updateTabItems(session, "sidebar", "planer")
+    })
+    observeEvent(input$go_werke, {
+        updateTabItems(session, "sidebar", "werke")
+    })
+    observeEvent(input$go_fertigung, {
+        updateTabItems(session, "sidebar", "fertigung")
+    })
+    observeEvent(input$go_workflows, {
+        updateTabItems(session, "sidebar", "workflows")
+    })
+    observeEvent(input$go_material, {
+        updateTabItems(session, "sidebar", "material")
+    })
+    # KPI-Daten berechnen
     if (exists("all_data_finalized")) {
         start_kpis <- data.frame(
             `Avg LT` = median(all_data_finalized$lead_time_ist, na.rm = TRUE),
@@ -119,10 +190,12 @@ server <- function(input, output, session) {
     output$avg_lt <- renderText({ as.character(start_kpis$`Avg LT`) })
     output$avg_servicelevel <- renderText({ paste0(start_kpis$`Avg Servicelevel`, "%") })
     
-    output$text_planer <- renderText({ "Hier könnten deine Planer-Daten stehen." })
-    output$text_werke <- renderText({ "Hier könnten deine Werke-Daten stehen." })
-    output$text_fertigung <- renderText({ "Hier könnten deine Fertigungslinien-Daten stehen." })
-    output$text_workflows <- renderText({ "Hier könnten deine Workflows-Daten stehen." })
+    # Module Server-Funktionen aufrufen
+    planer_server("planer")
+    werke_server("werke")
+    fertigung_server("fertigung")
+    workflows_server("workflows")
+    
     output$text_material <- renderText({ "Hier könnten deine Material-Daten stehen." })
 }
 

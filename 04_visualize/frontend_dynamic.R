@@ -5,6 +5,7 @@ set.seed(1)
 library(shiny)
 library(shinyjs)
 library(bslib)
+library(shiny.fluent)
 
 # UI --------
 ui <- fluidPage(
