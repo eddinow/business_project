@@ -3,37 +3,76 @@
 # aufträge mit abweichung >= 0 (heißt entweder zu früh oder jit fertig)
 
 # Initialize ------
-# rm(list = ls())
-# set.seed(1)
+rm(list = ls())
+set.seed(1)
 
 library(shiny)
 library(argonDash)
 
-source("02_model/create_start_kpis.R", echo=FALSE)
-source("04_visualize/02_fertigungslinien.R", echo=FALSE)
-source("04_visualize/02_planer.R", echo=FALSE)
-source("04_visualize/02_werke.R", echo=FALSE)
-source("04_visualize/02_workflows.R", echo=FALSE)
+source("02_model/create_start_kpis.R")
+source("04_visualize/02_fertigungslinien.R")
+source("04_visualize/02_planer.R")
+source("04_visualize/02_werke.R")
+source("04_visualize/02_workflows.R")
 
-dummy_ui <- function(id, title) {
+planer_ui <- function(id) {
     ns <- NS(id)
     tagList(
-        h2(title),
+        h2("Planer-Detailseite"),
         verbatimTextOutput(ns("text"))
     )
 }
 
-# Dummy-Server-Modul
-dummy_server <- function(id) {
+planer_server <- function(id) {
     moduleServer(id, function(input, output, session) {
-        output$text <- renderText({ paste("Dummy-Inhalt für", id) })
+        source("04_visualize/02_planer.R", local = TRUE)
     })
 }
 
-# UI -------------------------------------------------------------------------
+werke_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        h2("Werke-Detailseite"),
+        verbatimTextOutput(ns("text"))
+    )
+}
+
+werke_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        source("04_visualize/02_werke.R", local = TRUE)
+    })
+}
+
+fertigung_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        h2("Fertigungslinien-Detailseite"),
+        verbatimTextOutput(ns("text"))
+    )
+}
+
+fertigung_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        source("04_visualize/02_fertigungslinien.R", local = TRUE)
+    })
+}
+
+workflows_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        h2("Workflows-Detailseite"),
+        verbatimTextOutput(ns("text"))
+    )
+}
+
+workflows_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        source("04_visualize/02_workflows.R", local = TRUE)
+    })
+}
 
 ui <- argonDashPage(
-    title = "Dummy-Dashboard",
+    title = "Dein Dashboard",
     sidebar = argonDashSidebar(
         id = "sidebar",
         vertical = TRUE,
@@ -41,6 +80,7 @@ ui <- argonDashPage(
         background = "white",
         size = "md",
         
+        # Branding oben
         div(h3("Julia's App", class = "text-primary text-center mt-3")),
         
         argonSidebarMenu(
@@ -70,15 +110,13 @@ ui <- argonDashPage(
                         class = "card shadow-sm p-3 mb-3 bg-white rounded",
                         h5("Lead Time aktuell"),
                         icon("clock", class = "fa-2x mb-2"),
-                        div(style = "font-size: 32px; font-weight: bold; color: #1b1e23;",
-                            shiny::textOutput("avg_lt"))
+                        div(style = "font-size: 32px; font-weight: bold; color: #1b1e23;", shiny::textOutput("avg_lt"))
                     )),
                     column(6, div(
                         class = "card shadow-sm p-3 mb-3 bg-white rounded",
                         h5("Servicelevel"),
                         icon("check-circle", class = "fa-2x mb-2"),
-                        div(style = "font-size: 32px; font-weight: bold; color: #1b1e23;",
-                            shiny::textOutput("avg_servicelevel"))
+                        div(style = "font-size: 32px; font-weight: bold; color: #1b1e23;", shiny::textOutput("avg_servicelevel"))
                     ))
                 ),
                 h3("Kategorie wählen"),
@@ -91,10 +129,26 @@ ui <- argonDashPage(
                 )
             ),
             
-            argonTabItem(tabName = "planer", dummy_ui("planer", "Planer-Detailseite")),
-            argonTabItem(tabName = "werke", dummy_ui("werke", "Werke-Detailseite")),
-            argonTabItem(tabName = "fertigung", dummy_ui("fertigung", "Fertigungslinien-Detailseite")),
-            argonTabItem(tabName = "workflows", dummy_ui("workflows", "Workflows-Detailseite")),
+            argonTabItem(
+                tabName = "planer",
+                planer_ui("planer")
+            ),
+            
+            argonTabItem(
+                tabName = "werke",
+                werke_ui("werke")
+            ),
+            
+            argonTabItem(
+                tabName = "fertigung",
+                fertigung_ui("fertigung")
+            ),
+            
+            argonTabItem(
+                tabName = "workflows",
+                workflows_ui("workflows")
+            ),
+            
             argonTabItem(
                 tabName = "material",
                 h2("Material-Detailseite"),
@@ -103,25 +157,11 @@ ui <- argonDashPage(
         )
     ),
     
-    footer = argonDashFooter(
-        copyright = "Made by Julia"
-    )
+    footer = argonDashFooter(copyright = "Made by Julia")
 )
 
-# Server ---------------------------------------------------------------------
-
 server <- function(input, output, session) {
-    tryCatch({
-        source("02_model/create_start_kpis.R", local = TRUE)
-    }, error = function(e) {
-        avg_lt <<- NA
-        avg_sl <<- NA
-        message("Fehler beim Laden von KPIs: ", e$message)
-    })
-    
-    output$avg_lt <- renderText({ as.character(avg_lt) })
-    output$avg_servicelevel <- renderText({ paste0(avg_sl, "%") })
-    
+    # Navigation über Buttons aktivieren
     observeEvent(input$go_planer, {
         updateTabItems(session, "sidebar", "planer")
     })
@@ -137,15 +177,24 @@ server <- function(input, output, session) {
     observeEvent(input$go_material, {
         updateTabItems(session, "sidebar", "material")
     })
+    # KPI-Daten berechnen
+    if (exists("all_data_finalized")) {
+        start_kpis <- data.frame(
+            Avg LT = median(all_data_finalized$lead_time_ist, na.rm = TRUE),
+            Avg Servicelevel = round(mean(all_data_finalized$abweichung >= 0, na.rm = TRUE) * 100, 0)
+        )
+    } else {
+        start_kpis <- data.frame(Avg LT = NA, Avg Servicelevel = NA)
+    }
     
-    dummy_server("planer")
-    dummy_server("werke")
-    dummy_server("fertigung")
-    dummy_server("workflows")
+    output$avg_lt <- renderText({ as.character(start_kpis$Avg LT) })
+    output$avg_servicelevel <- renderText({ paste0(start_kpis$Avg Servicelevel, "%") })
     
-    output$text_material <- renderText({ "Dummy-Inhalt für Material" })
+    # Module Server-Funktionen aufrufen
+    planer_server("planer")
+    werke_server("werke")
+    fertigung_server("fertigung")
+    workflows_server("workflows")
+    
+    output$text_material <- renderText({ "Hier könnten deine Material-Daten stehen." })
 }
-
-# Start App ------------------------------------------------------------------
-
-shinyApp(ui, server)
