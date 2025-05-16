@@ -4,9 +4,8 @@ library(DT)
 
 source("02_model/create_planer_overview.R")
 
-# 02_planer.R
 
-ui <- argonDashPage(
+planer_ui <- argonDashPage(
     title = "Planer Übersicht",
     sidebar = argonDashSidebar(
         id = "planer_sidebar",
@@ -44,7 +43,7 @@ ui <- argonDashPage(
     )
 )
 
-server <- function(input, output, session) {
+planer_server <- function(input, output, session) {
     if (exists("planer_overview")) {
         output$planer_table <- renderDT({
             datatable(planer_overview,
@@ -64,4 +63,4 @@ server <- function(input, output, session) {
     }
 }
 
-shinyApp(ui, server)
+shinyApp(planer_ui, planer_server)
