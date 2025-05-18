@@ -24,4 +24,8 @@ workflows_overview <- all_data_finalized %>%
         .groups = "drop"
     ) %>%
     mutate(Servicelevel = paste0(round(Servicelevel * 100, 0), "%")) %>%
-    rename(Workflow = vorgangsfolge)
+    arrange(desc(`# orders`)) %>%
+    mutate(Workflow = LETTERS[seq_len(n())]) %>%
+    
+    # 🡺 Workflow ganz vorn, vorgangsfolge bleibt erhalten
+    dplyr::select(Workflow, vorgangsfolge, everything())

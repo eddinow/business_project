@@ -23,7 +23,7 @@ vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 #Um wieder die Lead Times auf Vorgangs- und Arbeitsplatzebene sehen zu können, 
 # müssen die sap_vorgaenge cleanen und dann pro Vorgang u Arbeitsplatz wieder die LT
 # ermitteln. Wir ermitteln außerdem die Liegezeiten als Differenz zwischen Enddatum
-# Vorgang 1 und Startdatum Folgevorgang. 
+# Vorgang 1 und Startdatum Folgevorgang. Wir ermitteln LT/Unit!
 
 vorgaenge_raw <- vorgaenge_raw %>%
     filter(Auftragsnummer %in% all_data_finalized$auftragsnummer)

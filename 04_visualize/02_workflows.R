@@ -1,4 +1,4 @@
-ibrary(shiny)
+library(shiny)
 library(DT)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
