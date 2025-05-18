@@ -21,7 +21,7 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
     df_step <- df %>%
         filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_soll))
     
-    if (nrow(df_step) < 10) return(NULL)
+    
     
     # Cutoffs
     cutoffs <- df_step %>%
@@ -38,7 +38,7 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
             between(lead_time_soll, cutoffs$lt_min, cutoffs$lt_max)
         )
     
-    if (nrow(df_clean) < 10) return(NULL)
+   
     
     # Bin-Breite automatisch bestimmen (mit fallback)
     iqr <- IQR(df_clean$sollmenge, na.rm = TRUE)
@@ -104,5 +104,6 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
     return(list(
         plot = p,
         table = lt_by_bin %>%
-            select(bin_label, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
+            dplyr::select(bin_label, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
     ))
+}
