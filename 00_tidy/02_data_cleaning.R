@@ -29,8 +29,8 @@ vorgaenge_sap_raw <- vorgaenge_sap_raw |>
 
 # 2) Ensure correct column formats
 
-str(auftragskoepfe_sap_raw)
-str(vorgaenge_sap_raw)
+# str(auftragskoepfe_sap_raw)
+# str(vorgaenge_sap_raw)
 
 # a) Auftragskoepfe: numeric vs. date vs. leave-as-is
 auftragskoepfe_sap_raw <- auftragskoepfe_sap_raw |>
@@ -66,8 +66,8 @@ vorgaenge_sap_raw <- vorgaenge_sap_raw |>
         
         # all other columns keep their existing types
     )
-str(auftragskoepfe_sap_raw)
-str(vorgaenge_sap_raw)
+# str(auftragskoepfe_sap_raw)
+# str(vorgaenge_sap_raw)
 
 
 

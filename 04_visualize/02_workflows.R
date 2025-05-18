@@ -16,7 +16,15 @@ workflows_ui <- function(id) {
             )
         ),
         fluidRow(
-            box(title = "Lead Time Prognose je Workflow", width = 12, status = "primary", solidHeader = TRUE,
+            box(title = "Soll-LT pro Workflow", width = 12, status = "primary", solidHeader = TRUE,
+                selectInput(ns("selected_workflow"), "Workflow auswählen",
+                            choices = NULL),  # wird serverseitig gefüllt
+                plotOutput(ns("workflow_plot"))
+            )
+        ),
+        
+        fluidRow(
+            box(title = "Ist-LT pro Workflow", width = 12, status = "primary", solidHeader = TRUE,
                 selectInput(ns("selected_workflow"), "Workflow auswählen",
                             choices = NULL),  # wird serverseitig gefüllt
                 plotOutput(ns("workflow_plot"))
@@ -25,7 +33,8 @@ workflows_ui <- function(id) {
     )
 }
 
-# Server-Modul-Funktion
+# Server
+
 workflows_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         ns <- session$ns
@@ -49,7 +58,6 @@ workflows_server <- function(id) {
             })
         }
         
-        # Dropdown dynamisch füllen
         observe({
             updateSelectInput(session, "selected_workflow",
                               choices = unique(all_data_finalized$vorgangsfolge))
@@ -58,7 +66,7 @@ workflows_server <- function(id) {
         # Reaktives Objekt für den gewählten Workflow
         est_plot_obj <- reactive({
             req(input$selected_workflow)
-            result <- create_est_lt(all_data_finalized, input$selected_workflow)
+            result <- create_est_lt_ist(all_data_finalized, input$selected_workflow)  # <- hier angepasst!
             return(result)
         })
         
@@ -68,5 +76,5 @@ workflows_server <- function(id) {
             req(result)
             print(result$plot)  # <- ganz wichtig!
         })
-    })
+    })  # ← Diese schließende Klammer war gefehlt
 }

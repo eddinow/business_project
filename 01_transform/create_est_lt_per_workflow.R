@@ -17,6 +17,8 @@ source("00_tidy/create_all_data_finalized.R")
 # oberes bzw unteres Perzentil. So können wir einigermaßen mengenabhängig die LT 
 # prognostizieren.
 
+#SOLLZEITEN------------------------------
+
 create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
     df_step <- df %>%
         filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_soll))
@@ -104,6 +106,92 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
     return(list(
         plot = p,
         table = lt_by_bin %>%
+            dplyr::select(bin_label, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
+    ))
+}
+
+
+
+#ISTZEITEN------------------------------
+create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
+    df_step_ist <- df %>%
+        filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_ist))
+    
+    # Cutoffs
+    cutoffs_ist <- df_step_ist %>%
+        summarise(
+            menge_min = quantile(sollmenge, 0.01),
+            menge_max = quantile(sollmenge, 0.99),
+            lt_min    = quantile(lead_time_ist, 0.01),
+            lt_max    = quantile(lead_time_ist, 0.99)
+        )
+    
+    df_clean_ist <- df_step_ist %>%
+        filter(
+            between(sollmenge, cutoffs_ist$menge_min, cutoffs_ist$menge_max),
+            between(lead_time_ist, cutoffs_ist$lt_min, cutoffs_ist$lt_max)
+        )
+    
+    # Bin-Breite automatisch bestimmen (mit fallback)
+    iqr_ist <- IQR(df_clean_ist$sollmenge, na.rm = TRUE)
+    n_ist <- sum(!is.na(df_clean_ist$sollmenge))
+    bin_size_ist <- 2 * iqr_ist / (n_ist^(1/3))
+    if (is.na(bin_size_ist) || bin_size_ist <= 0) bin_size_ist <- fallback_bin_size
+    
+    breaks_ist <- seq(0, max(df_clean_ist$sollmenge, na.rm = TRUE) + bin_size_ist, by = bin_size_ist)
+    if (length(breaks_ist) < 2) return(NULL)
+    
+    df_binned_ist <- df_clean_ist %>%
+        mutate(
+            bin = cut(sollmenge, breaks = breaks_ist, include.lowest = TRUE, right = FALSE)
+        )
+    
+    lt_by_bin_ist <- df_binned_ist %>%
+        group_by(bin) %>%
+        summarise(
+            median_lt = median(lead_time_ist, na.rm = TRUE),
+            p10 = quantile(lead_time_ist, 0.10, na.rm = TRUE),
+            p90 = quantile(lead_time_ist, 0.90, na.rm = TRUE),
+            .groups = "drop"
+        ) %>%
+        filter(!is.na(bin))
+    
+    # 3. Hole Breaks und berechne Labels
+    bin_levels_ist <- levels(df_binned_ist$bin)
+    bin_starts_ist <- as.numeric(gsub("^\\[|\\(|,.*$", "", bin_levels_ist))
+    bin_ends_ist   <- as.numeric(gsub("^.*,(.*)\\]$", "\\1", bin_levels_ist))
+    
+    bin_bounds_ist <- tibble(bin = factor(bin_levels_ist, levels = bin_levels_ist)) %>%
+        mutate(
+            bin_start = bin_starts_ist,
+            bin_end = bin_ends_ist,
+            bin_label = paste0(
+                formatC(bin_start / 1000, format = "f", digits = 0, big.mark = "."), "k – ",
+                formatC(bin_end / 1000, format = "f", digits = 0, big.mark = "."), "k"
+            )
+        ) %>%
+        filter(bin %in% lt_by_bin_ist$bin)
+    
+    lt_by_bin_ist <- lt_by_bin_ist %>%
+        left_join(bin_bounds_ist, by = "bin") %>%
+        mutate(bin_label = factor(bin_label, levels = bin_label))
+    
+    # 📊 Plot
+    p_ist <- ggplot(lt_by_bin_ist, aes(x = bin_label)) +
+        geom_ribbon(aes(ymin = p10, ymax = p90, group = 1), fill = "#002366", alpha = 0.2) +
+        geom_line(aes(y = median_lt, group = 1), color = "#002366", linewidth = 1) +
+        geom_point(aes(y = median_lt), color = "#002366", size = 2) +
+        labs(
+            title = paste("Lead Time (IST) je Losgrößen-Bin –", vorgangsfolge_id),
+            x = "Sollmengen-Bereich",
+            y = "Lead Time (ist)"
+        ) +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    
+    return(list(
+        plot = p_ist,
+        table = lt_by_bin_ist %>%
             dplyr::select(bin_label, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
     ))
 }
