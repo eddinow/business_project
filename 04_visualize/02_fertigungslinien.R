@@ -8,62 +8,38 @@ library(DT)
 source("02_model/create_fertigungslinien_overview.R")
 
 
-ui <- argonDashPage(
-    title = "Übersicht Fertigungslinien",
-    sidebar = argonDashSidebar(
-        id = "fertigungslinien_sidebar",
-        vertical = TRUE,
-        skin = "light",
-        background = "white",
-        size = "md",
-        div(h4("Fertigungslinien Dashboard", class = "text-primary text-center mt-3"))
-    ),
-    header = argonDashHeader(
-        gradient = TRUE,
-        color = "primary",
-        separator = TRUE,
-        bottom_border = TRUE
-    ),
-    body = argonDashBody(
-        argonTabItems(
-            argonTabItem(
-                tabName = "fertigungslinie",
-                h1("Übersicht aller Fertigungslinien", class = "mb-4"),
-                p("Hier findest du eine interaktive Tabelle mit den wichtigsten Kennzahlen pro Werk."),
-                fluidRow(
-                    column(12,
-                           div(class = "card shadow-sm p-4 bg-white rounded",
-                               h4("Fertigungslinien KPIs", class = "mb-3"),
-                               DTOutput("fertigungslinien_table")
-                           )
-                    )
-                )
+# UI-Modul-Funktion
+linien_ui <- function(id) {
+    ns <- NS(id)
+    tagList(
+        fluidRow(
+            box(title = "Übersicht aller Fertigungslinien", width = 12, status = "primary", solidHeader = TRUE,
+                p("Hier findest du eine interaktive Tabelle mit den wichtigsten Kennzahlen pro Fertigungslinie."),
+                DTOutput(ns("linien_table"))
             )
         )
-    ),
-    footer = argonDashFooter(
-        copyright = "Made by Julia"
     )
-)
-
-server <- function(input, output, session) {
-    if (exists("fertigungslinien_overview")) {
-        output$fertigungslinien_table <- renderDT({
-            datatable(fertigungslinien_overview,
-                      options = list(
-                          pageLength = 10,
-                          autoWidth = TRUE,
-                          dom = 'tip',
-                          scrollX = TRUE
-                      ),
-                      rownames = FALSE,
-                      class = "stripe hover cell-border")
-        })
-    } else {
-        output$fertigungslinien_table <- renderDT({
-            datatable(data.frame(Hinweis = "Keine Daten verfügbar"))
-        })
-    }
 }
 
-shinyApp(ui, server)
+# Server-Modul-Funktion
+linien_server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        if (exists("linien_overview")) {
+            output$linien_table <- renderDT({
+                datatable(linien_overview,
+                          options = list(
+                              pageLength = 10,
+                              autoWidth = TRUE,
+                              dom = 'tip',
+                              scrollX = TRUE
+                          ),
+                          rownames = FALSE,
+                          class = "stripe hover cell-border")
+            })
+        } else {
+            output$planer_table <- renderDT({
+                datatable(data.frame(Hinweis = "Keine Daten verfügbar"))
+            })
+        }
+    })
+}

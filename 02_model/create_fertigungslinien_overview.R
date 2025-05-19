@@ -1,7 +1,7 @@
-# Initialisierung ----------------------------------------------------------------
-
-rm(list = ls())
-set.seed(1)
+# # Initialisierung ----------------------------------------------------------------
+# 
+# rm(list = ls())
+# set.seed(1)
 
 library(dplyr)
 
@@ -25,5 +25,3 @@ fertigungslinien_overview <- all_data_finalized %>%
     ) %>%
     mutate(Servicelevel = paste0(round(Servicelevel * 100, 0), "%")) %>%
     rename(Fertigungslinie = fertigungslinie)
-
-view(fertigungslinien_overview)
