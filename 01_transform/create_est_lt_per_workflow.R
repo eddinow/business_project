@@ -195,3 +195,101 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
             dplyr::select(bin_label, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
     ))
 }
+
+create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
+    # Hilfsfunktion für eine Variante (soll oder ist)
+    compute_variant <- function(df, vorgangsfolge_id, col_name, label) {
+        df_step <- df %>%
+            filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(.data[[col_name]]))
+        
+        if (nrow(df_step) < 3) return(NULL)
+        
+        iqr <- IQR(df_step$sollmenge, na.rm = TRUE)
+        n <- sum(!is.na(df_step$sollmenge))
+        bin_size <- 2 * iqr / (n^(1/3))
+        if (is.na(bin_size) || bin_size <= 0) bin_size <- fallback_bin_size
+        
+        breaks <- seq(0, max(df_step$sollmenge, na.rm = TRUE) + bin_size, by = bin_size)
+        if (length(breaks) < 2) return(NULL)
+        
+        df_binned <- df_step %>%
+            mutate(bin = cut(sollmenge, breaks = breaks, include.lowest = TRUE, right = FALSE))
+        
+        lt_by_bin <- df_binned %>%
+            group_by(bin) %>%
+            summarise(
+                median_lt = median(.data[[col_name]], na.rm = TRUE),
+                p10 = quantile(.data[[col_name]], 0.10, na.rm = TRUE),
+                p90 = quantile(.data[[col_name]], 0.90, na.rm = TRUE),
+                .groups = "drop"
+            ) %>%
+            filter(!is.na(bin))
+        
+        bin_levels <- levels(df_binned$bin)
+        bin_starts <- as.numeric(gsub("^\\[|\\(|,.*$", "", bin_levels))
+        bin_ends   <- as.numeric(gsub("^.*,(.*)\\]$", "\\1", bin_levels))
+        
+        bin_bounds <- tibble(bin = factor(bin_levels, levels = bin_levels)) %>%
+            mutate(
+                bin_start = bin_starts,
+                bin_end = bin_ends,
+                bin_label = paste0(
+                    formatC(bin_start / 1000, format = "f", digits = 0, big.mark = "."), "k – ",
+                    formatC(bin_end / 1000, format = "f", digits = 0, big.mark = "."), "k"
+                )
+            ) %>%
+            filter(bin %in% lt_by_bin$bin)
+        
+        lt_by_bin <- lt_by_bin %>%
+            left_join(bin_bounds, by = "bin") %>%
+            mutate(
+                bin_label = factor(bin_label, levels = unique(bin_bounds$bin_label)),
+                variante = label
+            )
+        
+        return(lt_by_bin)
+    }
+    
+    df_soll <- compute_variant(df, vorgangsfolge_id, "lead_time_soll", "Soll")
+    df_ist  <- compute_variant(df, vorgangsfolge_id, "lead_time_ist", "Ist")
+    if (is.null(df_soll) || is.null(df_ist)) return(NULL)
+    
+    df_combined <- bind_rows(df_soll, df_ist)
+    
+    # Alle Labels extrahieren
+    all_labels <- levels(df_combined$bin_label)
+    selected_labels <- all_labels[seq(1, length(all_labels), by = ceiling(length(all_labels) / 5))]  # ca. alle 20 %
+    
+    # Anzahl Aufträge (Datenpunkte)
+    total_points <- nrow(df_combined)
+    
+    # Plot
+    p <- ggplot(df_combined, aes(x = bin_label, group = variante)) +
+        geom_ribbon(aes(ymin = p10, ymax = p90, fill = variante), alpha = 0.08) +
+        geom_line(aes(y = median_lt, color = variante), linewidth = 0.3) +
+        geom_point(aes(y = median_lt, color = variante), size = 0.4) +
+        scale_color_manual(values = c("Soll" = "#002366", "Ist" = "#CC0000")) +
+        scale_fill_manual(values = c("Soll" = "#002366", "Ist" = "#CC000088")) +
+        labs(
+            title = paste("Lead Time je Losgrößen-Bin –", vorgangsfolge_id),
+            x = "Sollmengen-Bereich",
+            y = "Lead Time",
+            color = "Variante",
+            fill = "Variante",
+            caption = paste("Aufträge ges.:", total_points)
+        ) +
+        scale_x_discrete(breaks = selected_labels) +
+        theme_minimal() +
+        theme(
+            axis.text.x = element_text(angle = 45, hjust = 1),
+            plot.caption = element_text(hjust = 1, face = "italic", size = 9),
+            legend.position = "right",
+            legend.box = "vertical"
+        )
+    
+    return(list(
+        plot = p,
+        table = df_combined %>%
+            dplyr::select(bin_label, variante, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
+    ))
+}

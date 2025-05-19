@@ -1,6 +1,7 @@
 library(shiny)
 library(DT)
 library(ggplot2)
+library(plotly)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
@@ -16,18 +17,10 @@ workflows_ui <- function(id) {
             )
         ),
         fluidRow(
-            box(title = "Soll-LT pro Workflow", width = 12, status = "primary", solidHeader = TRUE,
+            box(title = "Lead Time je Workflow (Soll vs. Ist)", width = 12, status = "primary", solidHeader = TRUE,
                 selectInput(ns("selected_workflow"), "Workflow auswählen",
                             choices = NULL),  # wird serverseitig gefüllt
-                plotOutput(ns("workflow_plot"))
-            )
-        ),
-        
-        fluidRow(
-            box(title = "Ist-LT pro Workflow", width = 12, status = "primary", solidHeader = TRUE,
-                selectInput(ns("selected_workflow"), "Workflow auswählen",
-                            choices = NULL),  # wird serverseitig gefüllt
-                plotOutput(ns("workflow_plot"))
+                plotlyOutput(ns("workflow_plot"))
             )
         )
     )
@@ -39,16 +32,11 @@ workflows_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         ns <- session$ns
         
-        # Tabelle rendern (wie gehabt)
+        # Tabelle
         if (exists("workflows_overview")) {
             output$workflows_table <- renderDT({
                 datatable(workflows_overview,
-                          options = list(
-                              pageLength = 10,
-                              autoWidth = TRUE,
-                              dom = 'tip',
-                              scrollX = TRUE
-                          ),
+                          options = list(pageLength = 10, autoWidth = TRUE, dom = 'tip', scrollX = TRUE),
                           rownames = FALSE,
                           class = "stripe hover cell-border")
             })
@@ -58,23 +46,22 @@ workflows_server <- function(id) {
             })
         }
         
+        # Dropdown füllen
         observe({
             updateSelectInput(session, "selected_workflow",
                               choices = unique(all_data_finalized$vorgangsfolge))
         })
         
-        # Reaktives Objekt für den gewählten Workflow
+        # Kombinierter Plot (Soll + Ist)
         est_plot_obj <- reactive({
             req(input$selected_workflow)
-            result <- create_est_lt_ist(all_data_finalized, input$selected_workflow)  # <- hier angepasst!
-            return(result)
+            create_est_lt_combined(all_data_finalized, input$selected_workflow)
         })
         
-        # Plot ausgeben
-        output$workflow_plot <- renderPlot({
+        output$workflow_plot <- plotly::renderPlotly({
             result <- est_plot_obj()
             req(result)
-            print(result$plot)  # <- ganz wichtig!
+            plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color"))
         })
-    })  # ← Diese schließende Klammer war gefehlt
+    })
 }
