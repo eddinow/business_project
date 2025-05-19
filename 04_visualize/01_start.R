@@ -11,17 +11,16 @@ source("04_visualize/02_material.R", local = TRUE)
 source("04_visualize/02_werke.R", local = TRUE)  
 
 # UI -------------------------------------------------------------------------
-
 start_ui <- dashboardPage(
     dashboardHeader(title = "TrueTime"),
     dashboardSidebar(
         sidebarMenu(id = "main_tabs",
                     menuItem("Start", tabName = "start", icon = icon("home")),
-                    menuItem("Workflows", tabName = "workflows", icon = icon("cogs")),
-                    menuItem("Material", tabName = "material", icon = icon("cogs")),
-                    menuItem("Fertigungslinien", tabName = "linien", icon = icon("cogs")),
-                    menuItem("Werke", tabName = "werke", icon = icon("cogs")),
-                    menuItem("Planer", tabName = "planer", icon = icon("chart-bar"))# <--- NEU
+                    menuItem("Workflows", tabName = "workflows", icon = icon("gears")),
+                    menuItem("Material", tabName = "material", icon = icon("boxes")),
+                    menuItem("Fertigungslinien", tabName = "linien", icon = icon("industry")),
+                    menuItem("Werke", tabName = "werke", icon = icon("building")),
+                    menuItem("Planer", tabName = "planer", icon = icon("chart-line"))
         )
     ),
     dashboardBody(
@@ -40,7 +39,8 @@ start_ui <- dashboardPage(
           display: flex;
           flex-direction: column;
           justify-content: center;
-          align-items: flex-start;
+          align-items: center;
+          cursor: pointer;
         }
         .fancy-box .value {
           font-size: 4vw;
@@ -56,6 +56,27 @@ start_ui <- dashboardPage(
           font-weight: bold;
           margin-top: 3vw;
           margin-bottom: 1.5vw;
+        }
+        .button_grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 2vw;
+        }
+        .button_grid .fancy-box {
+          flex: 1 1 calc(33.333% - 2vw);
+          max-width: calc(33.333% - 2vw);
+        }
+        @media (max-width: 1000px) {
+          .button_grid .fancy-box {
+            flex: 1 1 calc(50% - 2vw);
+            max-width: calc(50% - 2vw);
+          }
+        }
+        @media (max-width: 600px) {
+          .button_grid .fancy-box {
+            flex: 1 1 calc(100% - 2vw);
+            max-width: calc(100% - 2vw);
+          }
         }"
             ))
         ),
@@ -79,177 +100,37 @@ start_ui <- dashboardPage(
                         )
                     ),
                     h3("Kategorie wählen", class = "h3-fancy"),
-                    fluidRow(
-                        
-                        column(width = 6,
-                               actionButton("go_workflows", "Workflows", 
-                                            style = "
-                              background-color: white;
-                              color: #002366;
-                              border: none;
-                              border-radius: 16px;
-                              box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-                              font-weight: bold;
-                              width: 20vw;
-                              height: 20vw;
-                              font-size: 2.4vw;
-                              display: flex;
-                              align-items: flex-end;
-                              justify-content: flex-start;
-                              padding: 0 0 10px 10px;
-                            ")
-                        ),
-                        
-                        column(width = 6,
-                               actionButton("go_material", "Material",  
-                                            style = "
-                              background-color: white;
-                              color: #002366;
-                              border: none;
-                              border-radius: 16px;
-                              box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-                              font-weight: bold;
-                              width: 20vw;
-                              height: 20vw;
-                              font-size: 2.4vw;
-                              display: flex;
-                              align-items: flex-end;
-                              justify-content: flex-start;
-                              padding: 0 0 10px 10px;
-                            ")
-                        ),
-                        
-                        column(width = 6,
-                               actionButton("go_linien", "Fertigungslinien",  
-                                            style = "
-                              background-color: white;
-                              color: #002366;
-                              border: none;
-                              border-radius: 16px;
-                              box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-                              font-weight: bold;
-                              width: 20vw;
-                              height: 20vw;
-                              font-size: 2.4vw;
-                              display: flex;
-                              align-items: flex-end;
-                              justify-content: flex-start;
-                              padding: 0 0 10px 10px;
-                            ")
-                        ),
-                        
-                        column(width = 6,
-                               actionButton("go_werke", "Werke",  # <--- NEU
-                                            style = "
-                              background-color: white;
-                              color: #002366;
-                              border: none;
-                              border-radius: 16px;
-                              box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-                              font-weight: bold;
-                              width: 20vw;
-                              height: 20vw;
-                              font-size: 2.4vw;
-                              display: flex;
-                              align-items: flex-end;
-                              justify-content: flex-start;
-                              padding: 0 0 10px 10px;
-                            ")
-                        ),
-                        
-                        column(width = 6,
-                               actionButton("go_werke", "Werke",  # <--- NEU
-                                            style = "
-                              background-color: white;
-                              color: #002366;
-                              border: none;
-                              border-radius: 16px;
-                              box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-                              font-weight: bold;
-                              width: 20vw;
-                              height: 20vw;
-                              font-size: 2.4vw;
-                              display: flex;
-                              align-items: flex-end;
-                              justify-content: flex-start;
-                              padding: 0 0 10px 10px;
-                            ")
-                        ),
-                        
-                        column(width = 6,
-                               actionButton("go_planer", "Planer",
-                                            style = "
-                              background-color: white;
-                              color: #002366;
-                              border: none;
-                              border-radius: 16px;
-                              box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-                              font-weight: bold;
-                              width: 20vw;
-                              height: 20vw;
-                              font-size: 2.4vw;
-                              display: flex;
-                              align-items: flex-end;
-                              justify-content: flex-start;
-                              padding: 0 0 10px 10px;
-                            ")
-                        )
+                    div(class = "button_grid",
+                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'workflows')", "Workflows"),
+                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'material')", "Material"),
+                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'linien')", "Fertigungslinien"),
+                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'werke')", "Werke"),
+                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'planer')", "Planer")
                     )
             ),
-
-            tabItem(tabName = "workflows",  
-                    workflows_ui("workflows")
-            ),
-            tabItem(tabName = "material",   
-                    material_ui("material")
-            ),
-            tabItem(tabName = "linien",   
-                    linien_ui("linien")
-            ),
-            tabItem(tabName = "werke",   
-                    werke_ui("werke")
-            ),
-            
-            tabItem(tabName = "planer",
-                    planer_ui("planer")
-            )
+            tabItem(tabName = "workflows", workflows_ui("workflows")),
+            tabItem(tabName = "material", material_ui("material")),
+            tabItem(tabName = "linien", linien_ui("linien")),
+            tabItem(tabName = "werke", werke_ui("werke")),
+            tabItem(tabName = "planer", planer_ui("planer"))
         )
     )
 )
 
-# Server ---------------------------------------------------------------------
+# Server-----------------------------------------------------------------
 
 start_server <- function(input, output, session) {
-   
-    observeEvent(input$go_workflows, {  
-        updateTabItems(session, inputId = "main_tabs", selected = "workflows")
-    })
     
-    observeEvent(input$go_material, {  
-        updateTabItems(session, inputId = "main_tabs", selected = "material")
-    })
-    
-    observeEvent(input$go_linien, {  
-        updateTabItems(session, inputId = "main_tabs", selected = "linien")
-    })
-    
-    observeEvent(input$go_werke, {  
-        updateTabItems(session, inputId = "main_tabs", selected = "werke")
-    })
-    
-    observeEvent(input$go_planer, {
-        updateTabItems(session, inputId = "main_tabs", selected = "planer")
-    })
-    
-    
-    workflows_server("workflows")  
-    material_server("material") 
-    linien_server("linien") 
+    workflows_server("workflows")
+    material_server("material")
+    linien_server("linien")
     werke_server("werke")
     planer_server("planer")
+    
+
+    observeEvent(input$go_tab, {
+        updateTabItems(session, "main_tabs", input$go_tab)
+    })
 }
 
-# Start App ------------------------------------------------------------------
-
 shinyApp(start_ui, start_server)
-
