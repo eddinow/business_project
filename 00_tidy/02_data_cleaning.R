@@ -136,21 +136,21 @@ ops_ids <- vorgaenge_sap_raw |>
     unique()
 
 # 2) Prüfen, ob beide Sets identisch sind
-if (setequal(orders_ids, ops_ids)) {
-    cat("✔️ Beide Dateien besitzen exakt dieselben Auftragsnummern.\n")
-} else {
-    cat("❌ Die Dateien unterscheiden sich in den Auftragsnummern.\n")
-    only_in_orders <- setdiff(orders_ids, ops_ids)
-    only_in_ops    <- setdiff(ops_ids, orders_ids)
-    cat("- Nur in 'Auftragsköpfe':", length(only_in_orders), "Aufträge\n")
-    if (length(only_in_orders) > 0) {
-        cat("  Beispiel-Aufträge (Auftragsköpfe):", head(only_in_orders, 10), "\n")
-    }
-    cat("- Nur in 'Vorgänge':", length(only_in_ops), "Aufträge\n")
-    if (length(only_in_ops) > 0) {
-        cat("  Beispiel-Aufträge (Vorgänge):", head(only_in_ops, 10), "\n")
-    }
-}
+# if (setequal(orders_ids, ops_ids)) {
+#    cat("✔️ Beide Dateien besitzen exakt dieselben Auftragsnummern.\n")
+#} else {
+#    cat("❌ Die Dateien unterscheiden sich in den Auftragsnummern.\n")
+#    only_in_orders <- setdiff(orders_ids, ops_ids)
+#    only_in_ops    <- setdiff(ops_ids, orders_ids)
+#    cat("- Nur in 'Auftragsköpfe':", length(only_in_orders), "Aufträge\n")
+#    if (length(only_in_orders) > 0) {
+#        cat("  Beispiel-Aufträge (Auftragsköpfe):", head(only_in_orders, 10), "\n")
+#    }
+#    cat("- Nur in 'Vorgänge':", length(only_in_ops), "Aufträge\n")
+#    if (length(only_in_ops) > 0) {
+#        cat("  Beispiel-Aufträge (Vorgänge):", head(only_in_ops, 10), "\n")
+#    }
+#}
 
 
 # nun will ich die Zeilen mit den leeren Datumsangaben löschen.
