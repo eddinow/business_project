@@ -1,6 +1,6 @@
 # Initialize ------
-rm(list = ls())
-set.seed(1)
+# rm(list = ls())
+# set.seed(1)
 library(shiny)
 library(argonDash)
 library(DT)
