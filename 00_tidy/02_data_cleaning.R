@@ -179,7 +179,7 @@ op_ids  <- vorgaenge_sap_ohne_na$auftragsnummer
 
 # 2) Check if they’re exactly the same set
 same_ids <- setequal(hdr_ids, op_ids)
-print(same_ids)
+# print(same_ids)
 # → TRUE means they match perfectly; FALSE means there are mismatches
 
 # 3) If FALSE, find which IDs are exclusive to each
@@ -187,11 +187,11 @@ only_in_headers <- setdiff(hdr_ids, op_ids)
 only_in_ops     <- setdiff(op_ids,  hdr_ids)
 
 # 4) Inspect the mismatches (if any)
-print("In headers but not in operations:")
-print(only_in_headers)
+# print("In headers but not in operations:")
+# print(only_in_headers)
 
-print("In operations but not in headers:")
-print(only_in_ops)
+# print("In operations but not in headers:")
+# print(only_in_ops)
 
 
 # Einträge aus vorgaenge wurden nun in auftragskoepfe übertragen, da diese laut prof von besserer Qualität sein sollen.
@@ -250,14 +250,14 @@ auftragskoepfe_sap_ohne_na_datumseinträge_von_vorgaenge <-
 
 # test ob es geklappt hat. Hab auf die Schnelle Aufrag gefunden, bei der sich die Daten unterschieden haben
 # 1) Show the header row in your enriched headers object
-auftragskoepfe_sap_ohne_na_datumseinträge_von_vorgaenge %>%
-    filter(auftragsnummer == "1068473") %>%
-    print()
+# auftragskoepfe_sap_ohne_na_datumseinträge_von_vorgaenge %>%
+#     filter(auftragsnummer == "1068473") %>%
+#     print()
 
 # 2) Show all matching operation rows in the filtered operations object
-vorgaenge_sap_ohne_na %>%
-    filter(auftragsnummer == "1068473") %>%
-    print()
+# vorgaenge_sap_ohne_na %>%
+#     filter(auftragsnummer == "1068473") %>%
+#     print()
 
 #1.2 fertig                                             
 
@@ -404,4 +404,4 @@ top_outliers <- fast_fertiger_datensatz_auftragskoepfe |>
     )
 
 # Ausgabe der Top 10
-print(top_outliers)
+# print(top_outliers)
