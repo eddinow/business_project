@@ -155,7 +155,7 @@ vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
         .names = "{.col}_median"
     )) 
 
-
+view(vorgaenge_lz_bz)
 
 
 # BESTER ARBEITSPLATZ - Wir wollen jetzt schauen welcher Arbeitsplatz die niedrigste
