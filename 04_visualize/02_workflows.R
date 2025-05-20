@@ -6,6 +6,7 @@ library(readxl)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
+source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)
 
 # UI-Modul-Funktion
 workflows_ui <- function(id) {
@@ -19,21 +20,24 @@ workflows_ui <- function(id) {
         ),
         fluidRow(
             box(title = "Lead Time je Workflow (Soll vs. Ist)", width = 12, status = "primary", solidHeader = TRUE,
-                selectInput(ns("selected_workflow"), "Workflow auswählen",
-                            choices = NULL),  # wird serverseitig gefüllt
+                selectInput(ns("selected_workflow"), "Workflow auswählen:",
+                            choices = NULL),
                 plotlyOutput(ns("workflow_plot"))
             )
         ),
-        
-        sliderInput("selected_sollmenge", "Sollmenge wählen:",
+        fluidRow(
+            box(title = "Zeitaufteilung pro Workflow (Stacked Bar)", width = 12, status = "primary", solidHeader = TRUE,
+                selectInput(ns("selected_workflow_bar"), "Workflow auswählen:", choices = NULL),
+                plotlyOutput(ns("stacked_bar_plot"))
+            )
+        ),
+        sliderInput(ns("selected_sollmenge"), "Sollmenge wählen:",
                     min = 0, max = 1000000, value = 10000, step = 1000),
-        
-        verbatimTextOutput("sollmenge_info")
+        verbatimTextOutput(ns("sollmenge_info"))
     )
 }
 
 # Server
-
 workflows_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         ns <- session$ns
@@ -54,8 +58,9 @@ workflows_server <- function(id) {
         
         # Dropdown füllen
         observe({
-            updateSelectInput(session, "selected_workflow",
-                              choices = unique(all_data_finalized$vorgangsfolge))
+            workflows <- unique(all_data_finalized$vorgangsfolge)
+            updateSelectInput(session, "selected_workflow", choices = workflows)
+            updateSelectInput(session, "selected_workflow_bar", choices = workflows)
         })
         
         # Kombinierter Plot (Soll + Ist)
@@ -87,17 +92,62 @@ workflows_server <- function(id) {
             cat("Avg. LT SOLL:", ifelse(length(soll_val) > 0, round(soll_val, 2), "—"), "\n")
         })
         
-        
-        output$workflow_plot <- plotly::renderPlotly({
-            result <- est_plot_obj()
-            req(result)
-            plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color"))
+        # Zeitbalken: stacked bar je Workflow (horizontal)
+        output$stacked_bar_plot <- renderPlotly({
+            req(input$selected_workflow_bar)
+            
+            daten <- vorgaenge_lz_bz %>%
+                filter(vorgangsfolge == input$selected_workflow_bar) %>%
+                pivot_longer(
+                    cols = -vorgangsfolge,
+                    names_to = "Vorgang",
+                    values_to = "Dauer"
+                ) %>%
+                filter(Dauer > 0) %>%
+                mutate(
+                    Vorgang = gsub("_median", "", Vorgang),
+                    Kategorie = ifelse(Vorgang == "Liegedauer_gesamt", "Liegezeit", Vorgang)
+                ) %>%
+                mutate(Kategorie = factor(Kategorie, levels = c("0005", "0010", "0020", "0030", "0032", "0040", "0050", "0060", "0070", "Liegezeit")[c("0005", "0010", "0020", "0030", "0032", "0040", "0050", "0060", "0070", "Liegezeit") %in% Kategorie])) %>%
+                mutate(
+                    Anteil = round(100 * Dauer / sum(Dauer), 1),
+                    text = paste0(
+                        "Kategorie: ", Kategorie, "<br>",
+                        "Dauer: ", Dauer, " Tage<br>",
+                        "Anteil: ", Anteil, " %"
+                    )
+                )
+            
+            farben_fest <- c(
+                "0005" = "#A6CEE3",
+                "0010" = "#1F78B4",
+                "0020" = "#B2DF8A",
+                "0030" = "#33A02C",
+                "0032" = "#FB9A99",
+                "0040" = "#E31A1C",
+                "0050" = "#FDBF6F",
+                "0060" = "#FF7F00",
+                "0070" = "#CAB2D6",
+                "Liegezeit" = "#8B0000"
+            )
+            
+            p <- ggplot(daten, aes(y = vorgangsfolge, x = Dauer, fill = Kategorie, text = text)) +
+                geom_bar(stat = "identity", width = 0.4) +
+                scale_fill_manual(values = farben_fest) +
+                labs(
+                    title = paste("Zeitaufteilung für:", input$selected_workflow_bar),
+                    y = NULL,
+                    x = "Dauer (Median in Tagen)",
+                    fill = "Vorgang"
+                ) +
+                theme_minimal(base_size = 14)
+            
+            ggplotly(p, tooltip = "text")
         })
         
+        # Slider dynamisch setzen
         observe({
             req(input$selected_workflow)
-            
-            # Nur für Slider-Update – Plot wird hier NICHT benutzt
             create_est_lt_combined(all_data_finalized, input$selected_workflow, session = session)
         })
     })

@@ -19,7 +19,7 @@ all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
 
-# SÄULENDIAGRAMM ZEITEN FÜR WORKFLOWS
+# BALKENDIAGRAMM ZEITEN FÜR WORKFLOWS
 #Um wieder die Lead Times auf Vorgangs- und Arbeitsplatzebene sehen zu können, 
 # müssen die sap_vorgaenge cleanen und dann pro Vorgang u Arbeitsplatz wieder die LT
 # ermitteln. Wir ermitteln außerdem die Liegezeiten als Differenz zwischen Enddatum
@@ -71,6 +71,46 @@ vorgaenge_cleaned <- vorgaenge_cleaned %>%
 vorgaenge_sorted <- vorgaenge_cleaned %>%
     arrange(Auftragsnummer, `Iststart Vorgang`)
 
+liegezeiten_plot <- vorgaenge_sorted %>%
+    group_by(Auftragsnummer) %>%
+    arrange(`Iststart Vorgang`) %>%
+    mutate(
+        vorheriges_ende = lag(`Istende Vorgang`),
+        aktuelles_start = `Iststart Vorgang`
+    ) %>%
+    filter(!is.na(vorheriges_ende) & aktuelles_start > vorheriges_ende) %>%
+    mutate(
+        Typ = "Liegezeit",
+        Start = vorheriges_ende,
+        Ende = aktuelles_start
+    ) %>%
+    dplyr::select(Auftragsnummer, Typ, Start, Ende)
+
+
+vorgaenge_plot <- vorgaenge_sorted %>%
+    dplyr::select(
+        Auftragsnummer,
+        Vorgangsnummer,
+        Typ = Vorgangsnummer,
+        Start = `Iststart Vorgang`,
+        Ende = `Istende Vorgang`
+    )
+
+workflow_plot_data <- bind_rows(vorgaenge_plot, liegezeiten_plot) %>%
+    arrange(Auftragsnummer, Start) %>%
+    group_by(Auftragsnummer) %>%
+    mutate(Schritt = row_number()) %>%
+    ungroup()
+
+ggplot(workflow_plot_data, aes(x = Start, xend = Ende, y = Schritt, yend = Schritt, color = Typ)) +
+    geom_segment(size = 6) +
+    facet_wrap(~ Auftragsnummer, scales = "free_y") +
+    labs(title = "Workflow-Zeitleiste inkl. Liegezeiten",
+         x = "Datum", y = "Reihenfolge im Workflow") +
+    theme_minimal()
+
+
+
 liegezeiten_df <- vorgaenge_sorted %>%
     group_by(Auftragsnummer) %>%
     mutate(
@@ -95,7 +135,7 @@ liegezeit_u_auftragszeit <- vorgaenge_sorted %>%
 
 liegezeit_u_auftragszeit <- liegezeiten_df %>%
     left_join(liegezeit_u_auftragszeit, by = "Auftragsnummer")
-view(liegezeit_u_auftragszeit)
+
 
 # Zusammenfassen der Aufträgen nach Vorgangsnummern um die Daten den einzelnen
 # Workflows zuordnen zu können. Hier nutzen wir Median Werte für Liegezeit und
@@ -114,6 +154,9 @@ vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
         .fns = ~ median(.x, na.rm = TRUE),
         .names = "{.col}_median"
     )) 
+
+
+
 
 # BESTER ARBEITSPLATZ - Wir wollen jetzt schauen welcher Arbeitsplatz die niedrigste
 # Abweichung von den Soll Leadtimes hat
@@ -142,7 +185,7 @@ arbeitsplatz_abweichung <- tibble(
     ), 1)
 )
 
-view(arbeitsplatz_abweichung)
+
 # visualize-----------------------------------
 
 ui <- fluidPage(
@@ -155,11 +198,15 @@ ui <- fluidPage(
                 choices = unique(vorgaenge_lz_bz$vorgangsfolge)
             )
         ),
-        mainPanel(
-            plotlyOutput("stackedPlot")
-        )
-    )
+
+  mainPanel(
+    plotlyOutput("stackedPlot"),
+    plotOutput("workflow_zeitplot")  
+  )
 )
+        
+    )
+
 
 server <- function(input, output) {
     

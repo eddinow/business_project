@@ -4,9 +4,10 @@
 # set.seed(1)
 
 library(dplyr)
+library(readxl)
 
 # Daten laden -------------------------------------------------------------------
-source("00_tidy/create_all_data_finalized.R")  
+all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 
 # Transform------------------
 # Für die Übersichtsseite der Workflows erstellen wir ein Tableau mit allen WFs.
