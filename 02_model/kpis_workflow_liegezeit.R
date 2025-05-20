@@ -71,6 +71,7 @@ vorgaenge_cleaned <- vorgaenge_cleaned %>%
 vorgaenge_sorted <- vorgaenge_cleaned %>%
     arrange(Auftragsnummer, `Iststart Vorgang`)
 
+view(vorgaenge_sorted)
 
 vorgaenge_sorted$starttermin_soll <- as.Date(vorgaenge_sorted$starttermin_soll)
 vorgaenge_sorted$`Istende Vorgang` <- as.Date(vorgaenge_sorted$`Istende Vorgang`)
