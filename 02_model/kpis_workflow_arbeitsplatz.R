@@ -102,14 +102,6 @@ workflow_plot_data <- bind_rows(vorgaenge_plot, liegezeiten_plot) %>%
     mutate(Schritt = row_number()) %>%
     ungroup()
 
-ggplot(workflow_plot_data, aes(x = Start, xend = Ende, y = Schritt, yend = Schritt, color = Typ)) +
-    geom_segment(size = 6) +
-    facet_wrap(~ Auftragsnummer, scales = "free_y") +
-    labs(title = "Workflow-Zeitleiste inkl. Liegezeiten",
-         x = "Datum", y = "Reihenfolge im Workflow") +
-    theme_minimal()
-
-
 
 liegezeiten_df <- vorgaenge_sorted %>%
     group_by(Auftragsnummer) %>%
@@ -137,6 +129,7 @@ liegezeit_u_auftragszeit <- liegezeiten_df %>%
     left_join(liegezeit_u_auftragszeit, by = "Auftragsnummer")
 
 
+
 # Zusammenfassen der Aufträgen nach Vorgangsnummern um die Daten den einzelnen
 # Workflows zuordnen zu können. Hier nutzen wir Median Werte für Liegezeit und
 # Bearbeitungszeit
@@ -147,6 +140,7 @@ liegezeiten_df_erweitert <- liegezeit_u_auftragszeit %>%
         by = "Auftragsnummer"
     )
 
+
 vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
     group_by(vorgangsfolge) %>%
     summarise(across(
@@ -155,130 +149,112 @@ vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
         .names = "{.col}_median"
     )) 
 
-view(vorgaenge_lz_bz)
 
 
-# BESTER ARBEITSPLATZ - Wir wollen jetzt schauen welcher Arbeitsplatz die niedrigste
-# Abweichung von den Soll Leadtimes hat
+df <- vorgaenge_lz_bz
 
-arbeitsplatz_median_df <- vorgaenge_cleaned %>%
-    filter(!is.na(Arbeitsplatz), !is.na(abweichung), !is.na(solldauer)) %>%
-    group_by(Arbeitsplatz) %>%
-    summarise(
-        median_abweichung = median(abweichung),
-        median_solldauer  = median(solldauer),
-        .groups = "drop"
-    )
-
-# Schritt 2: Prüfungen
-gesamt <- nrow(arbeitsplatz_median_df)
-
-anzahl_median_0 <- sum(arbeitsplatz_median_df$median_abweichung == 0)
-anzahl_median_gt2x <- sum(arbeitsplatz_median_df$median_abweichung > 2 * arbeitsplatz_median_df$median_solldauer)
-
-# Schritt 3: Ergebnis-DataFrame
-arbeitsplatz_abweichung <- tibble(
-    kategorie = c("Median = 0", "Median > 2 * Solldauer"),
-    anteil_prozent = round(c(
-        anzahl_median_0 / gesamt * 100,
-        anzahl_median_gt2x / gesamt * 100
-    ), 1)
-)
-
-
-# visualize-----------------------------------
-
-ui <- fluidPage(
-    titlePanel("Gestapeltes Diagramm je Vorgangsfolge"),
-    sidebarLayout(
-        sidebarPanel(
-            selectInput(
-                inputId = "vorgangsfolge",
-                label = "Wähle eine Vorgangsfolge:",
-                choices = unique(vorgaenge_lz_bz$vorgangsfolge)
-            )
-        ),
-
-  mainPanel(
-    plotlyOutput("stackedPlot"),
-    plotOutput("workflow_zeitplot")  
-  )
-)
-        
-    )
-
-
-server <- function(input, output) {
+# Funktion zur Umwandlung einer Zeile in langes Format
+transform_row_to_long <- function(row) {
+    id <- row[["vorgangsfolge"]]
+    total_time <- row[["Liegedauer_gesamt_median"]]
     
-    output$stackedPlot <- renderPlotly({
-        
-        # 1. Daten vorbereiten
-        daten <- vorgaenge_lz_bz %>%
-            filter(vorgangsfolge == input$vorgangsfolge) %>%
-            pivot_longer(
-                cols = -vorgangsfolge,
-                names_to = "Vorgang",
-                values_to = "Dauer"
-            ) %>%
-            filter(Dauer > 0) %>%
-            mutate(
-                Vorgang = gsub("_median", "", Vorgang),
-                Kategorie = ifelse(Vorgang == "Liegedauer_gesamt", "Liegezeit", Vorgang),
-                Kategorie = factor(Kategorie, levels = c(setdiff(Kategorie, "Liegezeit"), "Liegezeit"))
-            ) %>%
-            mutate(
-                Anteil = round(100 * Dauer / sum(Dauer), 1),
-                text = paste0(
-                    "Kategorie: ", Kategorie, "<br>",
-                    "Dauer: ", Dauer, " Tage<br>",
-                    "Anteil: ", Anteil, " %"
-                )
-            )
-        
-        # 2. Farbpalette wie gehabt
-        farben <- c(
-            "Liegezeit" = "#8B0000",
-            setNames(RColorBrewer::brewer.pal(n = 9, name = "Blues")[3 + seq_along(setdiff(unique(daten$Kategorie), "Liegezeit")) - 1],
-                     setdiff(unique(daten$Kategorie), "Liegezeit"))
+    row_long <- row %>%
+        select(ends_with("_median")) %>%
+        pivot_longer(cols = everything(),
+                     names_to = "Step",
+                     values_to = "Time") %>%
+        filter(!is.na(Time)) %>%
+        mutate(
+            Step = str_replace(Step, "_median", ""),
+            vorgangsfolge = id
         )
-        
-        # 3. Interaktives Plotly-Diagramm
-        p <- ggplot(daten, aes(x = vorgangsfolge, y = Dauer, fill = Kategorie, text = text)) +
-            geom_bar(stat = "identity", width = 0.4) +
-            scale_fill_manual(values = farben) +
-            labs(
-                title = paste("Zeitaufteilung für:", input$vorgangsfolge),
-                x = NULL,
-                y = "Dauer (Median in Tagen)",
-                fill = "Vorgang"
-            ) +
-            theme_minimal(base_size = 14)
-        
-        ggplotly(p, tooltip = "text")
-    })
-}
     
-# 
-#     output$stackedPlot <- renderPlot({
-# 
-#         # Filtere nach gewählter vorgangsfolge
-#         daten <- vorgaenge_lz_bz %>%
-#             filter(vorgangsfolge == input$vorgangsfolge) %>%
-#             pivot_longer(
-#                 cols = -vorgangsfolge,
-#                 names_to = "Vorgang",
-#                 values_to = "Dauer"
-#             ) %>%
-#             filter(Dauer > 0)  # Optional: nur positive Werte
-# 
-#         ggplot(daten, aes(x = vorgangsfolge, y = Dauer, fill = Vorgang)) +
-#             geom_bar(stat = "identity") +
-#             labs(
-#                 title = paste("Zeitaufteilung für:", input$vorgangsfolge),
-#                 x = NULL, y = "Dauer (Median in Tagen)"
-#             ) +
-#             theme_minimal()
-#     })
+    row_long
+}
 
-shinyApp(ui = ui, server = server)
 
+plot_workflow_structure <- function(df) {
+    transform_row_to_long <- function(row) {
+        id <- row[["vorgangsfolge"]]
+        row_long <- row %>%
+            select(ends_with("_median")) %>%
+            pivot_longer(cols = everything(),
+                         names_to = "Step",
+                         values_to = "Time") %>%
+            filter(!is.na(Time)) %>%
+            mutate(
+                Step = str_replace(Step, "_median", ""),
+                vorgangsfolge = id
+            )
+        row_long
+    }
+    
+    df_long <- df %>%
+        rowwise() %>%
+        group_split(row_number()) %>%
+        lapply(transform_row_to_long) %>%
+        bind_rows() %>%
+        ungroup() %>%
+        mutate(
+            Step = ifelse(Step == "Liegedauer_gesamt", "Avg. Delay", Step),
+            text_color = ifelse(Step == "Avg. Delay", "black", "white")
+        ) %>%
+        group_by(vorgangsfolge) %>%
+        mutate(
+            Total = sum(Time),
+            pct = Time / Total,
+            label = paste0(Step, "<br>",
+                           ifelse(Step == "Avg. Delay", "Avg. Delay [d]: ", "Avg. LT [d]: "),
+                           Time, "<br>", round(pct * 100, 1), "%"),
+            xmin = cumsum(lag(pct, default = 0)),
+            xmax = cumsum(pct)
+        ) %>%
+        ungroup()
+    
+    color_map <- c(
+        "0010" = "#c6dbef",
+        "0020" = "#9ecae1",
+        "0030" = "#6baed6",
+        "0040" = "#4292c6",
+        "0050" = "#2171b5",
+        "0060" = "#08519c",
+        "0070" = "#08306b",
+        "0005" = "#b3cde3",
+        "0032" = "#a6bddb",
+        "Avg. Delay" = "#f5f7fa"
+    )
+    
+    p <- ggplot(df_long) +
+        geom_rect(
+            aes(
+                xmin = xmin,
+                xmax = xmax,
+                ymin = 0,
+                ymax = 1,
+                fill = Step,
+                text = label
+            ),
+            color = NA
+        ) +
+        geom_text(
+            data = df_long %>% filter(pct > 0.05),
+            aes(
+                x = (xmin + xmax) / 2,
+                y = 0.5,
+                label = Step,
+                color = text_color
+            ),
+            size = 3.5,
+            show.legend = FALSE
+        ) +
+        scale_fill_manual(values = color_map) +
+        scale_color_identity() +
+        facet_wrap(~ vorgangsfolge, ncol = 1, scales = "free") +
+        theme_void() +
+        theme(
+            legend.position = "bottom",
+            strip.text = element_text(hjust = 0.5, face = "bold")
+        )
+    
+    ggplotly(p, tooltip = "text")
+}
