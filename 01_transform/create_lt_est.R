@@ -10,7 +10,7 @@ library(scales)
 
 
 # Daten laden -------------------------------------------------------------------
-source("00_tidy/create_all_data_finalized.R") 
+all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 
 
 

@@ -15,7 +15,7 @@ library(stringr)
 library(plotly)
 
 # Daten laden -------------------------------------------------------------------
-source("00_tidy/create_all_data_finalized.R")  
+all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
 

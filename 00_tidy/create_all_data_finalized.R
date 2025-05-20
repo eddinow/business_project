@@ -9,6 +9,7 @@ library(readxl)
 library(lubridate)    
 library(janitor)
 library(dplyr)
+library(writexl)
 
 # Import -----------------------------------------------------------------------
 
@@ -27,5 +28,5 @@ all_data_finalized <- fast_fertiger_datensatz_auftragskoepfe %>%
         by = c("auftragsnummer" = "Auftragsnummer")
     )
 
-
+write_xlsx(all_data_finalized, path = "00_tidy/all_data_finalized.xlsx")
 
