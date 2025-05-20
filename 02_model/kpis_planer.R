@@ -7,23 +7,14 @@
 library(shiny)
 library(tidyverse)
 library(readxl)
+library(plotly)
 
 # Import -----------------------------------------------------------------------
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 
-# Tidy -------------------------------------------------------------------------
-# (all_data_finalized is assumed already in “tidy” format, with columns:
-#   planer, werk, fertigungslinie, materialnummer, …)
-
-# Transform --------------------------------------------------------------------
-# (we’ll filter by planner reactively in the server)
-
-# Model ------------------------------------------------------------------------
-# (no statistical model needed for these plots)
-
-# Visualize --------------------------------------------------------------------
+# UI --------------------------------------------------------------------------
 ui <- fluidPage(
-    titlePanel("Planner Detail View"),
+    titlePanel("Planner Detail View (Interactive)"),
     sidebarLayout(
         sidebarPanel(
             selectInput(
@@ -33,13 +24,14 @@ ui <- fluidPage(
             )
         ),
         mainPanel(
-            plotOutput("plot_werke"),
-            plotOutput("plot_fertigungslinie"),
-            plotOutput("plot_material")
+            plotlyOutput("plot_werke"),
+            plotlyOutput("plot_fertigungslinie"),
+            plotlyOutput("plot_material")
         )
     )
 )
 
+# Server ----------------------------------------------------------------------
 server <- function(input, output, session) {
     
     # reactive subset for the selected planner
@@ -49,14 +41,18 @@ server <- function(input, output, session) {
             filter(planer == input$planer_select)
     })
     
-    # 1. Werke nach Anzahl der Aufträge
-    output$plot_werke <- renderPlot({
+    # 1. Werke nach Anzahl der Aufträge (interactive)
+    output$plot_werke <- renderPlotly({
         df <- df_planer() %>%
             count(werk, name = "orders") %>%
             arrange(desc(orders)) %>%
             mutate(werk = factor(werk, levels = werk))
         
-        ggplot(df, aes(x = werk, y = orders)) +
+        p <- ggplot(df, aes(
+            x = werk,
+            y = orders,
+            text = paste0("Anzahl der Aufträge: ", orders)
+        )) +
             geom_col() +
             labs(
                 title = "Werke nach Anzahl der Aufträge",
@@ -64,19 +60,23 @@ server <- function(input, output, session) {
                 y     = "Anzahl der Aufträge"
             ) +
             theme_minimal() +
-            theme(
-                axis.text.x = element_text(angle = 45, hjust = 1)
-            )
+            theme(axis.text.x = element_text(angle = 45, hjust = 1))
+        
+        ggplotly(p, tooltip = "text")
     })
     
-    # 2. Fertigungslinien nach Anzahl der Aufträge
-    output$plot_fertigungslinie <- renderPlot({
+    # 2. Fertigungslinien nach Anzahl der Aufträge (interactive)
+    output$plot_fertigungslinie <- renderPlotly({
         df <- df_planer() %>%
             count(fertigungslinie, name = "orders") %>%
             arrange(desc(orders)) %>%
             mutate(fertigungslinie = factor(fertigungslinie, levels = fertigungslinie))
         
-        ggplot(df, aes(x = fertigungslinie, y = orders)) +
+        p <- ggplot(df, aes(
+            x = fertigungslinie,
+            y = orders,
+            text = paste0("Anzahl der Aufträge: ", orders)
+        )) +
             geom_col() +
             labs(
                 title = "Fertigungslinien nach Anzahl der Aufträge",
@@ -84,20 +84,24 @@ server <- function(input, output, session) {
                 y     = "Anzahl der Aufträge"
             ) +
             theme_minimal() +
-            theme(
-                axis.text.x = element_text(angle = 45, hjust = 1)
-            )
+            theme(axis.text.x = element_text(angle = 45, hjust = 1))
+        
+        ggplotly(p, tooltip = "text")
     })
     
-    # 3. Top 15 Materialien nach Anzahl der Aufträge
-    output$plot_material <- renderPlot({
+    # 3. Top 15 Materialien nach Anzahl der Aufträge (interactive)
+    output$plot_material <- renderPlotly({
         df <- df_planer() %>%
             count(materialnummer, name = "orders") %>%
             slice_max(order_by = orders, n = 15) %>%
             arrange(desc(orders)) %>%
             mutate(materialnummer = factor(materialnummer, levels = materialnummer))
         
-        ggplot(df, aes(x = materialnummer, y = orders)) +
+        p <- ggplot(df, aes(
+            x = materialnummer,
+            y = orders,
+            text = paste0("Anzahl der Aufträge: ", orders)
+        )) +
             geom_col() +
             labs(
                 title = "Top 15 Materialien nach Anzahl der Aufträge",
@@ -105,12 +109,11 @@ server <- function(input, output, session) {
                 y     = "Anzahl der Aufträge"
             ) +
             theme_minimal() +
-            theme(
-                axis.text.x = element_text(angle = 45, hjust = 1)
-            )
+            theme(axis.text.x = element_text(angle = 45, hjust = 1))
+        
+        ggplotly(p, tooltip = "text")
     })
 }
 
 # Communicate ------------------------------------------------------------------
-# Launch the Shiny app
 shinyApp(ui = ui, server = server)
