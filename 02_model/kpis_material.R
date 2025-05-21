@@ -14,4 +14,11 @@ library(DT)
 library(stringr)
 library(plotly)
 
-# Daten laden -------------------------------------------------------------------
+# Import -----------------------------------------------------------------------
+all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
+
+#Material nach häufigkeit sortiert
+tabelle <- all_data_finalized %>%
+    group_by(materialnummer, arbeitsplatzfolge, vorgangsfolge) %>%
+    summarise(Anzahl = n(), .groups = "drop") %>%
+    arrange(desc(Anzahl))
