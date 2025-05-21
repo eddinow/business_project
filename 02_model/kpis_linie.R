@@ -22,5 +22,6 @@ kpi_linie_vorgangsfolge <- all_data_finalized %>%
     mutate(Anteil = round(Anzahl / sum(Anzahl), 3)) %>%
     ungroup() %>%
     mutate(
-        Anteil_anzeige = ifelse(Anteil < 0.001, "<0.001", format(round(Anteil, 3), nsmall = 3))
+        Anteil = ifelse(Anteil < 0.001, "<0.001", format(round(Anteil, 3), nsmall = 3))
     )
+
