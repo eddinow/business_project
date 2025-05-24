@@ -118,15 +118,21 @@ liegezeiten_df <- vorgaenge_sorted %>%
         .groups = "drop"
     )
 
-liegezeit_u_auftragszeit <- vorgaenge_sorted %>%
+# Alle Aufträge mit Vorgangsdauern (auch ohne Liegezeiten)
+auftrags_dauer <- vorgaenge_sorted %>%
     dplyr::select(Auftragsnummer, Vorgangsnummer, istdauer) %>%
     pivot_wider(
         names_from = Vorgangsnummer,
         values_from = istdauer
     )
 
-liegezeit_u_auftragszeit <- liegezeiten_df %>%
-    left_join(liegezeit_u_auftragszeit, by = "Auftragsnummer")
+auftrags_dauer <- vorgaenge_sorted %>%
+    dplyr::select(Auftragsnummer, Vorgangsnummer, istdauer) %>%
+    pivot_wider(names_from = Vorgangsnummer, values_from = istdauer)
+
+# 2. Kombinieren mit Liegezeiten (auch wenn keine vorhanden)
+liegezeit_u_auftragszeit <- auftrags_dauer %>%
+    left_join(liegezeiten_df, by = "Auftragsnummer")
 
 
 
@@ -155,106 +161,87 @@ df <- vorgaenge_lz_bz
 
 # Funktion zur Umwandlung einer Zeile in langes Format
 transform_row_to_long <- function(row) {
-    id <- row[["vorgangsfolge"]]
-    total_time <- row[["Liegedauer_gesamt_median"]]
-    
+    row <- as_tibble(row)  # 🔧 Liste zu Tibble umwandeln
+    id <- row$vorgangsfolge
     row_long <- row %>%
-        select(ends_with("_median")) %>%
-        pivot_longer(cols = everything(),
-                     names_to = "Step",
-                     values_to = "Time") %>%
+        dplyr::select(ends_with("_median")) %>%
+        pivot_longer(
+            cols = everything(),
+            names_to = "Step",
+            values_to = "Time"
+        ) %>%
         filter(!is.na(Time)) %>%
         mutate(
             Step = str_replace(Step, "_median", ""),
             vorgangsfolge = id
         )
-    
-    row_long
+    return(row_long)
 }
 
-
 plot_workflow_structure <- function(df) {
-    transform_row_to_long <- function(row) {
-        id <- row[["vorgangsfolge"]]
-        row_long <- row %>%
-            select(ends_with("_median")) %>%
-            pivot_longer(cols = everything(),
-                         names_to = "Step",
-                         values_to = "Time") %>%
-            filter(!is.na(Time)) %>%
-            mutate(
-                Step = str_replace(Step, "_median", ""),
-                vorgangsfolge = id
-            )
-        row_long
-    }
+    if (nrow(df) == 0) return(NULL)
     
     df_long <- df %>%
-        rowwise() %>%
-        group_split(row_number()) %>%
-        lapply(transform_row_to_long) %>%
-        bind_rows() %>%
-        ungroup() %>%
+        pivot_longer(
+            cols = ends_with("_median"),
+            names_to = "Step",
+            values_to = "Time"
+        ) %>%
+        filter(!is.na(Time)) %>%
         mutate(
+            Step = str_replace(Step, "_median", ""),
             Step = ifelse(Step == "Liegedauer_gesamt", "Avg. Delay", Step),
-            text_color = ifelse(Step == "Avg. Delay", "black", "white")
+            text_color = unname(ifelse(Step == "Avg. Delay", "black", "white"))
         ) %>%
         group_by(vorgangsfolge) %>%
         mutate(
             Total = sum(Time),
             pct = Time / Total,
-            label = paste0(Step, "<br>",
-                           ifelse(Step == "Avg. Delay", "Avg. Delay [d]: ", "Avg. LT [d]: "),
-                           Time, "<br>", round(pct * 100, 1), "%"),
+            label = unname(paste0(
+                "<b>", Step, "</b><br>",
+                ifelse(Step == "Avg. Delay", "Avg. Delay [d]: ", "Avg. LT [d]: "),
+                round(Time, 1), "<br>", round(pct * 100, 1), "%"
+            )),
             xmin = cumsum(lag(pct, default = 0)),
             xmax = cumsum(pct)
         ) %>%
         ungroup()
     
     color_map <- c(
-        "0010" = "#c6dbef",
-        "0020" = "#9ecae1",
-        "0030" = "#6baed6",
-        "0040" = "#4292c6",
-        "0050" = "#2171b5",
-        "0060" = "#08519c",
-        "0070" = "#08306b",
-        "0005" = "#b3cde3",
-        "0032" = "#a6bddb",
+        "0010" = "#c6dbef", "0020" = "#9ecae1", "0030" = "#6baed6",
+        "0040" = "#4292c6", "0050" = "#2171b5", "0060" = "#08519c",
+        "0070" = "#08306b", "0005" = "#b3cde3", "0032" = "#a6bddb",
         "Avg. Delay" = "#f5f7fa"
     )
     
     p <- ggplot(df_long) +
         geom_rect(
-            aes(
-                xmin = xmin,
-                xmax = xmax,
-                ymin = 0,
-                ymax = 1,
-                fill = Step,
-                text = label
-            ),
+            aes(xmin = xmin, xmax = xmax, ymin = 0, ymax = 1, fill = Step, text = label),
             color = NA
         ) +
         geom_text(
             data = df_long %>% filter(pct > 0.05),
-            aes(
-                x = (xmin + xmax) / 2,
-                y = 0.5,
-                label = Step,
-                color = text_color
-            ),
+            aes(x = (xmin + xmax) / 2, y = 0.5, label = Step, color = text_color),
             size = 3.5,
             show.legend = FALSE
         ) +
-        scale_fill_manual(values = color_map) +
+        scale_fill_manual(values = color_map, guide = "none") +  # 🔧 Legende deaktiviert
         scale_color_identity() +
         facet_wrap(~ vorgangsfolge, ncol = 1, scales = "free") +
-        theme_void() +
+        theme_minimal(base_size = 14) +  # 🔧 Minimal statt Void, um gezielt zu löschen
         theme(
-            legend.position = "bottom",
-            strip.text = element_text(hjust = 0.5, face = "bold")
+            panel.grid = element_blank(),       # 🔧 Hintergrundlinien aus
+            axis.title = element_blank(),       # 🔧 Achsentitel aus
+            axis.text = element_blank(),        # 🔧 Achsentext aus
+            axis.ticks = element_blank(),       # 🔧 Ticks aus
+            strip.text = element_text(hjust = 0.5, face = "bold"),
+            legend.position = "none",           # 🔧 Sicherstellung: keine Legende
+            plot.margin = margin(5, 5, 5, 5)
         )
     
-    ggplotly(p, tooltip = "text")
+    ggplotly(p, tooltip = "text") %>%
+        layout(
+            margin = list(t = 20, b = 5, l = 5, r = 5),
+            height = 120
+        )
 }
