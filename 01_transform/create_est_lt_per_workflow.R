@@ -96,7 +96,7 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
         geom_line(aes(y = median_lt, group = 1), color = "#002366", linewidth = 1) +
         geom_point(aes(y = median_lt), color = "#002366", size = 2) +
         labs(
-            title = paste("Lead Time je Losgrößen-Bin –", vorgangsfolge_id),
+            #title = paste("Lead Time je Losgrößen-Bin –", vorgangsfolge_id),
             x = "Sollmengen-Bereich",
             y = "Lead Time (soll)"
         ) +
@@ -183,7 +183,7 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
         geom_line(aes(y = median_lt, group = 1), color = "#002366", linewidth = 1) +
         geom_point(aes(y = median_lt), color = "#002366", size = 2) +
         labs(
-            title = paste("Lead Time (IST) je Losgrößen-Bin –", vorgangsfolge_id),
+           # title = paste("Lead Time (IST) je Losgrößen-Bin –", vorgangsfolge_id),
             x = "Sollmengen-Bereich",
             y = "Lead Time (ist)"
         ) +
@@ -277,7 +277,7 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         scale_color_manual(values = c("Soll" = "#002366", "Ist" = "#CC0000")) +
         scale_fill_manual(values = c("Soll" = "#002366", "Ist" = "#CC000088")) +
         labs(
-            title = paste("Lead Time je Losgrößen-Bin –", vorgangsfolge_id),
+            #title = paste("Lead Time je Losgrößen-Bin –", vorgangsfolge_id),
             x = "Sollmengen-Bereich",
             y = "Lead Time",
             color = "Variante",
