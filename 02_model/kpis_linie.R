@@ -1,13 +1,8 @@
-# app.R
-library(shiny)
-library(tidyverse)
-library(DT)
+if (!exists("all_data_finalized")) {
+    source("00_tidy/create_all_data_finalized.R", local = TRUE)
+}
 
-# Daten vorbereiten -----------------------------------------------------------
-source("00_tidy/create_all_data_finalized.R")  # <- dein Skript zum Laden
-
-# KPI-Daten vorbereiten (wie in deinem Code)
-kpi_linie_vorgangsfolge <- all_data_finalized %>%
+linien_overview <- all_data_finalized %>%
     filter(!is.na(fertigungslinie), !is.na(vorgangsfolge)) %>%
     mutate(
         Durchlaufzeit = as.numeric(endtermin_ist - starttermin_ist)
@@ -29,44 +24,3 @@ kpi_linie_vorgangsfolge <- all_data_finalized %>%
     mutate(
         Anteil = ifelse(Anteil < 0.001, "<0.001", format(round(as.numeric(Anteil), 3), nsmall = 3))
     )
-
-# UI ---------------------------------------------------------------------------
-ui <- fluidPage(
-    titlePanel("Fertigungslinien KPI Dashboard"),
-    sidebarLayout(
-        sidebarPanel(
-            selectInput(
-                inputId = "linie_select",
-                label = "Fertigungslinie auswählen:",
-                choices = sort(unique(kpi_linie_vorgangsfolge$fertigungslinie))
-            )
-        ),
-        mainPanel(
-            DTOutput("kpi_tabelle")
-        )
-    )
-)
-
-# Server -----------------------------------------------------------------------
-server <- function(input, output, session) {
-    
-    daten_gefiltert <- reactive({
-        req(input$linie_select)
-        filter(kpi_linie_vorgangsfolge, fertigungslinie == input$linie_select)
-    })
-    
-    output$kpi_tabelle <- renderDT({
-        datatable(
-            daten_gefiltert(),
-            rownames = FALSE,
-            options = list(
-                pageLength = 10,
-                autoWidth = TRUE,
-                scrollX = TRUE
-            )
-        )
-    })
-}
-
-# App starten ------------------------------------------------------------------
-shinyApp(ui = ui, server = server)
