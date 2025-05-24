@@ -21,7 +21,7 @@ workflows_overview <- all_data_finalized %>%
         `Avg LT` = median(lead_time_ist, na.rm = TRUE),
         `Avg Delay` = round(min(median(abweichung, na.rm = TRUE), 0), 0),
         `# orders` = n(),
-        Servicelevel = mean(abweichung >= 0, na.rm = TRUE),
+        Servicelevel = mean(abweichung <= 0, na.rm = TRUE),
         .groups = "drop"
     ) %>%
     mutate(Servicelevel = paste0(round(Servicelevel * 100, 0), "%")) %>%

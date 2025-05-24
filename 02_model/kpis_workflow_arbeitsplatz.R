@@ -68,6 +68,17 @@ vorgaenge_cleaned <- vorgaenge_cleaned %>%
 vorgaenge_cleaned <- vorgaenge_cleaned %>%
     mutate(gesamtdauer = as.numeric(`Istende Vorgang` - `Iststart Vorgang`))
 
+vorgaenge_sollzeiten <- vorgaenge_cleaned %>%
+    mutate(solldauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days"))) %>%
+    filter(!is.na(solldauer))
+
+# 2. Berechne den Median der Soll-Dauer pro Workflow und Vorgang
+solldauer_median <- vorgaenge_sollzeiten %>%
+    group_by(vorgangsfolge, Vorgangsnummer) %>%
+    summarise(solldauer_median = median(solldauer, na.rm = TRUE), .groups = "drop")
+
+
+
 vorgaenge_sorted <- vorgaenge_cleaned %>%
     arrange(Auftragsnummer, `Iststart Vorgang`)
 
@@ -85,6 +96,7 @@ liegezeiten_plot <- vorgaenge_sorted %>%
         Ende = aktuelles_start
     ) %>%
     dplyr::select(Auftragsnummer, Typ, Start, Ende)
+
 
 
 vorgaenge_plot <- vorgaenge_sorted %>%
@@ -130,10 +142,10 @@ auftrags_dauer <- vorgaenge_sorted %>%
     dplyr::select(Auftragsnummer, Vorgangsnummer, istdauer) %>%
     pivot_wider(names_from = Vorgangsnummer, values_from = istdauer)
 
+
 # 2. Kombinieren mit Liegezeiten (auch wenn keine vorhanden)
 liegezeit_u_auftragszeit <- auftrags_dauer %>%
     left_join(liegezeiten_df, by = "Auftragsnummer")
-
 
 
 # Zusammenfassen der Aufträgen nach Vorgangsnummern um die Daten den einzelnen
@@ -177,7 +189,6 @@ transform_row_to_long <- function(row) {
         )
     return(row_long)
 }
-
 plot_workflow_structure <- function(df) {
     if (nrow(df) == 0) return(NULL)
     
@@ -191,17 +202,17 @@ plot_workflow_structure <- function(df) {
         mutate(
             Step = str_replace(Step, "_median", ""),
             Step = ifelse(Step == "Liegedauer_gesamt", "Avg. Delay", Step),
-            text_color = unname(ifelse(Step == "Avg. Delay", "black", "white"))
+            text_color = ifelse(Step == "Avg. Delay", "black", "white")
         ) %>%
         group_by(vorgangsfolge) %>%
         mutate(
             Total = sum(Time),
             pct = Time / Total,
-            label = unname(paste0(
-                "<b>", Step, "</b><br>",
+            label = paste0(
+                Step, "<br>",
                 ifelse(Step == "Avg. Delay", "Avg. Delay [d]: ", "Avg. LT [d]: "),
                 round(Time, 1), "<br>", round(pct * 100, 1), "%"
-            )),
+            ),
             xmin = cumsum(lag(pct, default = 0)),
             xmax = cumsum(pct)
         ) %>%
@@ -225,23 +236,90 @@ plot_workflow_structure <- function(df) {
             size = 3.5,
             show.legend = FALSE
         ) +
-        scale_fill_manual(values = color_map, guide = "none") +  # 🔧 Legende deaktiviert
+        scale_fill_manual(values = color_map) +
         scale_color_identity() +
         facet_wrap(~ vorgangsfolge, ncol = 1, scales = "free") +
-        theme_minimal(base_size = 14) +  # 🔧 Minimal statt Void, um gezielt zu löschen
+        theme_void() +
         theme(
-            panel.grid = element_blank(),       # 🔧 Hintergrundlinien aus
-            axis.title = element_blank(),       # 🔧 Achsentitel aus
-            axis.text = element_blank(),        # 🔧 Achsentext aus
-            axis.ticks = element_blank(),       # 🔧 Ticks aus
-            strip.text = element_text(hjust = 0.5, face = "bold"),
-            legend.position = "none",           # 🔧 Sicherstellung: keine Legende
-            plot.margin = margin(5, 5, 5, 5)
+            legend.position = "bottom",
+            strip.text = element_text(hjust = 0.5, face = "bold")
         )
     
-    ggplotly(p, tooltip = "text") %>%
-        layout(
-            margin = list(t = 20, b = 5, l = 5, r = 5),
-            height = 120
+    ggplotly(p, tooltip = "text")
+}
+
+# Häufigkeitsverteilung der Abweichungen für jeden Workflow
+
+plot_abweichung_histogram <- function(df, selected_workflow) {
+    df_filtered <- df %>%
+        filter(vorgangsfolge == selected_workflow & !is.na(abweichung))
+    
+    if (nrow(df_filtered) == 0) return(NULL)
+    
+    # Dynamische Grenzen anhand 1% und 99% Quantil
+    x_min <- quantile(df_filtered$abweichung, 0.025)
+    x_max <- quantile(df_filtered$abweichung, 0.975)
+    
+    p <- ggplot(df_filtered, aes(x = abweichung)) +
+        geom_histogram(binwidth = 1, fill = "#4B9CD3", color = "white", boundary = 0) +
+        labs(
+            title = paste("Verteilung der Abweichungen – Workflow", selected_workflow),
+            x = "Abweichung (Ist - Soll) [Tage]",
+            y = "Häufigkeit"
+        ) +
+        scale_x_continuous(limits = c(x_min, x_max)) +
+        theme_minimal(base_family = "Inter") +
+        theme(
+            plot.title = element_text(size = 14, face = "bold"),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 11)
         )
+    
+    ggplotly(p)
+}
+
+plot_ist_vs_soll_comparison <- function(vorgaenge_df, selected_workflow) {
+    # Filter auf gewählten Workflow
+    df_filtered <- vorgaenge_df %>%
+        filter(vorgangsfolge == selected_workflow) %>%
+        mutate(soll_dauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days")),
+               ist_dauer  = as.numeric(difftime(`Istende Vorgang`, `Iststart Vorgang`, units = "days"))) %>%
+        filter(!is.na(soll_dauer) & !is.na(ist_dauer))
+    
+    if (nrow(df_filtered) == 0) return(NULL)
+    
+    # Berechne Median pro Vorgangsnummer
+    df_summary <- df_filtered %>%
+        group_by(Vorgangsnummer) %>%
+        summarise(
+            Soll = median(soll_dauer, na.rm = TRUE),
+            Ist  = median(ist_dauer, na.rm = TRUE),
+            .groups = "drop"
+        ) %>%
+        pivot_longer(cols = c("Soll", "Ist"), names_to = "Typ", values_to = "Dauer")
+    
+    # Balkendiagramm
+    p <- ggplot(df_summary, aes(x = Vorgangsnummer, y = Dauer, fill = Typ)) +
+        geom_col(data = subset(df_summary, Typ == "Soll"),
+                 position = position_identity(),
+                 width = 0.6,
+                 fill = "lightgrey") +
+        geom_col(data = subset(df_summary, Typ == "Ist"),
+                 position = position_identity(),
+                 width = 0.4,
+                 fill = "#1f77b4") +
+        labs(
+            title = paste("Soll-Ist Vergleich – Workflow", selected_workflow),
+            x = "Vorgang",
+            y = "Median Dauer [Tage]"
+        ) +
+        theme_minimal(base_family = "Inter") +
+        theme(
+            plot.title = element_text(size = 14, face = "bold"),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 11),
+            legend.position = "none"
+        )
+    
+    ggplotly(p)
 }

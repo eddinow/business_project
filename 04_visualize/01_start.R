@@ -25,6 +25,7 @@ start_ui <- dashboardPage(
     ),
     dashboardBody(
         tags$head(
+            
             tags$style(HTML(
                 ".fancy-box {
           background-color: white;

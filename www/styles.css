@@ -1,0 +1,48 @@
+body {
+  background-color: pink !important;
+}
+
+/* Tabellenkopf in kräftigem Blau */
+table.dataTable thead {
+  background-color: #0073b7;
+  color: white;
+  font-weight: bold;
+}
+
+/* Tabellenzellen */
+table.dataTable tbody td {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 8px;
+  color: #333;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Hover-Zeile */
+table.dataTable tbody tr:hover {
+  background-color: #f0f8ff;
+}
+
+/* Gesamte Tabelle */
+.dataTables_wrapper {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Gesamte Box */
+.box {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+/* Titelleisten */
+.box .box-header {
+  background-color: #0073b7;
+  color: white;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #0062a3;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
