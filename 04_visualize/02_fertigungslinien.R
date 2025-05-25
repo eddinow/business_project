@@ -5,40 +5,44 @@ library(plotly)
 
 # Lade KPI-Tabelle
 source("02_model/kpis_linie.R", local = TRUE)
+
 linien_ui <- function(id) {
     ns <- NS(id)
     tagList(
         fluidRow(
             box(
-                title = "Fertigungslinie & Zeitraum auswählen",
-                width = 12, solidHeader = TRUE, status = "primary",
-                selectInput(ns("linie_select"), "Fertigungslinie:",
-                            choices = sort(unique(linien_overview$fertigungslinie)),
-                            selected = sort(unique(linien_overview$fertigungslinie))[1]),
-                dateRangeInput(ns("date_range"), "Zeitraum wählen:",
-                               start = min(all_data_finalized$starttermin_ist, na.rm = TRUE),
-                               end   = max(all_data_finalized$starttermin_ist, na.rm = TRUE))
+                title = "Fertigungslinie auswählen",
+                width = 12,
+                status = "primary",
+                solidHeader = TRUE,
+                selectInput(
+                    ns("linie_select"),
+                    "Fertigungslinie:",
+                    choices = sort(unique(linien_overview$fertigungslinie)),
+                    selected = sort(unique(linien_overview$fertigungslinie))[1]
+                )
             )
         ),
         fluidRow(
             box(
                 title = "KPIs je Vorgangsfolge",
-                width = 12, solidHeader = TRUE, status = "primary",
-                DTOutput(ns("linien_table")),
-                br(),
-                downloadButton(ns("download_csv"), "Tabelle als CSV speichern")
+                width = 12,
+                status = "primary",
+                solidHeader = TRUE,
+                DTOutput(ns("linien_table"))
             )
         ),
         fluidRow(
             box(
-                title = "Interpretation",
-                width = 12, solidHeader = TRUE, status = "info",
-                htmlOutput(ns("linie_insights"))
+                title = "Durchschnittliche Lead Time je Vorgangsfolge",
+                width = 12,
+                status = "primary",
+                solidHeader = TRUE,
+                plotlyOutput(ns("lt_plot"))
             )
         )
     )
 }
-
 
 linien_server <- function(id) {
     moduleServer(id, function(input, output, session) {
