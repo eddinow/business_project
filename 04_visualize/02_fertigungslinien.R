@@ -44,22 +44,8 @@ linien_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         
         daten_gefiltert <- reactive({
-            req(input$linie_select, input$date_range)
-            
-            # Hole alle starttermine zur jeweiligen vorgangsfolge
-            df_dates <- all_data_finalized %>%
-                select(vorgangsfolge, starttermin_ist) %>%
-                filter(!is.na(starttermin_ist)) %>%
-                distinct()
-            
-            # KPI-Daten (linien_overview) + Zeitfilter kombinieren
-            linien_overview %>%
-                filter(fertigungslinie == input$linie_select) %>%
-                left_join(df_dates, by = "vorgangsfolge") %>%
-                filter(
-                    starttermin_ist >= input$date_range[1],
-                    starttermin_ist <= input$date_range[2]
-                )
+            req(input$linie_select)
+            filter(linien_overview, fertigungslinie == input$linie_select)
         })
         
         output$linien_table <- renderDT({
@@ -74,31 +60,23 @@ linien_server <- function(id) {
             )
         })
         
-        output$download_csv <- downloadHandler(
-            filename = function() {
-                paste0("kpi_", input$linie_select, "_", Sys.Date(), ".csv")
-            },
-            content = function(file) {
-                write.csv(daten_gefiltert(), file, row.names = FALSE)
-            }
-        )
-        
-        output$linie_insights <- renderUI({
+        output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
-            req(nrow(df) > 0)
             
-            top_vorgang <- df$vorgangsfolge[which.max(df$Anzahl)]
-            best_lt <- df %>% filter(Durchschnitt_LT == min(Durchschnitt_LT, na.rm = TRUE)) %>% slice(1)
-            worst_termintreue <- df %>% filter(Termintreue == min(Termintreue, na.rm = TRUE)) %>% slice(1)
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, Durchschnitt_LT),
+                y = Durchschnitt_LT,
+                text = paste("Median LT:", Median_LT, "<br>Anzahl:", Anzahl)
+            )) +
+                geom_col(fill = "#2C3E50") +
+                coord_flip() +
+                labs(
+                    x = "Vorgangsfolge",
+                    y = "Ø Lead Time (Tage)"
+                ) +
+                theme_minimal()
             
-            HTML(paste0(
-                "<p><strong>Meistgenutzte Vorgangsfolge:</strong> ", top_vorgang, "</p>",
-                "<p><strong>Kürzeste durchschnittliche Lead Time:</strong> ", best_lt$vorgangsfolge, 
-                " (", best_lt$Durchschnitt_LT, " Tage)</p>",
-                "<p><strong>Niedrigste Termintreue:</strong> ", worst_termintreue$vorgangsfolge,
-                " (", round(worst_termintreue$Termintreue * 100), "%)</p>"
-            ))
+            ggplotly(p, tooltip = "text")
         })
     })
 }
-
