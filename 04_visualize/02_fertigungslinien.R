@@ -46,26 +46,19 @@ linien_server <- function(id) {
         daten_gefiltert <- reactive({
             req(input$linie_select, input$date_range)
             
-            # Join auf Vorgangsfolge + Filter auf Zeitraum
+            # Join starttermin_ist anhand vorgangsfolge
+            df_dates <- all_data_finalized %>%
+                select(vorgangsfolge, starttermin_ist) %>%
+                filter(!is.na(starttermin_ist)) %>%
+                distinct()
+            
             linien_overview %>%
                 filter(fertigungslinie == input$linie_select) %>%
-                left_join(
-                    all_data_finalized %>%
-                        select(vorgangsfolge, starttermin_ist) %>%
-                        filter(!is.na(starttermin_ist)),
-                    by = "vorgangsfolge"
-                ) %>%
+                left_join(df_dates, by = "vorgangsfolge") %>%
                 filter(starttermin_ist >= input$date_range[1],
                        starttermin_ist <= input$date_range[2])
         })
         
-        output$linien_table <- renderDT({
-            datatable(
-                daten_gefiltert(),
-                options = list(pageLength = 10, scrollX = TRUE),
-                rownames = FALSE
-            )
-        })
         
         output$download_csv <- downloadHandler(
             filename = function() {
