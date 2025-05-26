@@ -154,29 +154,29 @@ planer_server <- function(id) {
                 pull(rate) %>% mean(., na.rm = TRUE)
             dev_pct    <- ifelse(is.na(sel_pct - oth_pct), 0, sel_pct - oth_pct)
             interp_pct <- if (dev_pct < 0) {
-                '<span style="color:red">unter dem Durchschnitt</span>'
+                '<span style="color:red">Im Vergleich zum Durchschnitt der übrigen Planer liegt die Pünktlichkeitsrate des ausgewählten Planers unter dem Durchschnitt</span>'
             } else if (dev_pct == 0) {
-                'auf dem Niveau seiner Kollegen'
+                'Die Terminzuverlässigkeit des ausgewählten Planers bewegt sich auf dem Niveau seiner Kollegen'
             } else {
-                '<span style="color:green">überdurchschnittlich pünktlich</span>'
+                '<span style="color:green">Im Vergleich zu den anderen Planern schließt der ausgewählte Planer seine Aufträge überdurchschnittlich pünktlich ab</span>'
             }
             
             # 2) Ø Verzögerung
-            sel_del_raw   <- mean(df_s$abweichung[df_s$abweichung > 0], na.rm = TRUE)
+            sel_del_raw   <- median(df_s$abweichung[df_s$abweichung > 0], na.rm = TRUE)
             sel_del       <- ifelse(is.nan(sel_del_raw), 0, sel_del_raw)
             other_del_raw <- df_o %>%
                 filter(abweichung > 0) %>%
                 group_by(planer) %>%
-                summarise(avg = mean(abweichung, na.rm=TRUE)) %>%
+                summarise(avg = median(abweichung, na.rm=TRUE)) %>%
                 pull(avg) %>% mean(., na.rm = TRUE)
             other_del     <- ifelse(is.nan(other_del_raw), 0, other_del_raw)
             dev_del       <- ifelse(is.na(sel_del - other_del), 0, sel_del - other_del)
             interp_del <- if (dev_del < 0) {
-                '<span style="color:green">unter dem Durchschnitt</span>'
+                '<span style="color:green">Die durchschnittliche Verspätung des ausgewählten Planers liegt unter dem Durchschnitt der übrigen Planer</span>'
             } else if (dev_del == 0) {
-                'auf dem Niveau seiner Kollegen'
+                'Die durchschnittliche Verspätung des ausgewählten Planers bewegt sich auf dem Niveau seiner Kollegen'
             } else {
-                '<span style="color:red">überdurchschnittliche Verspätung</span>'
+                '<span style="color:red">Der Planer weist im Vergleich zu seinen Kollegen eine überdurchschnittliche Verspätung auf</span>'
             }
             
             # 3) Ø Vorgänge/Auftrag
@@ -192,11 +192,11 @@ planer_server <- function(id) {
             oth_ops     <- ifelse(is.nan(oth_ops_raw), 0, oth_ops_raw)
             dev_ops     <- ifelse(is.na(sel_ops - oth_ops), 0, sel_ops - oth_ops)
             interp_ops  <- if (dev_ops < 0) {
-                'komplexere Aufträge bei anderen Planern'
+                'Im Vergleich zum ausgewählten Planer bearbeiten die übrigen Planer im Schnitt aufwändigere Aufträge'
             } else if (dev_ops == 0) {
-                'gleichauf mit Kollegen'
+                'Die durchschnittliche Anzahl an Vorgängen pro Auftrag entspricht dem Wert der übrigen Planer'
             } else {
-                'komplexere Aufträge beim ausgewählten Planer'
+                'Der ausgewählte Planer betreut im Durchschnitt komplexere Aufträge als die übrigen Planer'
             }
             
             # 4) Anzahl Aufträge
@@ -204,18 +204,18 @@ planer_server <- function(id) {
             oth_n        <- df_o %>% group_by(planer) %>% summarise(n=n()) %>% pull(n) %>% mean(., na.rm=TRUE)
             dev_n        <- ifelse(is.na(sel_n - oth_n), 0, sel_n - oth_n)
             interp_n     <- if (dev_n < 0) {
-                'unter dem Durchschnitt'
+                'Die Anzahl der bearbeiteten Aufträge liegt beim ausgewählten Planer unter dem Durchschnitt der anderen Planer'
             } else if (dev_n == 0) {
-                'auf dem Niveau seiner Kollegen'
+                'Die Anzahl der bearbeiteten Aufträge durch den ausgewählten Planer entspricht dem Durchschnitt der übrigen Planer'
             } else {
-                'über dem Durchschnitt'
+                'Der ausgewählte Planer hat bislang mehr Aufträge abgeschlossen als der durchschnittliche Wert der übrigen Planer'
             }
             
             df_table <- tibble::tibble(
                 KPI                               = c(
                     "Pünktlichkeitsrate (%)",
                     "Ø Verzögerung (Tage)",
-                    "Ø Vorgänge/Auftrag",
+                    "Ø Workflows/Auftrag",
                     "Anzahl Aufträge"
                 ),
                 !!sel                              := c(
