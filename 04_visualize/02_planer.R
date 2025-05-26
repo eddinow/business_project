@@ -61,15 +61,15 @@ planer_ui <- function(id) {
                         DTOutput(ns("perf_check_table")))
                 ),
                 
-                # Top 20 verspätete Aufträge
+                # Top Aufträge mit Verzögerung
                 fluidRow(
-                    box(title = "Top 20 Aufträge mit größter Verzögerung", width = 12,
+                    box(title = "Top Aufträge mit Verzögerung", width = 12,
                         DTOutput(ns("delay_table")))
                 ),
                 
-                # Top 20 frühzeitige Fertigstellungen
+                # Top Aufträge mit frühzeitiger Fertigstellung
                 fluidRow(
-                    box(title = "Top 20 Aufträge mit frühzeitiger Fertigstellung", width = 12,
+                    box(title = "Top Aufträge mit frühzeitiger Fertigstellung", width = 12,
                         DTOutput(ns("early_table")))
                 )
             )
