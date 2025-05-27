@@ -261,9 +261,8 @@ plot_abweichung_histogram <- function(df, selected_workflow) {
     x_max <- quantile(df_filtered$abweichung, 0.975)
     
     p <- ggplot(df_filtered, aes(x = abweichung)) +
-        geom_histogram(binwidth = 1, fill = "#4B9CD3", color = "white", boundary = 0) +
+        geom_histogram(binwidth = 1, fill = "#002366", color = "white", boundary = 0) +
         labs(
-            title = paste("Verteilung der Abweichungen – Workflow", selected_workflow),
             x = "Abweichung (Ist - Soll) [Tage]",
             y = "Häufigkeit"
         ) +
@@ -307,9 +306,8 @@ plot_ist_vs_soll_comparison <- function(vorgaenge_df, selected_workflow) {
         geom_col(data = subset(df_summary, Typ == "Ist"),
                  position = position_identity(),
                  width = 0.4,
-                 fill = "#1f77b4") +
+                 fill = "#002366") +
         labs(
-            title = paste("Soll-Ist Vergleich – Workflow", selected_workflow),
             x = "Vorgang",
             y = "Median Dauer [Tage]"
         ) +

@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyBS)
 library(DT)
 library(ggplot2)
 library(plotly)
@@ -10,10 +11,11 @@ source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)
 
 # UI-Modul-Funktion
 workflows_ui <- function(id) {
+
     ns <- NS(id)
     tagList(
         h1("Workflows", style = "font-weight: bold; margin-bottom: 40px;"),
-
+        
         fluidRow(
             infoBoxOutput(ns("overall_servicelevel")),
             infoBoxOutput(ns("avg_delay")),
@@ -26,7 +28,7 @@ workflows_ui <- function(id) {
             )
         ),
         
-        div(style = "margin-top: 40px;",  # 👈 Abstand oben
+        div(style = "margin-top: 20px;",
             fluidRow(
                 box(title = "Workflow auswählen", width = 12, status = "primary", solidHeader = TRUE,
                     selectInput(ns("selected_workflow"), "Workflow auswählen:", choices = NULL, width = "100%")
@@ -37,14 +39,14 @@ workflows_ui <- function(id) {
         uiOutput(ns("workflow_detail_title")),
         
         fluidRow(
-            infoBoxOutput(ns("workflow_detail_value1")),
             infoBoxOutput(ns("workflow_detail_value2")),
-            infoBoxOutput(ns("workflow_detail_value3"))
+            infoBoxOutput(ns("workflow_detail_value3")),
+            infoBoxOutput(ns("workflow_detail_value1"))
         ),
         
         fluidRow(
             column(width = 4,
-                   box(title = "Werke", width = NULL, status = "primary", solidHeader = FALSE,
+                   box(title = "Werke", width = NULL, status = "primary", solidHeader = FALSE, 
                        DTOutput(ns("detail_table_a"))
                    )),
             column(width = 4,
@@ -56,50 +58,118 @@ workflows_ui <- function(id) {
                        DTOutput(ns("detail_table_c"))
                    ))
         ),
+        
         fluidRow(
-            box(title = "Detailansicht Workflow", width = 12, status = "primary", solidHeader = TRUE,
+            box(title = "Lead Times", width = 12, status = "primary", solidHeader = FALSE,
                 
                 # Mengenabhängige Lead Time
                 div(
-                    h4("Mengenabhängige Lead Time", style = "font-weight: bold;"),
+                    tags$h4("Mengenabhängige Lead Time", style = "font-weight: bold; font-size: 16px;"),
                     plotlyOutput(ns("workflow_plot")),
                     br()
                 ),
                 
-                # Detailansicht Vorgänge, Histogramm und Tabelle
+                br(),  # Abstand vor nächstem Diagramm
+                
                 fluidRow(
                     column(
-                        width = 8,
+                        width = 6,  # 👈 vorher 8
                         div(
-                            h4("Detailansicht Vorgänge", style = "font-weight: bold;"),
-                            plotlyOutput(ns("stacked_bar_plot"), height = "250px")
+                            tags$h4(
+                                "Detailansicht Ist-Lead Times ",
+                                icon("info-circle", id = ns("info_leadtimes")),
+                                style = "font-weight: bold; font-size: 16px;"
+                            ),
+                            bsPopover(
+                                id = ns("info_leadtimes"),
+                                title = "Was wird hier gezeigt?",
+                                content = "Durchschnittliche LT für jeden Vorgang des ausgewählten Workflows inkl. eventuelle durchschn. Liegezeiten.",
+                                placement = "right",
+                                trigger = "hover"
+                            ),
+                            plotlyOutput(ns("stacked_bar_plot"), height = "100px")  # 👈 z. B. schmaler
                         )
                     ),
                     column(
-                        width = 12,
+                        width = 6,  # ggf. Tabelle etwas vergrößern
                         div(
-                            h4("Histogramm der Abweichungen", style = "font-weight: bold;"),
-                            plotlyOutput(ns("abweichung_hist_plot"))
-                        )
-                    ),
-                    column(
-                        width = 4,
-                        div(
-                            h4(textOutput(ns("table_title")), style = "font-weight: bold;"),
                             DTOutput(ns("workflow_table_detail"))
                         )
                     )
-                ),
-                
-                # Soll-Ist Vergleich pro Vorgang
-                div(
-                    h4("Soll-Ist Vergleich pro Vorgang", style = "font-weight: bold;"),
-                    plotlyOutput(ns("workflow_ist_soll_plot"), height = "300px")
                 )
             )
-        )
+        ),
+        
+        fluidRow(
+            box(title = "Performance", width = 12, status = "primary", solidHeader = FALSE,
+                column(
+                    width = 12,
+                    div(
+                        tags$h4(
+                            "Zeitverlauf der Lead Time-Abweichung",
+                            icon("info-circle", id = ns("info_performance")),
+                            style = "font-weight: bold; font-size: 16px;"
+                        ),
+                        bsPopover(
+                            id = ns("info_performance"),
+                            title = "Was wird hier gezeigt?",
+                            content = "Abweichung zwischen Ist- und Soll-LT seit Beobachtungsbeginn. Positive Werte stellen Verzögerungen dar (Ist>Soll).",
+                            placement = "right",
+                            trigger = "hover"
+                        ),
+                        plotlyOutput(ns("abweichung_time_plot")),
+                        br()
+                    )
+                ),
+                column(
+                    width = 12,
+                    div(
+                        tags$h4(
+                            "Streuung der Lead Time-Abweichung",
+                            icon("info-circle", id = ns("info_streuung")),
+                            style = "font-weight: bold; font-size: 16px;"
+                        ),
+                        bsPopover(
+                            id = ns("info_streuung"),
+                            title = "Was wird hier gezeigt?",
+                            content = "Streuung der auftretenden Lead Time-Abweichungen. Positive Werte stellen Verzögerungen dar (Ist>Soll).",
+                            placement = "right",
+                            trigger = "hover"
+                        ),
+                        plotlyOutput(ns("abweichung_hist_plot"))
+                    )
+                ),
+
+                column(
+                    width = 12,
+                    div(
+                        tags$h4("Soll-Ist Vergleich pro Vorgang", style = "font-weight: bold; font-size: 16px;"),
+                        plotlyOutput(ns("workflow_ist_soll_plot"), height = "300px")
+                    )
+                )
+            )
+        ),
+        
+        bsPopover(ns("info_avglt"), "Durchlaufzeit", 
+                  "Median der tatsächlichen Durchlaufzeit pro Auftrag in Tagen.",
+                  placement = "top", trigger = "hover"),
+        
+        bsPopover(ns("info_avgdelay"), "Verzögerung", 
+                  "Durchschnittliche Verzögerung je Auftrag. Werte ≤ 0 gelten als pünktlich.",
+                  placement = "top", trigger = "hover"),
+        
+        bsPopover(ns("info_orders"), "Auftragsanzahl", 
+                  "Anzahl abgeschlossener Aufträge im Workflow.",
+                  placement = "top", trigger = "hover"),
+        
+        bsPopover(ns("info_servicelevel"), "Servicelevel", 
+                  "Anteil der Aufträge ohne Verzögerung (0 Tage oder früher).",
+                  placement = "top", trigger = "hover")
+        
     )  # schließt tagList
-}  # schließt workflows_ui
+    
+}
+
 
 # Server
 workflows_server <- function(id) {
@@ -153,36 +223,39 @@ workflows_server <- function(id) {
         
         # Tabelle
         if (exists("workflows_overview")) {
+            servicelevel_col <- HTML('Servicelevel <i id="info_servicelevel" class="fa fa-info-circle"></i>')
+            
+            colnames(workflows_overview)[colnames(workflows_overview) == "Servicelevel"] <- servicelevel_col
+            
             output$workflows_table <- renderDT({
                 datatable(
                     workflows_overview,
                     escape = FALSE,
+                    colnames = c(
+                        "ampel" = "",
+                        "Workflow" = "Workflow",
+                        "Avg LT/Order [d]" = HTML('Avg LT/Order [d] <i id="info_avglt" class="fa fa-info-circle"></i>'),
+                        "Avg Delay/Order [d]" = HTML('Avg Delay/Order [d] <i id="info_avgdelay" class="fa fa-info-circle"></i>'),
+                        "# Orders" = HTML('# Orders <i id="info_orders" class="fa fa-info-circle"></i>'),
+                        "Servicelevel" = HTML('Servicelevel <i id="info_servicelevel" class="fa fa-info-circle"></i>')
+                    ),
                     options = list(
                         pageLength = 10,
                         dom = 'tip',
                         scrollX = TRUE,
                         columnDefs = list(
-                            list(visible = FALSE, targets = 0),                  # verstecke ampel_color
-                            list(width = '25px', targets = 1),                   # ampel-Spalte schmal
-                            list(orderData = 0, targets = 1),                    # sortiere ampel nach ampel_color
-                            list(title = "", targets = 1)                        # leerer Spaltentitel
+                            list(visible = FALSE, targets = 0),
+                            list(width = '25px', targets = 1),
+                            list(orderData = 0, targets = 1),
+                            list(title = "", targets = 1)
                         )
                     ),
                     rownames = FALSE,
                     class = "stripe hover cell-border",
                     width = "100%"
                 ) %>%
-                    formatStyle('Servicelevel', textAlign = 'left')
+                    formatStyle("Servicelevel", textAlign = 'left')
             }, server = FALSE, fillContainer = TRUE)
-            
-            
-            
-        } else {
-            output$workflows_table <- renderDT({
-                datatable(data.frame(Hinweis = "Keine Daten verfügbar"))
-            })
-        }
-        
         # Dropdown füllen
         observe({
             workflows <- unique(all_data_finalized$vorgangsfolge)
@@ -226,6 +299,7 @@ workflows_server <- function(id) {
                     pageLength = 3,
                     dom = 'tip',
                     ordering = TRUE,
+                    pagingType = 'simple', 
                     columnDefs = list(
                         list(visible = FALSE, targets = 0),
                         list(width = '25px', targets = 1),
@@ -260,7 +334,7 @@ workflows_server <- function(id) {
                         "; font-size: 20px; text-align: center;'>&#9679;</div>"
                     )
                 ) %>%
-                dplyr::select(ampel_color, ampel, Fertigungslinie = fertigungslinie, `Avg. Delay/Order [d]`)
+                dplyr::select(ampel_color, ampel, Linie = fertigungslinie, `Avg. Delay/Order [d]`)
             
             datatable(
                 df,
@@ -269,6 +343,7 @@ workflows_server <- function(id) {
                     pageLength = 3,
                     dom = 'tip',
                     ordering = TRUE,
+                    pagingType = 'simple', 
                     columnDefs = list(
                         list(visible = FALSE, targets = 0),
                         list(width = '25px', targets = 1),
@@ -430,6 +505,10 @@ workflows_server <- function(id) {
             infoBox(title = "Avg. Delay", value = "", icon = icon("hourglass-half"), color = "yellow", fill = FALSE)
         })
         
+        output$workflow_value4 <- renderInfoBox({
+            infoBox(title = "Servicelevel", value = "", icon = icon("percent"), color = "teal", fill = FALSE)
+        })
+        
        output$workflow_value3 <- renderInfoBox({
             infoBox(title = "# Orders", 
                     value = if (!is.null(input$selected_workflow)) {
@@ -440,9 +519,60 @@ workflows_server <- function(id) {
                     icon = icon("list-ol"), color = "green", fill = FALSE)
         })
         
-        output$workflow_value4 <- renderInfoBox({
-            infoBox(title = "Servicelevel", value = "", icon = icon("percent"), color = "teal", fill = FALSE)
-        })
+       output$workflow_detail_value2 <- renderInfoBox({
+           req(input$selected_workflow)
+           servicelevel <- vorgaenge_sorted %>%
+               filter(vorgangsfolge == input$selected_workflow) %>%
+               summarise(Servicelevel = mean(abweichung <= 0, na.rm = TRUE)) %>%
+               pull(Servicelevel)
+           
+           sl_percent <- round(servicelevel * 100, 0)
+           
+           color <- if (sl_percent < 70) {
+               "red"
+           } else if (sl_percent < 95) {
+               "orange"
+           } else {
+               "green"
+           }
+           
+           infoBox(
+               title = "Servicelevel",
+               value = paste0(sl_percent, "%"),
+               icon = icon("percent"),
+               color = color,
+               fill = FALSE
+           )
+       })
+       
+       output$workflow_detail_value3 <- renderInfoBox({
+           req(input$selected_workflow)
+           
+           bottleneck_info <- vorgaenge_sorted %>%
+               filter(vorgangsfolge == input$selected_workflow & abweichung > 0) %>%
+               group_by(Vorgangsnummer) %>%
+               summarise(median_abweichung = median(abweichung, na.rm = TRUE), .groups = "drop") %>%
+               arrange(desc(median_abweichung)) %>%
+               slice(1)
+           
+           if (nrow(bottleneck_info) == 0) {
+               infoBox(
+                   title = "Bottleneck",
+                   value = "Kein positiver Wert",
+                   icon = icon("exclamation-triangle"),
+                   color = "light-blue",
+                   fill = FALSE
+               )
+           } else {
+               infoBox(
+                   title = "Bottleneck",
+                   value = paste0("Vg. ", bottleneck_info$Vorgangsnummer, ": currently ", round(bottleneck_info$median_abweichung, 1), " Tage Delay"),
+                   icon = icon("exclamation-triangle"),
+                   color = "light-blue",
+                   fill = FALSE
+               )
+           }
+       })
         
         output$workflow_detail_value1 <- renderInfoBox({
             req(input$selected_workflow)
@@ -459,60 +589,9 @@ workflows_server <- function(id) {
             )
         })
         
-        output$workflow_detail_value2 <- renderInfoBox({
-            req(input$selected_workflow)
-            servicelevel <- vorgaenge_sorted %>%
-                filter(vorgangsfolge == input$selected_workflow) %>%
-                summarise(Servicelevel = mean(abweichung <= 0, na.rm = TRUE)) %>%
-                pull(Servicelevel)
-            
-            sl_percent <- round(servicelevel * 100, 0)
-            
-            color <- if (sl_percent < 70) {
-                "red"
-            } else if (sl_percent < 95) {
-                "orange"
-            } else {
-                "green"
-            }
-            
-            infoBox(
-                title = "Servicelevel",
-                value = paste0(sl_percent, "%"),
-                icon = icon("percent"),
-                color = color,
-                fill = FALSE
-            )
-        })
+       
         
-        output$workflow_detail_value3 <- renderInfoBox({
-            req(input$selected_workflow)
-            
-            bottleneck_info <- vorgaenge_sorted %>%
-                filter(vorgangsfolge == input$selected_workflow & abweichung > 0) %>%
-                group_by(Vorgangsnummer) %>%
-                summarise(median_abweichung = median(abweichung, na.rm = TRUE), .groups = "drop") %>%
-                arrange(desc(median_abweichung)) %>%
-                slice(1)
-            
-            if (nrow(bottleneck_info) == 0) {
-                infoBox(
-                    title = "Bottleneck",
-                    value = "Kein positiver Wert",
-                    icon = icon("exclamation-triangle"),
-                    color = "light-blue",
-                    fill = FALSE
-                )
-            } else {
-                infoBox(
-                    title = "Bottleneck",
-                    value = paste0("Vg. ", bottleneck_info$Vorgangsnummer, ": currently ", round(bottleneck_info$median_abweichung, 1), " Tage Delay"),
-                    icon = icon("exclamation-triangle"),
-                    color = "light-blue",
-                    fill = FALSE
-                )
-            }
-        })
+      
         
         
         
@@ -520,6 +599,51 @@ workflows_server <- function(id) {
             req(input$selected_workflow)
             plot_ist_vs_soll_comparison(vorgaenge_sorted, input$selected_workflow)
         })
-    })  # schließt moduleServer
-}
-
+        
+        output$abweichung_time_plot <- renderPlotly({
+            req(input$selected_workflow)
+            
+            df <- all_data_finalized %>%
+                filter(vorgangsfolge == input$selected_workflow) %>%
+                arrange(starttermin_ist) %>%
+                slice(seq(1, n(), by = 10))  # 👈 nur jeden 10. Wert behalten
+            
+            p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
+                geom_line(color = "#002366", size = 0.2) +
+                geom_point(color = "#002366", size = 0.3, alpha = 0.6) +
+                geom_smooth(
+                    method = "loess", se = FALSE, span = 0.2, color = "darkred", size = 0.7
+                ) +
+                labs(
+                    x = "Starttermin (Ist)",
+                    y = "Abweichung [Tage]"
+                ) +
+                theme_minimal()
+            
+            ggplotly(p, tooltip = c("x", "y"))
+        })
+        
+        plot_workflow_structure <- function(df) {
+            df <- df %>%
+                pivot_longer(
+                    cols = ends_with("_median"),
+                    names_to = "Vorgang",
+                    values_to = "Time"
+                ) %>%
+                filter(!is.na(Time)) %>%
+                mutate(
+                    Vorgang = str_replace(Vorgang, "_median", ""),
+                    Vorgang = ifelse(Vorgang == "Liegedauer_gesamt", "Avg. Delay", Vorgang)
+                )
+            
+            ggplot(df, aes(x = "", y = Time, fill = Vorgang)) +
+                geom_bar(stat = "identity", width = 1) +
+                coord_flip() +
+                theme_void() +  # entfernt Achsen, Linien, Ticks etc.
+                theme(legend.position = "none") +  # entfernt Legende
+                scale_fill_manual(values = rep("#bdd7e7", nrow(df))) +
+                geom_text(aes(label = Vorgang), color = "white", size = 5, position = position_stack(vjust = 0.5))
+        }  # ⬅️ schließt plot_workflow_structure
+        
+        })  # ⬅️ schließt moduleServer
+    }  # ⬅️ schließt workflows_server
