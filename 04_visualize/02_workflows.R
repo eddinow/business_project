@@ -606,8 +606,32 @@ workflows_server <- function(id) {
         
         output$workflow_ist_soll_plot <- renderPlotly({
             req(input$selected_workflow)
-            plot_ist_vs_soll_comparison(vorgaenge_sorted, input$selected_workflow)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_workflow) %>%
+                group_by(vorgangsnummer) %>%
+                summarise(
+                    Ist = median(istdauer, na.rm = TRUE),
+                    Soll = median(solldauer, na.rm = TRUE),
+                    .groups = "drop"
+                ) %>%
+                filter(!is.na(Ist), !is.na(Soll))
+            
+            p <- ggplot(df, aes(x = factor(vorgangsnummer))) +
+                geom_col(aes(y = Ist), fill = "#002366", width = 0.6) +
+                geom_segment(aes(x = as.numeric(factor(vorgangsnummer)) - 0.3,
+                                 xend = as.numeric(factor(vorgangsnummer)) + 0.3,
+                                 y = Soll, yend = Soll),
+                             color = "red", linewidth = 1) +
+                labs(
+                    x = "Vorgang",
+                    y = "Median Dauer [Tage]"
+                ) +
+                theme_minimal()
+            
+            ggplotly(p, tooltip = c("x", "y"))
         })
+        
         
         output$abweichung_time_plot <- renderPlotly({
             req(input$selected_workflow)
