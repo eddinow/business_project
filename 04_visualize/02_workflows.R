@@ -121,30 +121,31 @@ workflows_ui <- function(id) {
                         br()
                     )
                 ),
-                column(
-                    width = 12,
-                    div(
-                        tags$h4(
-                            "Streuung der Lead Time-Abweichung",
-                            icon("info-circle", id = ns("info_streuung")),
-                            style = "font-weight: bold; font-size: 16px;"
-                        ),
-                        bsPopover(
-                            id = ns("info_streuung"),
-                            title = "Was wird hier gezeigt?",
-                            content = "Streuung der auftretenden Lead Time-Abweichungen. Positive Werte stellen Verzögerungen dar (Ist>Soll).",
-                            placement = "right",
-                            trigger = "hover"
-                        ),
-                        plotlyOutput(ns("abweichung_hist_plot"))
-                    )
-                ),
-
-                column(
-                    width = 12,
-                    div(
-                        tags$h4("Soll-Ist Vergleich pro Vorgang", style = "font-weight: bold; font-size: 16px;"),
-                        plotlyOutput(ns("workflow_ist_soll_plot"), height = "300px")
+                fluidRow(
+                    column(
+                        width = 6,
+                        div(
+                            tags$h4(
+                                "Streuung der Lead Time-Abweichung",
+                                icon("info-circle", id = ns("info_streuung")),
+                                style = "font-weight: bold; font-size: 16px;"
+                            ),
+                            bsPopover(
+                                id = ns("info_streuung"),
+                                title = "Was wird hier gezeigt?",
+                                content = "Streuung der auftretenden Lead Time-Abweichungen. Positive Werte stellen Verzögerungen dar (Ist>Soll).",
+                                placement = "right",
+                                trigger = "hover"
+                            ),
+                            plotlyOutput(ns("abweichung_hist_plot"))
+                        )
+                    ),
+                    column(
+                        width = 6,
+                        div(
+                            tags$h4("Soll-Ist Vergleich pro Vorgang", style = "font-weight: bold; font-size: 16px;"),
+                            plotlyOutput(ns("workflow_ist_soll_plot"))
+                        )
                     )
                 )
             )
@@ -205,24 +206,44 @@ workflows_server <- function(id) {
             )
         })
         
-        # Tabelle
-        if (exists("workflows_overview")) {
+        print(colnames(workflows_overview))
+        
+        workflows_overview <- all_data_finalized %>%
+            group_by(vorgangsfolge) %>%
+            summarise(
+                `Avg LT/Order [d]` = median(lead_time_ist, na.rm = TRUE),
+                `Avg Delay/Order [d]` = round(min(median(abweichung, na.rm = TRUE), 0), 0),
+                `# Orders` = n(),
+                servicelevel_numeric = mean(abweichung <= 0, na.rm = TRUE),
+                .groups = "drop"
+            ) %>%
+            mutate(
+                Servicelevel = paste0(round(servicelevel_numeric * 100, 0), "%"),
+                ampel_color = dplyr::case_when(
+                    servicelevel_numeric >= 0.95 ~ "green",
+                    servicelevel_numeric >= 0.7  ~ "orange",
+                    TRUE                         ~ "red"
+                ),
+                ampel = paste0(
+                    "<div style='color: ", ampel_color,
+                    "; font-size: 20px; text-align: center;'>&#9679;</div>"
+                )
+            ) %>%
+            rename(Workflow = vorgangsfolge) %>%
+            dplyr::select(
+                ampel_color, ampel, Workflow,
+                `Avg LT/Order [d]`, `Avg Delay/Order [d]`,
+                `# Orders`, Servicelevel
+            ) %>%
+            arrange(desc(`# Orders`))
+      
             output$workflows_table <- renderDT({
                 datatable(
-                    workflows_overview %>%
-                        select(
-                            ampel_color,      # wird versteckt
-                            ampel,            # farbiger Kreis (sichtbar)
-                            vorgangsfolge,    # Workflow
-                            `Avg LT/Order [d]`,
-                            `Avg Delay/Order [d]`,
-                            `# Orders`,
-                            Servicelevel
-                        ),
-                    escape = which(colnames(workflows_overview) != "ampel"),  # Ampel-HTML zulassen
+                    workflows_overview,
+                    escape = which(colnames(workflows_overview) != "ampel"),
                     colnames = c(
-                        "ampel" = "",
-                        "vorgangsfolge" = "Workflow",
+                        "ampel" = "ampel",
+                        "Workflow" = "Workflow",
                         "Avg LT/Order [d]" = "Avg LT/Order [d]",
                         "Avg Delay/Order [d]" = "Avg Delay/Order [d]",
                         "# Orders" = "# Orders",
@@ -233,9 +254,9 @@ workflows_server <- function(id) {
                         dom = 'tip',
                         scrollX = TRUE,
                         columnDefs = list(
-                            list(visible = FALSE, targets = 0),  # ampel_color ausblenden
-                            list(width = '25px', targets = 1),   # ampel schmal
-                            list(orderData = 0, targets = 1)     # Sortierung nach ampel_color
+                            list(visible = FALSE, targets = 0),  # ampel_color
+                            list(width = '25px', targets = 1),   # ampel
+                            list(orderData = 0, targets = 1)     # sortiere nach ampel_color
                         )
                     ),
                     rownames = FALSE,
@@ -243,7 +264,7 @@ workflows_server <- function(id) {
                     width = "100%"
                 )
             }, server = FALSE, fillContainer = TRUE)
-        }
+            
         # Dropdown füllen
         observe({
             workflows <- unique(all_data_finalized$vorgangsfolge)

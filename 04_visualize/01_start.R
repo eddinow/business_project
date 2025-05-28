@@ -10,7 +10,6 @@ source("04_visualize/02_fertigungslinien.R", local = TRUE)
 source("04_visualize/02_material.R", local = TRUE) 
 source("04_visualize/02_werke.R", local = TRUE)  
 
-
 # UI -------------------------------------------------------------------------
 start_ui <- dashboardPage(
     dashboardHeader(title = "TrueTime"),
