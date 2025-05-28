@@ -150,22 +150,6 @@ workflows_ui <- function(id) {
             )
         ),
         
-        bsPopover(ns("info_avglt"), "Durchlaufzeit", 
-                  "Median der tatsächlichen Durchlaufzeit pro Auftrag in Tagen.",
-                  placement = "top", trigger = "hover"),
-        
-        bsPopover(ns("info_avgdelay"), "Verzögerung", 
-                  "Durchschnittliche Verzögerung je Auftrag. Werte ≤ 0 gelten als pünktlich.",
-                  placement = "top", trigger = "hover"),
-        
-        bsPopover(ns("info_orders"), "Auftragsanzahl", 
-                  "Anzahl abgeschlossener Aufträge im Workflow.",
-                  placement = "top", trigger = "hover"),
-        
-        bsPopover(ns("info_servicelevel"), "Servicelevel", 
-                  "Anteil der Aufträge ohne Verzögerung (0 Tage oder früher).",
-                  placement = "top", trigger = "hover")
-        
     )  # schließt tagList
     
 }
@@ -223,39 +207,43 @@ workflows_server <- function(id) {
         
         # Tabelle
         if (exists("workflows_overview")) {
-            servicelevel_col <- HTML('Servicelevel <i id="info_servicelevel" class="fa fa-info-circle"></i>')
-            
-            colnames(workflows_overview)[colnames(workflows_overview) == "Servicelevel"] <- servicelevel_col
-            
             output$workflows_table <- renderDT({
                 datatable(
-                    workflows_overview,
-                    escape = FALSE,
+                    workflows_overview %>%
+                        select(
+                            ampel_color,      # wird versteckt
+                            ampel,            # farbiger Kreis (sichtbar)
+                            vorgangsfolge,    # Workflow
+                            `Avg LT/Order [d]`,
+                            `Avg Delay/Order [d]`,
+                            `# Orders`,
+                            Servicelevel
+                        ),
+                    escape = which(colnames(workflows_overview) != "ampel"),  # Ampel-HTML zulassen
                     colnames = c(
                         "ampel" = "",
-                        "Workflow" = "Workflow",
-                        "Avg LT/Order [d]" = HTML('Avg LT/Order [d] <i id="info_avglt" class="fa fa-info-circle"></i>'),
-                        "Avg Delay/Order [d]" = HTML('Avg Delay/Order [d] <i id="info_avgdelay" class="fa fa-info-circle"></i>'),
-                        "# Orders" = HTML('# Orders <i id="info_orders" class="fa fa-info-circle"></i>'),
-                        "Servicelevel" = HTML('Servicelevel <i id="info_servicelevel" class="fa fa-info-circle"></i>')
+                        "vorgangsfolge" = "Workflow",
+                        "Avg LT/Order [d]" = "Avg LT/Order [d]",
+                        "Avg Delay/Order [d]" = "Avg Delay/Order [d]",
+                        "# Orders" = "# Orders",
+                        "Servicelevel" = "Servicelevel"
                     ),
                     options = list(
                         pageLength = 10,
                         dom = 'tip',
                         scrollX = TRUE,
                         columnDefs = list(
-                            list(visible = FALSE, targets = 0),
-                            list(width = '25px', targets = 1),
-                            list(orderData = 0, targets = 1),
-                            list(title = "", targets = 1)
+                            list(visible = FALSE, targets = 0),  # ampel_color ausblenden
+                            list(width = '25px', targets = 1),   # ampel schmal
+                            list(orderData = 0, targets = 1)     # Sortierung nach ampel_color
                         )
                     ),
                     rownames = FALSE,
                     class = "stripe hover cell-border",
                     width = "100%"
-                ) %>%
-                    formatStyle("Servicelevel", textAlign = 'left')
+                )
             }, server = FALSE, fillContainer = TRUE)
+        }
         # Dropdown füllen
         observe({
             workflows <- unique(all_data_finalized$vorgangsfolge)
@@ -639,11 +627,11 @@ workflows_server <- function(id) {
             ggplot(df, aes(x = "", y = Time, fill = Vorgang)) +
                 geom_bar(stat = "identity", width = 1) +
                 coord_flip() +
-                theme_void() +  # entfernt Achsen, Linien, Ticks etc.
-                theme(legend.position = "none") +  # entfernt Legende
+                theme_void() +
+                theme(legend.position = "none") +
                 scale_fill_manual(values = rep("#bdd7e7", nrow(df))) +
                 geom_text(aes(label = Vorgang), color = "white", size = 5, position = position_stack(vjust = 0.5))
-        }  # ⬅️ schließt plot_workflow_structure
+        }
         
-        })  # ⬅️ schließt moduleServer
-    }  # ⬅️ schließt workflows_server
+    })
+    }

@@ -40,15 +40,3 @@ workflows_overview <- all_data_finalized %>%
     dplyr::select(ampel_color, ampel, Workflow, `Avg LT/Order [d]`, `Avg Delay/Order [d]`, `# Orders`, `Servicelevel`) %>%
     arrange(desc(`# Orders`))
 
-# 👉 HTML in Spaltenüberschriften (Info-Icons einfügen)
-colnames(workflows_overview)[colnames(workflows_overview) == "Avg LT/Order [d]"] <-
-    HTML('Avg LT/Order [d] <i id="info_avglt" class="fa fa-info-circle"></i>')
-
-colnames(workflows_overview)[colnames(workflows_overview) == "Avg Delay/Order [d]"] <-
-    HTML('Avg Delay/Order [d] <i id="info_avgdelay" class="fa fa-info-circle"></i>')
-
-colnames(workflows_overview)[colnames(workflows_overview) == "# Orders"] <-
-    HTML('# Orders <i id="info_orders" class="fa fa-info-circle"></i>')
-
-colnames(workflows_overview)[colnames(workflows_overview) == "Servicelevel"] <-
-    HTML('Servicelevel <i id="info_servicelevel" class="fa fa-info-circle"></i>')
