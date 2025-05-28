@@ -17,36 +17,75 @@ library(plotly)
 # Import -----------------------------------------------------------------------
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 
-#Material nach häufigkeit sortiert
-tabelle <- all_data_finalized %>%
-    group_by(materialnummer, vorgangsfolge) %>%
-    summarise(Anzahl = n(), .groups = "drop") %>%
-    arrange(desc(Anzahl))
-
-dopplungen <- tabelle %>%
-    group_by(materialnummer) %>%
-    summarise(Anzahl = n(), .groups = "drop") %>%
-    filter(Anzahl > 1)
-
 materialnummer_overview <- all_data_finalized %>%
-    filter(!is.na(materialnummer)) %>%
-    mutate(
-        Durchlaufzeit = as.numeric(lead_time_ist),
-        Komplexität = str_count(vorgangsfolge, "→") + 1,
-        Startverzögerung = as.numeric(starttermin_ist - starttermin_soll)
-    ) %>%
     group_by(materialnummer) %>%
     summarise(
         Anzahl = n(),
-        Durchschnitt_LT = round(mean(Durchlaufzeit, na.rm = TRUE), 1),
-        Median_LT = round(median(Durchlaufzeit, na.rm = TRUE), 1),
-        SD_LT = round(sd(Durchlaufzeit, na.rm = TRUE), 1),
-        Ø_Komplexität = round(mean(Komplexität, na.rm = TRUE), 1),
-        Ø_Startverzögerung = round(mean(Startverzögerung, na.rm = TRUE), 1),
-        Anteil_verspätet = round(mean(abweichung > 0, na.rm = TRUE), 2),
-        Ø_Abweichung = round(mean(abweichung, na.rm = TRUE), 1),
-        Ø_Liefermenge = round(mean(gelieferte_menge, na.rm = TRUE), 0),
-        Liefertreue = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE), 2),
-        Termintreue = round(mean(abweichung <= 0, na.rm = TRUE), 2),
-        .groups = "drop"
+        Gesamtmenge = sum(gelieferte_menge, na.rm = TRUE),
+        Sollmenge = sum(sollmenge, na.rm = TRUE),
+        Ø_Abweichung = mean(abweichung, na.rm = TRUE),
+        Ø_LT = mean(lead_time_ist, na.rm = TRUE),
+        Anteil_pünktlich = mean(abweichung <= 0, na.rm = TRUE),
+        Ø_Komplexität = mean(str_count(vorgangsfolge, "→") + 1, na.rm = TRUE)
+    ) %>%
+    arrange(desc(Gesamtmenge)) %>%
+    mutate(
+        LT_pro_Schritt = Ø_LT / Ø_Komplexität  # <<--- NEU
     )
+
+# ABC-Analyse auf Gesamtmenge
+materialnummer_overview <- materialnummer_overview %>%
+    mutate(
+        kum_anteil = cumsum(Gesamtmenge) / sum(Gesamtmenge),
+        ABC_Klasse = case_when(
+            kum_anteil <= 0.8 ~ "A",
+            kum_anteil <= 0.95 ~ "B",
+            TRUE ~ "C"
+        )
+    )
+
+#Überblick abc
+abc_summary <- materialnummer_overview %>%
+    group_by(ABC_Klasse) %>%
+    summarise(
+        Anzahl_Materialien = n(),
+        Gesamt_Anzahl = sum(Anzahl, na.rm = TRUE),
+        Gesamtmenge = sum(Gesamtmenge, na.rm = TRUE),
+        Gesamtsollmenge = sum(Sollmenge, na.rm = TRUE),
+        Ø_Abweichung = round(mean(Ø_Abweichung, na.rm = TRUE), 2),
+        Ø_LT = round(mean(Ø_LT, na.rm = TRUE), 2),
+        Anteil_pünktlich = round(mean(Anteil_pünktlich, na.rm = TRUE), 2),
+        Ø_Komplexität = round(mean(Ø_Komplexität, na.rm = TRUE), 2),
+        LT_pro_Schritt = round(mean(LT_pro_Schritt, na.rm = TRUE), 2)
+    )
+
+#plots
+
+ggplot(abc_summary, aes(x = ABC_Klasse, y = Gesamtmenge, fill = ABC_Klasse)) +
+    geom_bar(stat = "identity") +
+    labs(
+        title = "Gesamtmenge je ABC-Klasse",
+        x = "ABC-Klasse",
+        y = "Gesamt gelieferte Menge"
+    ) +
+    theme_minimal() +
+    scale_fill_brewer(palette = "Set2")
+
+abc_long3 <- abc_summary %>%
+    select(ABC_Klasse, Anzahl_Materialien, LT_pro_Schritt, Ø_Abweichung, Anteil_pünktlich) %>%
+    pivot_longer(
+        cols = -ABC_Klasse, 
+        names_to = "Kennzahl", 
+        values_to = "Wert"
+    )
+
+ggplot(abc_long3, aes(x = ABC_Klasse, y = Wert, fill = ABC_Klasse)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    facet_wrap(~Kennzahl, scales = "free_y") +
+    labs(
+        title = "ABC-Klassen: Materialanzahl, LT/Schritt, Ø-Abweichung, Anteil pünktlich",
+        x = "ABC-Klasse",
+        y = "Wert"
+    ) +
+    theme_minimal() +
+    scale_fill_brewer(palette = "Set2")
