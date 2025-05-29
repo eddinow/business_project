@@ -103,17 +103,18 @@ linien_server <- function(id) {
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
             p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, durchschnitt_lt),
-                y = durchschnitt_lt,
-                text = paste("Median LT:", median_lt, "<br>Anzahl:", Anzahl)
+                x = reorder(vorgangsfolge, median_lt),
+                y = median_lt,
+                text = paste("Ø LT:", durchschnitt_lt, "<br>Anzahl:", Anzahl)
             )) +
                 geom_col(fill = "#2C3E50") +
                 coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Ø Lead Time (Tage)") +
+                labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
                 theme_minimal()
             
             ggplotly(p, tooltip = "text")
         })
+        
         
         # Plot 2: Donut
         output$anteil_donut <- renderPlotly({
@@ -179,4 +180,4 @@ linien_server <- function(id) {
         })
         
     })  # Ende moduleServer
-}      # Ende linien_server
+}      
