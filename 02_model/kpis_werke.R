@@ -11,9 +11,10 @@ werke_overview <- all_data_finalized %>%
         Komplexitaet = str_count(vorgangsfolge, "→") + 1,
         Startverzoegerung = ifelse(
             starttermin_ist > starttermin_soll,
-            as.numeric(starttermin_ist - starttermin_soll),
+            as.numeric(difftime(starttermin_ist, starttermin_soll, units = "days")),
             0
         )
+        
     ) %>%
     group_by(werk, vorgangsfolge) %>%
     summarise(
