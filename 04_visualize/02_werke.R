@@ -1,74 +1,3 @@
-library(shiny)
-library(DT)
-library(ggplot2)
-library(plotly)
-
-source("02_model/kpis_werke.R", local = TRUE)
-
-werke_ui <- function(id) {
-    ns <- NS(id)
-    tagList(
-        fluidRow(
-            box(
-                title = "Werk auswählen",
-                width = 12,
-                status = "primary",
-                solidHeader = TRUE,
-                selectInput(
-                    ns("werk_select"),
-                    "Werk:",
-                    choices = sort(unique(werke_overview$werk)),
-                    selected = sort(unique(werke_overview$werk))[1]
-                )
-            )
-        ),
-        fluidRow(
-            box(
-                title = "Top-Vorgangsfolgen im Werk",
-                width = 12,
-                status = "primary",
-                solidHeader = TRUE,
-                DTOutput(ns("werke_table")),
-                br(),
-                downloadButton(ns("download_csv"), "CSV exportieren")
-            )
-        ),
-        fluidRow(
-            box(
-                title = "Ø Startverzögerung je Vorgangsfolge",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("plot_start_delay"))
-            )
-        ),
-        fluidRow(
-            box(
-                title = "Termintreue vs. Liefertreue (nach Vorgangsfolge)",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("plot_treue"))
-            )
-        ),
-        fluidRow(
-            box(
-                title = "Top-Vorgangsfolgen im Werk (Donut)",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("donut_top_vorgaenge"))
-            )
-        ),
-        fluidRow(
-            box(
-                title = "Automatische Interpretation",
-                width = 12,
-                status = "info",
-                solidHeader = TRUE,
-                htmlOutput(ns("werk_insights"))
-            )
-        )
-    )
-}
-
 werke_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         
@@ -159,5 +88,6 @@ werke_server <- function(id) {
             ) %>%
                 layout(title = paste("Top Vorgangsfolgen in Werk", input$werk_select))
         })
+        
     })
 }
