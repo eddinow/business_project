@@ -4,7 +4,7 @@ library(ggplot2)
 library(plotly)
 
 # Lade bereinigte KPI-Tabelle
-source("02_model/kpis_linie.R", local = TRUE)
+source("02_model/kpis_werke.R", local = TRUE)
 
 werke_server <- function(id) {
     moduleServer(id, function(input, output, session) {
