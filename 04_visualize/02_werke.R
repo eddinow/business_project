@@ -72,7 +72,11 @@ werke_server <- function(id) {
                 select(vorgangsfolge, Termintreue, Liefertreue) %>%
                 tidyr::pivot_longer(cols = c(Termintreue, Liefertreue), names_to = "Treueart", values_to = "Wert")
             
-            p <- ggplot(df, aes(x = reorder(vorgangsfolge, -Wert), y = Wert, fill = Treueart)) +
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, -Wert),
+                y = Wert,
+                fill = Treueart
+            )) +
                 geom_bar(stat = "identity", position = position_dodge()) +
                 labs(
                     x = "Vorgangsfolge",
@@ -85,8 +89,6 @@ werke_server <- function(id) {
             
             ggplotly(p, tooltip = c("x", "y", "fill"))
         })
-        
-        
         
         output$donut_top_vorgaenge <- renderPlotly({
             df <- daten_gefiltert()
@@ -114,8 +116,8 @@ werke_ui <- function(id) {
                 status = "primary",
                 solidHeader = TRUE,
                 selectInput(
-                    inputId = ns("werk_select"),
-                    label = "Werk:",
+                    ns("werk_select"),
+                    "Werk:",
                     choices = sort(unique(werke_overview$werk)),
                     selected = sort(unique(werke_overview$werk))[1]
                 )
@@ -142,7 +144,7 @@ werke_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Termintreue vs. Liefertreue (nach Vorgangsfolge)",
+                title = "Termintreue vs. Liefertreue (pro Vorgangsfolge)",
                 width = 12,
                 solidHeader = TRUE,
                 plotlyOutput(ns("plot_treue"))
