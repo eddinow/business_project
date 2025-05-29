@@ -4,16 +4,13 @@ if (!exists("all_data_finalized")) {
 
 linien_overview <- all_data_finalized %>%
     filter(!is.na(fertigungslinie), !is.na(vorgangsfolge)) %>%
-    mutate(
-        Durchlaufzeit = as.numeric(endtermin_ist - starttermin_ist)
-    ) %>%
     group_by(fertigungslinie, vorgangsfolge) %>%
     summarise(
         Anzahl = n(),
-        Durchschnitt_LT = round(mean(Durchlaufzeit, na.rm = TRUE), 1),
-        Median_LT = round(median(Durchlaufzeit, na.rm = TRUE), 1),
-        Ø_Abweichung = round(mean(abweichung, na.rm = TRUE), 1),
-        Termintreue = round(mean(endtermin_ist <= endtermin_soll, na.rm = TRUE), 2),
+        Durchschnitt_LT = round(mean(lead_time_ist, na.rm = TRUE), 1),
+        Median_LT = round(median(lead_time_ist, na.rm = TRUE), 1),
+        Ø_Abweichung = round(mean(lead_time_ist - lead_time_soll, na.rm = TRUE), 1),
+        Termintreue = round(mean(lead_time_ist <= lead_time_soll, na.rm = TRUE), 2),
         Ø_Liefermenge = round(mean(gelieferte_menge, na.rm = TRUE), 1),
         Liefertreue = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE), 2),
         .groups = "drop"
