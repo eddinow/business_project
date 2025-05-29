@@ -95,5 +95,66 @@ werke_server <- function(id) {
                 worst_tt$vorgangsfolge, " (", round(worst_tt$Termintreue * 100), "%)</p>"
             ))
         })
+        output$plot_start_delay <- renderPlotly({
+            df <- werke_overview %>%
+                group_by(werk) %>%
+                summarise(Startverzoegerung = mean(Durchschnitt_Startverzoegerung, na.rm = TRUE))
+            
+            p <- ggplot(df, aes(
+                x = reorder(werk, -Startverzoegerung),
+                y = Startverzoegerung
+            )) +
+                geom_col(fill = "#E67E22") +
+                labs(x = "Werk", y = "Ø Startverzögerung (Tage)") +
+                theme_minimal()
+            
+            ggplotly(p)
+        })
+        output$plot_treue_werke <- renderPlotly({
+            df <- werke_overview %>%
+                group_by(werk) %>%
+                summarise(
+                    Termintreue = mean(Termintreue, na.rm = TRUE),
+                    Liefertreue = mean(Liefertreue, na.rm = TRUE),
+                    Anzahl = sum(Anzahl, na.rm = TRUE)
+                )
+            
+            p <- ggplot(df, aes(
+                x = Termintreue,
+                y = Liefertreue,
+                size = Anzahl,
+                label = werk
+            )) +
+                geom_point(color = "#2980B9", alpha = 0.7) +
+                labs(x = "Termintreue", y = "Liefertreue") +
+                theme_minimal()
+            
+            ggplotly(p)
+        })
+        output$donut_top_vorgaenge <- renderPlotly({
+            req(input$werk_select)
+            df <- werke_overview %>%
+                filter(werk == input$werk_select) %>%
+                slice_max(order_by = Anzahl, n = 5)
+            
+            plot_ly(
+                data = df,
+                labels = ~vorgangsfolge,
+                values = ~Anzahl,
+                type = 'pie',
+                hole = 0.5,
+                textinfo = "label+percent"
+            ) %>%
+                layout(title = paste("Top Vorgangsfolgen in Werk", input$werk_select))
+        })
+        fluidRow(
+            box(title = "Ø Startverzögerung je Werk", width = 12, plotlyOutput(ns("plot_start_delay")))
+        )
+        fluidRow(
+            box(title = "Termintreue vs. Liefertreue", width = 12, plotlyOutput(ns("plot_treue_werke")))
+        )
+        fluidRow(
+            box(title = "Top 5 Vorgangsfolgen im Werk (Donut)", width = 12, plotlyOutput(ns("donut_top_vorgaenge")))
+        )
     })
 }

@@ -34,7 +34,7 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Ø Lead Time je Vorgangsfolge",
+                title = "Median Lead Time je Vorgangsfolge",
                 width = 12,
                 solidHeader = TRUE,
                 plotlyOutput(ns("lt_plot"))
@@ -50,7 +50,7 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Verspätung je Vorgangsfolge (Ø Abweichung)",
+                title = "Verspätung je Vorgangsfolge",
                 width = 12,
                 solidHeader = TRUE,
                 plotlyOutput(ns("plot_abweichung"))
@@ -99,17 +99,17 @@ linien_server <- function(id) {
             )
         })
         
-        # Plot 1: Lead Time
+        # Plot 1: Median LT
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
             p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, durchschnitt_lt),
-                y = durchschnitt_lt,
+                x = reorder(vorgangsfolge, median_lt),
+                y = median_lt,
                 text = paste("Median LT:", median_lt, "<br>Anzahl:", Anzahl)
             )) +
                 geom_col(fill = "#2C3E50") +
                 coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Ø Lead Time (Tage)") +
+                labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
                 theme_minimal()
             
             ggplotly(p, tooltip = "text")
@@ -163,7 +163,8 @@ linien_server <- function(id) {
         # Plot 5: Höchste Abweichung
         output$plot_top_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            df_max <- df %>% filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE))
+            df_max <- df %>%
+                filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE))
             
             plot_ly(
                 data = df_max,
@@ -178,5 +179,48 @@ linien_server <- function(id) {
                 )
         })
         
+        # Delay-Ampeltabellen
+        delay_summary <- all_data_finalized %>%
+            filter(!is.na(abweichung)) %>%
+            mutate(delay = ifelse(abweichung > 0, abweichung, 0)) %>%
+            group_by(werk, fertigungslinie, planer) %>%
+            summarise(avg_delay = round(mean(delay, na.rm = TRUE), 1), .groups = "drop")
+        
+        color_column <- function(values) {
+            sapply(values, function(v) {
+                if (is.na(v)) return("⚪")
+                else if (v > 3) return("🔴")
+                else if (v > 1) return("🟠")
+                else return("🟢")
+            })
+        }
+        
+        output$table_werke <- renderDT({
+            df <- delay_summary %>%
+                select(Werk = werk, avg_delay) %>%
+                mutate(Status = color_column(avg_delay))
+            
+            datatable(df, colnames = c("Werk", "Avg. Delay [d]", " "), escape = FALSE,
+                      rownames = FALSE, options = list(dom = 'tip'))
+        })
+        
+        output$table_linien <- renderDT({
+            df <- delay_summary %>%
+                select(Linie = fertigungslinie, avg_delay) %>%
+                mutate(Status = color_column(avg_delay))
+            
+            datatable(df, colnames = c("Linie", "Avg. Delay [d]", " "), escape = FALSE,
+                      rownames = FALSE, options = list(dom = 'tip'))
+        })
+        
+        output$table_planer <- renderDT({
+            df <- delay_summary %>%
+                select(Planer = planer, avg_delay) %>%
+                mutate(Status = color_column(avg_delay))
+            
+            datatable(df, colnames = c("Planer", "Avg. Delay [d]", " "), escape = FALSE,
+                      rownames = FALSE, options = list(dom = 'tip'))
+        })
+        
     })  # Ende moduleServer
-}      
+}      # Ende linien_server
