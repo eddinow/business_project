@@ -1,6 +1,7 @@
 library(shiny)
 library(DT)
-library(dplyr)
+library(ggplot2)
+library(plotly)
 
 source("02_model/kpis_werke.R", local = TRUE)
 
@@ -13,16 +14,12 @@ werke_ui <- function(id) {
                 width = 12,
                 status = "primary",
                 solidHeader = TRUE,
-                if (exists("werke_overview")) {
-                    selectInput(
-                        ns("werk_select"),
-                        "Werk:",
-                        choices = sort(unique(werke_overview$werk)),
-                        selected = sort(unique(werke_overview$werk))[1]
-                    )
-                } else {
-                    p("⚠️ Keine Daten vorhanden.")
-                }
+                selectInput(
+                    ns("werk_select"),
+                    "Werk:",
+                    choices = sort(unique(werke_overview$werk)),
+                    selected = sort(unique(werke_overview$werk))[1]
+                )
             )
         ),
         fluidRow(
@@ -34,6 +31,30 @@ werke_ui <- function(id) {
                 DTOutput(ns("werke_table")),
                 br(),
                 downloadButton(ns("download_csv"), "CSV exportieren")
+            )
+        ),
+        fluidRow(
+            box(
+                title = "Ø Startverzögerung je Vorgangsfolge",
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("plot_start_delay"))
+            )
+        ),
+        fluidRow(
+            box(
+                title = "Termintreue vs. Liefertreue (nach Vorgangsfolge)",
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("plot_treue"))
+            )
+        ),
+        fluidRow(
+            box(
+                title = "Top-Vorgangsfolgen im Werk (Donut)",
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("donut_top_vorgaenge"))
             )
         ),
         fluidRow(
@@ -50,7 +71,6 @@ werke_ui <- function(id) {
 
 werke_server <- function(id) {
     moduleServer(id, function(input, output, session) {
-        if (!exists("werke_overview")) return()
         
         daten_gefiltert <- reactive({
             req(input$werk_select)
@@ -61,7 +81,6 @@ werke_server <- function(id) {
         })
         
         output$werke_table <- renderDT({
-            req(nrow(daten_gefiltert()) > 0)
             datatable(
                 daten_gefiltert(),
                 options = list(pageLength = 10, scrollX = TRUE),
@@ -89,11 +108,56 @@ werke_server <- function(id) {
             
             HTML(paste0(
                 "<p><strong>Häufigste Vorgangsfolge:</strong> ", top_vorgang, "</p>",
-                "<p><strong>Kürzeste durchschnittliche Lead Time:</strong> ",
-                best_lt$vorgangsfolge, " (", best_lt$Durchschnitt_LT, " Tage)</p>",
+                "<p><strong>Kürzeste Median LT:</strong> ",
+                best_lt$vorgangsfolge, " (", best_lt$Median_LT, " Tage)</p>",
                 "<p><strong>Niedrigste Termintreue:</strong> ",
                 worst_tt$vorgangsfolge, " (", round(worst_tt$Termintreue * 100), "%)</p>"
             ))
+        })
+        
+        output$plot_start_delay <- renderPlotly({
+            df <- daten_gefiltert()
+            
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, Durchschnitt_Startverzoegerung),
+                y = Durchschnitt_Startverzoegerung
+            )) +
+                geom_col(fill = "#E67E22") +
+                coord_flip() +
+                labs(x = "Vorgangsfolge", y = "Ø Startverzögerung (Tage)") +
+                theme_minimal()
+            
+            ggplotly(p)
+        })
+        
+        output$plot_treue <- renderPlotly({
+            df <- daten_gefiltert()
+            
+            p <- ggplot(df, aes(
+                x = Termintreue,
+                y = Liefertreue,
+                size = Anzahl,
+                label = vorgangsfolge
+            )) +
+                geom_point(color = "#2980B9", alpha = 0.7) +
+                labs(x = "Termintreue", y = "Liefertreue") +
+                theme_minimal()
+            
+            ggplotly(p)
+        })
+        
+        output$donut_top_vorgaenge <- renderPlotly({
+            df <- daten_gefiltert()
+            
+            plot_ly(
+                data = df,
+                labels = ~vorgangsfolge,
+                values = ~Anzahl,
+                type = 'pie',
+                hole = 0.5,
+                textinfo = "label+percent"
+            ) %>%
+                layout(title = paste("Top Vorgangsfolgen in Werk", input$werk_select))
         })
     })
 }

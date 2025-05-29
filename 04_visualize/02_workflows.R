@@ -4,12 +4,13 @@ library(DT)
 library(ggplot2)
 library(plotly)
 library(readxl)
+library(DescTools)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)
 
-# UI-Modul-Funktion
+# UI---------------------------------------------
 workflows_ui <- function(id) {
 
     ns <- NS(id)
@@ -95,7 +96,31 @@ workflows_ui <- function(id) {
                         div(
                             DTOutput(ns("workflow_table_detail"))
                         )
+                    ),
+                    
+                ),
+                
+                fluidRow( 
+                    column(
+                        width = 6,  # 75 % Breite von 12
+                        div(
+                            tags$h4(
+                                "Lead Time je Vorgang ",
+                                icon("info-circle", id = ns("info_leadtimes")),
+                                style = "font-weight: bold; font-size: 16px;"
+                            ),
+                            bsPopover(
+                                id = ns("info_leadtimes"),
+                                title = "Was wird hier gezeigt?",
+                                content = "Durchschnittliche LT für jeden Vorgang des ausgewählten Workflows inkl. eventuelle durchschn. Liegezeiten.",
+                                placement = "right",
+                                trigger = "hover"
+                            ),
+                            plotOutput(ns("leadtime_chart"), height = "400px"),
+                            br()
                     )
+                ),
+                    
                 )
             )
         ),
@@ -121,6 +146,8 @@ workflows_ui <- function(id) {
                         br()
                     )
                 ),
+                
+
                 fluidRow(
                     column(
                         width = 6,
@@ -156,7 +183,7 @@ workflows_ui <- function(id) {
 }
 
 
-# Server
+# Server----------------------------------------------------
 workflows_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         ns <- session$ns
@@ -206,7 +233,6 @@ workflows_server <- function(id) {
             )
         })
         
-        print(colnames(workflows_overview))
         
         workflows_overview <- all_data_finalized %>%
             group_by(vorgangsfolge) %>%
@@ -600,9 +626,7 @@ workflows_server <- function(id) {
         
        
         
-      
-        
-        
+
         
         output$workflow_ist_soll_plot <- renderPlotly({
             req(input$selected_workflow)
@@ -678,5 +702,54 @@ workflows_server <- function(id) {
                 geom_text(aes(label = Vorgang), color = "white", size = 5, position = position_stack(vjust = 0.5))
         }
         
+        output$leadtime_chart <- renderPlot({
+            req(input$selected_workflow)
+            
+            # Aggregation
+            lt_agg <- lt_per_unit |>
+                filter(vorgangsfolge == input$selected_workflow) |>
+                group_by(Vorgangsnummer) |>
+                summarise(
+                    ist_lt = median(lt_ist_order, na.rm = TRUE) * 24 * 60 * 60,  # Sekunden
+                    soll_lt = Mode(lt_soll_order, na.rm = TRUE) * 24 * 60 * 60,
+                    .groups = "drop"
+                ) |>
+                filter(!is.na(ist_lt), !is.na(soll_lt))
+            
+            view(lt_agg)
+            
+            # Plot
+            ggplot(lt_agg, aes(x = factor(Vorgangsnummer))) +
+                # Balken: halb so breit, etwas weniger transparent
+                geom_col(aes(y = ist_lt), fill = "#002366", alpha = 0.6, width = 0.15) +
+                
+                # Linie: ebenfalls nur halb so breit (x-Spanne) und dünner
+                geom_segment(aes(
+                    x = as.numeric(factor(Vorgangsnummer)) - 0.075,
+                    xend = as.numeric(factor(Vorgangsnummer)) + 0.075,
+                    y = soll_lt,
+                    yend = soll_lt
+                ), color = "darkred", linewidth = 0.6) +
+                
+                # Text: klein, leserlich
+                geom_text(aes(
+                    y = soll_lt + max(ist_lt) * 0.05,
+                    label = paste0(round(soll_lt, 2), " h")
+                ), color = "black", size = 4) +
+                
+                # Layout
+                labs(
+                    x = "Vorgangsnummer",
+                    y = "Lead Time per Unit [s]",
+                    caption = "Balken = Median Ist-LT | Linie = Median Soll-LT"
+                ) +
+                theme_minimal() +
+                theme(
+                    plot.caption = element_text(hjust = 1, size = 8),
+                    axis.text = element_text(size = 10),
+                    axis.title = element_text(size = 11))
+        })
+        
     })
-    }
+}
+
