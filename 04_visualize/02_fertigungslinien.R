@@ -3,7 +3,7 @@ library(DT)
 library(ggplot2)
 library(plotly)
 
-# Lade KPI-Tabelle
+# Lade bereinigte KPI-Tabelle
 source("02_model/kpis_linie.R", local = TRUE)
 
 linien_ui <- function(id) {
@@ -34,9 +34,8 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Durchschnittliche Lead Time je Vorgangsfolge",
+                title = "Ø Lead Time je Vorgangsfolge",
                 width = 12,
-                status = "primary",
                 solidHeader = TRUE,
                 plotlyOutput(ns("lt_plot"))
             )
@@ -45,16 +44,14 @@ linien_ui <- function(id) {
             box(
                 title = "Anteil der Vorgangsfolgen (Donut Chart)",
                 width = 12,
-                status = "primary",
                 solidHeader = TRUE,
                 plotlyOutput(ns("anteil_donut"))
             )
         ),
         fluidRow(
             box(
-                title = "Verspätung je Vorgangsfolge",
+                title = "Verspätung je Vorgangsfolge (Ø Abweichung)",
                 width = 12,
-                status = "primary",
                 solidHeader = TRUE,
                 plotlyOutput(ns("plot_abweichung"))
             )
@@ -63,17 +60,16 @@ linien_ui <- function(id) {
             box(
                 title = "Termintreue vs. Liefertreue",
                 width = 12,
-                status = "primary",
                 solidHeader = TRUE,
                 plotlyOutput(ns("plot_treue"))
             )
         ),
         fluidRow(
             box(
-                title = "Vorgangsfolge mit höchster LT-Abweichung",
+                title = "Vorgangsfolge mit höchster Ø Abweichung",
                 width = 12,
-                status = "warning",
                 solidHeader = TRUE,
+                status = "warning",
                 plotlyOutput(ns("plot_top_abweichung"))
             )
         )
@@ -86,7 +82,12 @@ linien_server <- function(id) {
         daten_gefiltert <- reactive({
             req(input$linie_select)
             linien_overview %>%
-                filter(fertigungslinie == input$linie_select)
+                filter(fertigungslinie == input$linie_select) %>%
+                rename(
+                    abweichung_durchschnitt = Abweichung,
+                    durchschnitt_lt = Durchschnitt_LT,
+                    median_lt = Median_LT
+                )
         })
         
         output$linien_table <- renderDT({
@@ -98,20 +99,23 @@ linien_server <- function(id) {
             )
         })
         
+        # Plot 1: Lead Time
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
-            ggplot(df, aes(
-                x = reorder(vorgangsfolge, Durchschnitt_LT),
-                y = Durchschnitt_LT,
-                text = paste("Median LT:", Median_LT, "<br>Anzahl:", Anzahl)
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, durchschnitt_lt),
+                y = durchschnitt_lt,
+                text = paste("Median LT:", median_lt, "<br>Anzahl:", Anzahl)
             )) +
                 geom_col(fill = "#2C3E50") +
                 coord_flip() +
                 labs(x = "Vorgangsfolge", y = "Ø Lead Time (Tage)") +
-                theme_minimal() %>%
-                ggplotly(tooltip = "text")
+                theme_minimal()
+            
+            ggplotly(p, tooltip = "text")
         })
         
+        # Plot 2: Donut
         output$anteil_donut <- renderPlotly({
             df <- daten_gefiltert()
             plot_ly(
@@ -123,54 +127,56 @@ linien_server <- function(id) {
                 textinfo = 'label+percent',
                 hole = 0.5
             ) %>%
-                layout(
-                    showlegend = TRUE,
-                    margin = list(t = 10, b = 10, l = 10, r = 10)
-                )
+                layout(showlegend = TRUE)
         })
         
+        # Plot 3: Ø Abweichung
         output$plot_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            ggplot(df, aes(
+            p <- ggplot(df, aes(
                 x = reorder(vorgangsfolge, abweichung_durchschnitt),
                 y = abweichung_durchschnitt
             )) +
                 geom_col(fill = "#E74C3C") +
                 coord_flip() +
                 labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
-                theme_minimal() %>%
-                ggplotly()
+                theme_minimal()
+            
+            ggplotly(p)
         })
         
+        # Plot 4: Termintreue vs Liefertreue
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert()
-            ggplot(df, aes(
+            p <- ggplot(df, aes(
                 x = Termintreue,
                 y = Liefertreue,
                 label = vorgangsfolge
             )) +
                 geom_point(aes(size = Anzahl), color = "#2980B9", alpha = 0.7) +
                 labs(x = "Termintreue", y = "Liefertreue") +
-                theme_minimal() %>%
-                ggplotly()
+                theme_minimal()
+            
+            ggplotly(p)
         })
         
+        # Plot 5: Höchste Abweichung
         output$plot_top_abweichung <- renderPlotly({
-            df <- daten_gefiltert() %>%
-                filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE)) %>%
-                select(vorgangsfolge, abweichung_durchschnitt)
+            df <- daten_gefiltert()
+            df_max <- df %>% filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE))
             
             plot_ly(
-                data = df,
+                data = df_max,
                 x = ~vorgangsfolge,
                 y = ~abweichung_durchschnitt,
                 type = 'bar',
                 marker = list(color = "#F39C12")
             ) %>%
                 layout(
-                    yaxis = list(title = "Höchste Ø Abweichung"),
+                    yaxis = list(title = "Höchste Abweichung Durchschnitt"),
                     xaxis = list(title = "Vorgangsfolge")
                 )
         })
-    })
-}
+        
+    })  # Ende moduleServer
+}      # Ende linien_server

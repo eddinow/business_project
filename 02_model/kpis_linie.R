@@ -9,9 +9,9 @@ linien_overview <- all_data_finalized %>%
         Anzahl = n(),
         Durchschnitt_LT = round(mean(lead_time_ist, na.rm = TRUE), 1),
         Median_LT = round(median(lead_time_ist, na.rm = TRUE), 1),
-        Abweichung_durchschnitt = round(mean(lead_time_ist - lead_time_soll, na.rm = TRUE), 1),
+        Abweichung = round(mean(lead_time_ist - lead_time_soll, na.rm = TRUE), 1),
         Termintreue = round(mean(lead_time_ist <= lead_time_soll, na.rm = TRUE), 2),
-        Abweichung_Liefermenge = round(mean(gelieferte_menge, na.rm = TRUE), 1),
+        Durchschnitt_Liefermenge = round(mean(gelieferte_menge, na.rm = TRUE), 1),
         Liefertreue = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE), 2),
         .groups = "drop"
     ) %>%
