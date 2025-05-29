@@ -163,20 +163,20 @@ linien_server <- function(id) {
         # Top-Abweichung
         output$plot_top_abweichung <- renderPlotly({
             df <- daten_gefiltert() %>%
-                filter(Ø_Abweichung == max(Ø_Abweichung, na.rm = TRUE)) %>%
-                select(vorgangsfolge, Ø_Abweichung)
+                filter(`Ø_Abweichung` == max(`Ø_Abweichung`, na.rm = TRUE)) %>%
+                select(vorgangsfolge, abweichung = `Ø_Abweichung`)
             
             plot_ly(
                 data = df,
                 x = ~vorgangsfolge,
-                y = ~Ø_Abweichung,
+                y = ~abweichung,
                 type = 'bar',
                 marker = list(color = "#F39C12")
             ) %>%
                 layout(
-                    yaxis = list(title = "Höchste Ø Abweichung"),
+                    yaxis = list(title = "Höchste Ø Abweichung (Tage)"),
                     xaxis = list(title = "Vorgangsfolge")
                 )
         })
-    })
-}
+        
+        
