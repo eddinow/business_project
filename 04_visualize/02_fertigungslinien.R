@@ -72,20 +72,6 @@ linien_ui <- function(id) {
                 status = "warning",
                 plotlyOutput(ns("plot_top_abweichung"))
             )
-        ),
-        fluidRow(
-            column(
-                width = 4,
-                box(title = "Avg. Delay je Werk", width = 12, DTOutput(ns("table_werke")))
-            ),
-            column(
-                width = 4,
-                box(title = "Avg. Delay je Linie", width = 12, DTOutput(ns("table_linien")))
-            ),
-            column(
-                width = 4,
-                box(title = "Avg. Delay je Planer", width = 12, DTOutput(ns("table_planer")))
-            )
         )
     )
 }
@@ -119,7 +105,7 @@ linien_server <- function(id) {
             p <- ggplot(df, aes(
                 x = reorder(vorgangsfolge, median_lt),
                 y = median_lt,
-                text = paste("Ø LT:", durchschnitt_lt, "<br>Anzahl:", Anzahl)
+                text = paste("Median LT:", median_lt, "<br>Anzahl:", Anzahl)
             )) +
                 geom_col(fill = "#2C3E50") +
                 coord_flip() +
