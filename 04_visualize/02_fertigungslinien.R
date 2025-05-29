@@ -179,4 +179,4 @@ linien_server <- function(id) {
         })
         
     })  # Ende moduleServer
-}      # Ende linien_server
+}      
