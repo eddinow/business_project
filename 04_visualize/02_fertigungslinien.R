@@ -40,6 +40,15 @@ linien_ui <- function(id) {
                 solidHeader = TRUE,
                 plotlyOutput(ns("lt_plot"))
             )
+        ),
+        fluidRow(
+            box(
+                title = "Anteil der Vorgangsfolgen (Donut Chart)",
+                width = 12,
+                status = "primary",
+                solidHeader = TRUE,
+                plotlyOutput(ns("anteil_donut"))
+            )
         )
     )
 }
@@ -81,6 +90,24 @@ linien_server <- function(id) {
                 theme_minimal()
             
             ggplotly(p, tooltip = "text")
+        })
+        
+        output$anteil_donut <- renderPlotly({
+            df <- daten_gefiltert()
+            
+            plot_ly(
+                data = df,
+                labels = ~vorgangsfolge,
+                values = ~as.numeric(Anteil),
+                type = 'pie',
+                textposition = 'inside',
+                textinfo = 'label+percent',
+                hole = 0.5
+            ) %>%
+                layout(
+                    showlegend = TRUE,
+                    margin = list(t = 10, b = 10, l = 10, r = 10)
+                )
         })
     })
 }
