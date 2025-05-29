@@ -18,7 +18,6 @@ library(plotly)
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
-
 # BALKENDIAGRAMM ZEITEN FÜR WORKFLOWS
 #Um wieder die Lead Times auf Vorgangs- und Arbeitsplatzebene sehen zu können, 
 # müssen die sap_vorgaenge cleanen und dann pro Vorgang u Arbeitsplatz wieder die LT
@@ -54,13 +53,19 @@ vorgaenge_cleaned <- vorgaenge_cleaned %>%
         `Istende Vorgang`  = as.Date(`Istende Vorgang`)
     )
 
+
+    
 vorgaenge_cleaned <- vorgaenge_cleaned %>%
     mutate(
         solldauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days")),
         istdauer = as.numeric(difftime(`Istende Vorgang`, `Iststart Vorgang`, units = "days")),
+        
+        # Werte auf 1 setzen, wenn sie 0 sind
+        solldauer = ifelse(solldauer == 0, 1, solldauer),
+        istdauer  = ifelse(istdauer == 0, 1, istdauer),
+        
         abweichung = istdauer - solldauer
     )
-    
 
 vorgaenge_cleaned <- vorgaenge_cleaned %>%
     arrange(vorgangsfolge, Vorgangsnummer)
@@ -71,6 +76,8 @@ vorgaenge_cleaned <- vorgaenge_cleaned %>%
 vorgaenge_sollzeiten <- vorgaenge_cleaned %>%
     mutate(solldauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days"))) %>%
     filter(!is.na(solldauer))
+
+
 
 # 2. Berechne den Median der Soll-Dauer pro Workflow und Vorgang
 solldauer_median <- vorgaenge_sollzeiten %>%
