@@ -52,7 +52,7 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Verspätung je Vorgangsfolge (Ø Abweichung)",
+                title = "Verspätung je Vorgangsfolge",
                 width = 12,
                 status = "primary",
                 solidHeader = TRUE,
@@ -70,7 +70,7 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Vorgangsfolge mit höchster Ø LT-Abweichung",
+                title = "Vorgangsfolge mit höchster LT-Abweichung",
                 width = 12,
                 status = "warning",
                 solidHeader = TRUE,
@@ -85,7 +85,8 @@ linien_server <- function(id) {
         
         daten_gefiltert <- reactive({
             req(input$linie_select)
-            filter(linien_overview, fertigungslinie == input$linie_select)
+            linien_overview %>%
+                filter(fertigungslinie == input$linie_select)
         })
         
         output$linien_table <- renderDT({
@@ -97,10 +98,9 @@ linien_server <- function(id) {
             )
         })
         
-        # Ø LT Balkendiagramm
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(
+            ggplot(df, aes(
                 x = reorder(vorgangsfolge, Durchschnitt_LT),
                 y = Durchschnitt_LT,
                 text = paste("Median LT:", Median_LT, "<br>Anzahl:", Anzahl)
@@ -108,11 +108,10 @@ linien_server <- function(id) {
                 geom_col(fill = "#2C3E50") +
                 coord_flip() +
                 labs(x = "Vorgangsfolge", y = "Ø Lead Time (Tage)") +
-                theme_minimal()
-            ggplotly(p, tooltip = "text")
+                theme_minimal() %>%
+                ggplotly(tooltip = "text")
         })
         
-        # Donut für Anteil der Vorgangsfolgen
         output$anteil_donut <- renderPlotly({
             df <- daten_gefiltert()
             plot_ly(
@@ -130,53 +129,48 @@ linien_server <- function(id) {
                 )
         })
         
-        # Ø Abweichung (Verspätung)
         output$plot_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            ggplotly(
-                ggplot(df, aes(
-                    x = reorder(vorgangsfolge, Ø_Abweichung),
-                    y = Ø_Abweichung
-                )) +
-                    geom_col(fill = "#E74C3C") +
-                    coord_flip() +
-                    labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
-                    theme_minimal()
-            )
+            ggplot(df, aes(
+                x = reorder(vorgangsfolge, abweichung_durchschnitt),
+                y = abweichung_durchschnitt
+            )) +
+                geom_col(fill = "#E74C3C") +
+                coord_flip() +
+                labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
+                theme_minimal() %>%
+                ggplotly()
         })
         
-        # Termintreue vs. Liefertreue
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert()
-            ggplotly(
-                ggplot(df, aes(
-                    x = Termintreue,
-                    y = Liefertreue,
-                    label = vorgangsfolge
-                )) +
-                    geom_point(aes(size = Anzahl), color = "#2980B9", alpha = 0.7) +
-                    labs(x = "Termintreue", y = "Liefertreue") +
-                    theme_minimal()
-            )
+            ggplot(df, aes(
+                x = Termintreue,
+                y = Liefertreue,
+                label = vorgangsfolge
+            )) +
+                geom_point(aes(size = Anzahl), color = "#2980B9", alpha = 0.7) +
+                labs(x = "Termintreue", y = "Liefertreue") +
+                theme_minimal() %>%
+                ggplotly()
         })
         
-        # Top-Abweichung
         output$plot_top_abweichung <- renderPlotly({
             df <- daten_gefiltert() %>%
-                filter(`Ø_Abweichung` == max(`Ø_Abweichung`, na.rm = TRUE)) %>%
-                select(vorgangsfolge, abweichung = `Ø_Abweichung`)
+                filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE)) %>%
+                select(vorgangsfolge, abweichung_durchschnitt)
             
             plot_ly(
                 data = df,
                 x = ~vorgangsfolge,
-                y = ~abweichung,
+                y = ~abweichung_durchschnitt,
                 type = 'bar',
                 marker = list(color = "#F39C12")
             ) %>%
                 layout(
-                    yaxis = list(title = "Höchste Ø Abweichung (Tage)"),
+                    yaxis = list(title = "Höchste Ø Abweichung"),
                     xaxis = list(title = "Vorgangsfolge")
                 )
         })
-        
-        
+    })
+}
