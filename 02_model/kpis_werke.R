@@ -14,7 +14,6 @@ werke_overview <- all_data_finalized %>%
             as.numeric(difftime(starttermin_ist, starttermin_soll, units = "days")),
             0
         )
-        
     ) %>%
     group_by(werk, vorgangsfolge) %>%
     summarise(
@@ -23,10 +22,10 @@ werke_overview <- all_data_finalized %>%
         Median_LT = round(median(Durchlaufzeit, na.rm = TRUE), 1),
         Durchschnitt_Komplexitaet = round(mean(Komplexitaet, na.rm = TRUE), 1),
         Durchschnitt_Startverzoegerung = round(mean(Startverzoegerung, na.rm = TRUE), 1),
-        Anteil_verspaetet = round(mean(abweichung > 0, na.rm = TRUE), 2),
+        Anteil_verspaetet_prozent = round(mean(abweichung > 0, na.rm = TRUE) * 100, 1),
         Durchschnitt_Abweichung = round(mean(abweichung, na.rm = TRUE), 1),
         Durchschnitt_Liefermenge = round(mean(gelieferte_menge, na.rm = TRUE), 0),
-        Liefertreue = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE), 2),
-        Termintreue = round(mean(abweichung <= 0, na.rm = TRUE), 2),
+        Liefertreue_prozent = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE) * 100, 1),
+        Termintreue_prozent = round(mean(abweichung <= 0, na.rm = TRUE) * 100, 1),
         .groups = "drop"
     )

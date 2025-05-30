@@ -1,4 +1,3 @@
-
 library(shiny)
 library(DT)
 library(ggplot2)
@@ -42,20 +41,19 @@ werke_server <- function(id) {
             
             top_vorgang <- df$vorgangsfolge[which.max(df$Anzahl)]
             best_lt <- df %>% filter(Durchschnitt_LT == min(Durchschnitt_LT, na.rm = TRUE)) %>% slice(1)
-            worst_tt <- df %>% filter(Termintreue == min(Termintreue, na.rm = TRUE)) %>% slice(1)
+            worst_tt <- df %>% filter(Termintreue_prozent == min(Termintreue_prozent, na.rm = TRUE)) %>% slice(1)
             
             HTML(paste0(
                 "<p><strong>Häufigste Vorgangsfolge:</strong> ", top_vorgang, "</p>",
                 "<p><strong>Kürzeste Median LT:</strong> ",
                 best_lt$vorgangsfolge, " (", best_lt$Median_LT, " Tage)</p>",
                 "<p><strong>Niedrigste Termintreue:</strong> ",
-                worst_tt$vorgangsfolge, " (", round(worst_tt$Termintreue * 100), "%)</p>"
+                worst_tt$vorgangsfolge, " (", worst_tt$Termintreue_prozent, "%)</p>"
             ))
         })
         
         output$plot_start_delay <- renderPlotly({
             df <- daten_gefiltert()
-            
             p <- ggplot(df, aes(
                 x = reorder(vorgangsfolge, Durchschnitt_Startverzoegerung),
                 y = Durchschnitt_Startverzoegerung
@@ -70,18 +68,22 @@ werke_server <- function(id) {
         
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert() %>%
-                dplyr::select(vorgangsfolge, Termintreue, Liefertreue) %>%
+                dplyr::select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent) %>%
                 tidyr::pivot_longer(
-                    cols = c(Termintreue, Liefertreue),
+                    cols = c(Termintreue_prozent, Liefertreue_prozent),
                     names_to = "Treueart",
-                    values_to = "Wert"
+                    values_to = "Prozentwert"
                 )
             
-            p <- ggplot(df, aes(x = reorder(vorgangsfolge, -Wert), y = Wert, fill = Treueart)) +
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, -Prozentwert),
+                y = Prozentwert,
+                fill = Treueart
+            )) +
                 geom_bar(stat = "identity", position = "dodge") +
                 labs(
                     x = "Vorgangsfolge",
-                    y = "Treue (Quote)",
+                    y = "Treue (%)",
                     fill = "Treueart"
                 ) +
                 theme_minimal() +
@@ -90,10 +92,8 @@ werke_server <- function(id) {
             ggplotly(p, tooltip = c("x", "y", "fill"))
         })
         
-        
         output$donut_top_vorgaenge <- renderPlotly({
             df <- daten_gefiltert()
-            
             plot_ly(
                 data = df,
                 labels = ~vorgangsfolge,
@@ -107,6 +107,7 @@ werke_server <- function(id) {
         
     })
 }
+
 werke_ui <- function(id) {
     ns <- NS(id)
     tagList(
@@ -145,7 +146,7 @@ werke_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Termintreue vs. Liefertreue (pro Vorgangsfolge)",
+                title = "Termintreue vs. Liefertreue (%)",
                 width = 12,
                 solidHeader = TRUE,
                 plotlyOutput(ns("plot_treue"))
