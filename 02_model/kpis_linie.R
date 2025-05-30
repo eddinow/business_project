@@ -10,14 +10,20 @@ linien_overview <- all_data_finalized %>%
         Durchschnitt_LT = round(mean(lead_time_ist, na.rm = TRUE), 1),
         Median_LT = round(median(lead_time_ist, na.rm = TRUE), 1),
         Abweichung = round(mean(lead_time_ist - lead_time_soll, na.rm = TRUE), 1),
-        Termintreue = round(mean(lead_time_ist <= lead_time_soll, na.rm = TRUE), 2),
+        Termintreue_prozent = round(mean(lead_time_ist <= lead_time_soll, na.rm = TRUE) * 100, 1),
         Durchschnitt_Liefermenge = round(mean(gelieferte_menge, na.rm = TRUE), 1),
-        Liefertreue = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE), 2),
+        Liefertreue_prozent = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE) * 100, 1),
         .groups = "drop"
     ) %>%
     group_by(fertigungslinie) %>%
-    mutate(Anteil = round(Anzahl / sum(Anzahl), 3)) %>%
+    mutate(
+        Anteil_prozent = round(Anzahl / sum(Anzahl) * 100, 1)
+    ) %>%
     ungroup() %>%
     mutate(
-        Anteil = ifelse(Anteil < 0.001, "<0.001", format(round(as.numeric(Anteil), 3), nsmall = 3))
+        Anteil_prozent = ifelse(
+            Anteil_prozent < 0.1,
+            "<0.1%",
+            paste0(format(Anteil_prozent, nsmall = 1), "%")
+        )
     )
