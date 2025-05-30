@@ -61,7 +61,7 @@ werke_server <- function(id) {
             )) +
                 geom_col(fill = "#E67E22") +
                 coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Ø Startverzögerung (Tage)") +
+                labs(y = "Vorgangsfolge", x = "Ø Startverzögerung (Tage)") +
                 theme_minimal()
             
             ggplotly(p)
@@ -103,6 +103,17 @@ werke_server <- function(id) {
             ) %>%
                 layout(title = paste("Top Vorgangsfolgen in Werk", input$werk_select))
         })
+
+        # fluidRow(
+        #     box(title = "Ø Startverzögerung je Werk", width = 12, plotlyOutput(ns("plot_start_delay")))
+        # )
+        # fluidRow(
+        #     box(title = "Termintreue vs. Liefertreue", width = 12, plotlyOutput(ns("plot_treue_werke")))
+        # )
+        # fluidRow(
+        #     box(title = "Top 5 Vorgangsfolgen im Werk (Donut)", width = 12, plotlyOutput(ns("donut_top_vorgaenge")))
+        # )
+
         
     })
 }
