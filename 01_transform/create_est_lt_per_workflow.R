@@ -13,7 +13,7 @@ library(readxl)
 # Daten laden -------------------------------------------------------------------
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)  
-source("01_transform/create_lt_unit")
+source("01_transform/create_lt_unit.R", local = TRUE)
 
 # Wir machen perzentil-abhängige Cutoffs, um Ausreißer zu entfernen. Wir packen 
 # dann die Sollmengen in Bins. Dann bilden wir für jeden Bin den Median und

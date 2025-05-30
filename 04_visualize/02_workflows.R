@@ -66,7 +66,7 @@ workflows_ui <- function(id) {
                 
                 # Mengenabhängige Lead Time
                 div(
-                    tags$h4("Mengenabhängige Lead Time", style = "font-weight: bold; font-size: 16px;"),
+                    tags$h4("Mengenabhängige Lead Time [d]", style = "font-weight: bold; font-size: 16px;"),
                     plotlyOutput(ns("workflow_plot")),
                     br()
                 ),
@@ -190,7 +190,9 @@ workflows_server <- function(id) {
         ns <- session$ns
         
         output$overall_servicelevel <- renderInfoBox({
-            sl <- mean(all_data_finalized$abweichung <= 0, na.rm = TRUE)
+            sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
+                sum(!is.na(auftraege_lt_unit$abweichung_unit))
+            
             sl_percent <- round(sl * 100)
             
             color <- if (sl_percent < 70) {
@@ -210,12 +212,16 @@ workflows_server <- function(id) {
             )
         })
         
+        
         output$avg_delay <- renderInfoBox({
-            delay <- median(all_data_finalized$abweichung, na.rm = TRUE)
+            median_delay <- round(
+                median(workflows_overview$`Avg Delay/Unit [s]`, na.rm = TRUE),
+                2
+            )
             
             infoBox(
-                title = "Avg. Delay/Order [d]",
-                value = round(delay, 1),
+                title = "Avg. Delay/Unit [s]",
+                value = paste0(median_delay),
                 icon = icon("hourglass-half"),
                 color = "light-blue",
                 fill = TRUE
@@ -223,7 +229,7 @@ workflows_server <- function(id) {
         })
         
         output$avg_lt <- renderInfoBox({
-            lt <- median(all_data_finalized$lead_time_ist, na.rm = TRUE)
+            lt <- round(median(workflows_overview$`Ist-LT/Unit [s]`, na.rm = TRUE), 2)
             
             infoBox(
                 title = "Avg LT/Unit [s]",
@@ -237,34 +243,27 @@ workflows_server <- function(id) {
         
 
       
-            output$workflows_table <- renderDT({
-                datatable(
-                    workflows_overview,
-                    escape = which(colnames(workflows_overview) != "ampel"),
-                    colnames = c(
-                        "ampel" = "ampel",
-                        "Workflow" = "Workflow",
-                        "Avg LT/Unit [s]" = "Avg LT/Unit [s]",
-                        "Avg Delay/Unit [s]" = "Avg Delay/Unit [s]",
-                        "# Orders" = "# Orders",
-                        "Servicelevel" = "Servicelevel"
-                    ),
-                    options = list(
-                        pageLength = 10,
-                        dom = 'tip',
-                        scrollX = TRUE,
-                        columnDefs = list(
-                            list(visible = FALSE, targets = 0),  # ampel_color
-                            list(width = '25px', targets = 1),   # ampel
-                            list(orderData = 0, targets = 1)     # sortiere nach ampel_color
-                        )
-                    ),
-                    rownames = FALSE,
-                    class = "stripe hover cell-border",
-                    width = "100%"
-                )
-            }, server = FALSE, fillContainer = TRUE)
-            
+        output$workflows_table <- renderDT({
+            datatable(
+                workflows_overview,
+                escape = which(colnames(workflows_overview) != "ampel"),
+                options = list(
+                    pageLength = 10,
+                    dom = 'tip',
+                    scrollX = TRUE,
+                    columnDefs = list(
+                        list(visible = FALSE, targets = 0),       # ampel_color
+                        list(width = '25px', targets = 1),        # ampel
+                        list(orderData = 0, targets = 1),         # sortieren nach Farbe
+                        list(title = "", targets = 1)             # keine Spaltenüberschrift
+                    )
+                ),
+                rownames = FALSE,
+                class = "stripe hover cell-border",
+                width = "100%"
+            )
+        }, server = FALSE, fillContainer = TRUE)
+        
         # Dropdown füllen
         observe({
             workflows <- unique(all_data_finalized$vorgangsfolge)
@@ -278,28 +277,28 @@ workflows_server <- function(id) {
         output$detail_table_a <- renderDT({
             req(input$selected_workflow)
             
-            df <- all_data_finalized %>%
+            df <- auftraege_lt_unit %>%
                 filter(vorgangsfolge == input$selected_workflow) %>%
                 mutate(
-                    delay_capped = ifelse(abweichung < 0, 0, abweichung)
+                    delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)  # ⬅️ nur >= 0 Werte behalten
                 ) %>%
                 group_by(werk) %>%
                 summarise(
-                    `Avg. Delay/Order [d]` = round(mean(delay_capped, na.rm = TRUE), 1),
+                    `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
                     .groups = "drop"
                 ) %>%
                 mutate(
                     ampel_color = case_when(
-                        `Avg. Delay/Order [d]` <= 0 ~ "green",
-                        `Avg. Delay/Order [d]` <= 3 ~ "orange",
-                        TRUE ~ "red"
+                        `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
+                        `Avg. Delay/Unit [s]` <= 2   ~ "orange",
+                        TRUE                         ~ "red"
                     ),
                     ampel = paste0(
                         "<div style='color: ", ampel_color, 
                         "; font-size: 20px; text-align: center;'>&#9679;</div>"
                     )
                 ) %>%
-                dplyr::select(ampel_color, ampel, Werk = werk, `Avg. Delay/Order [d]`)
+                dplyr::select(ampel_color, ampel, Werk = werk, `Avg. Delay/Unit [s]`)
             
             datatable(
                 df,
@@ -324,26 +323,29 @@ workflows_server <- function(id) {
         output$detail_table_b <- renderDT({
             req(input$selected_workflow)
             
-            df <- all_data_finalized %>%
+            df <- auftraege_lt_unit %>%
                 filter(vorgangsfolge == input$selected_workflow) %>%
-                mutate(delay_capped = ifelse(abweichung < 0, 0, abweichung)) %>%
+                mutate(
+                    delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
+                ) %>%
                 group_by(fertigungslinie) %>%
                 summarise(
-                    `Avg. Delay/Order [d]` = round(mean(delay_capped, na.rm = TRUE), 1),
+                    `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
                     .groups = "drop"
                 ) %>%
                 mutate(
-                    ampel_color = dplyr::case_when(
-                        `Avg. Delay/Order [d]` <= 0 ~ "green",
-                        `Avg. Delay/Order [d]` <= 3 ~ "orange",
-                        TRUE ~ "red"
+                    ampel_color = case_when(
+                        `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
+                        `Avg. Delay/Unit [s]` <= 2   ~ "orange",
+                        TRUE                         ~ "red"
                     ),
                     ampel = paste0(
                         "<div style='color: ", ampel_color, 
                         "; font-size: 20px; text-align: center;'>&#9679;</div>"
                     )
                 ) %>%
-                dplyr::select(ampel_color, ampel, Linie = fertigungslinie, `Avg. Delay/Order [d]`)
+                dplyr::select(ampel_color, ampel, Linie = fertigungslinie, `Avg. Delay/Unit [s]`)
+            
             
             datatable(
                 df,
@@ -367,27 +369,29 @@ workflows_server <- function(id) {
         
         output$detail_table_c <- renderDT({
             req(input$selected_workflow)
-            
-            df <- all_data_finalized %>%
-                filter(vorgangsfolge == input$selected_workflow) %>%
-                mutate(delay_capped = ifelse(abweichung < 0, 0, abweichung)) %>%
-                group_by(planer) %>%
-                summarise(
-                    `Avg. Delay/Order [d]` = round(mean(delay_capped, na.rm = TRUE), 1),
-                    .groups = "drop"
-                ) %>%
-                mutate(
-                    ampel_color = dplyr::case_when(
-                        `Avg. Delay/Order [d]` <= 0 ~ "green",
-                        `Avg. Delay/Order [d]` <= 3 ~ "orange",
-                        TRUE ~ "red"
-                    ),
-                    ampel = paste0(
-                        "<div style='color: ", ampel_color, 
-                        "; font-size: 20px; text-align: center;'>&#9679;</div>"
-                    )
-                ) %>%
-                dplyr::select(ampel_color, ampel, Planer = planer, `Avg. Delay/Order [d]`)
+        
+        df <- auftraege_lt_unit %>%
+            filter(vorgangsfolge == input$selected_workflow) %>%
+            mutate(
+                delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
+            ) %>%
+            group_by(planer) %>%
+            summarise(
+                `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
+                .groups = "drop"
+            ) %>%
+            mutate(
+                ampel_color = case_when(
+                    `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
+                    `Avg. Delay/Unit [s]` <= 2   ~ "orange",
+                    TRUE                         ~ "red"
+                ),
+                ampel = paste0(
+                    "<div style='color: ", ampel_color, 
+                    "; font-size: 20px; text-align: center;'>&#9679;</div>"
+                )
+            ) %>%
+            dplyr::select(ampel_color, ampel, Planer = planer, `Avg. Delay/Unit [s]`)
             
             datatable(
                 df,
@@ -530,10 +534,15 @@ workflows_server <- function(id) {
         
        output$workflow_detail_value2 <- renderInfoBox({
            req(input$selected_workflow)
-           servicelevel <- vorgaenge_sorted %>%
+           
+           # Servicelevel-Berechnung nach workflows_overview-Logik
+           servicelevel <- auftraege_lt_unit %>%
                filter(vorgangsfolge == input$selected_workflow) %>%
-               summarise(Servicelevel = mean(abweichung <= 0, na.rm = TRUE)) %>%
-               pull(Servicelevel)
+               summarise(
+                   servicelevel_numeric = sum(abweichung_unit <= 0, na.rm = TRUE) / 
+                       sum(!is.na(abweichung_unit))
+               ) %>%
+               pull(servicelevel_numeric)
            
            sl_percent <- round(servicelevel * 100, 0)
            
@@ -680,12 +689,12 @@ workflows_server <- function(id) {
             req(input$selected_workflow)
             
             # Aggregation
-            lt_agg <- lt_per_unit_workflows |>
-                filter(vorgangsfolge == input$selected_workflow) |>
-                group_by(Vorgangsnummer) |>
+            lt_agg <- vorgaenge_lt_unit %>%
+                filter(vorgangsfolge == input$selected_workflow) %>%
+                group_by(Vorgangsnummer) %>%
                 summarise(
-                    ist_lt = median(lt_ist_order, na.rm = TRUE) * 24 * 60 * 60,  # Sekunden
-                    soll_lt = Mode(lt_soll_order, na.rm = TRUE) * 24 * 60 * 60,
+                    ist_lt = median(lt_ist_order, na.rm = TRUE),
+                    soll_lt = Mode(lt_soll_order, na.rm = TRUE),
                     .groups = "drop"
                 ) |>
                 filter(!is.na(ist_lt), !is.na(soll_lt))
@@ -725,4 +734,3 @@ workflows_server <- function(id) {
         
     })
 }
-

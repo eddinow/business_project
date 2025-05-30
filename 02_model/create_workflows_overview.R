@@ -18,15 +18,16 @@ source("01_transform/create_lt_unit.R")
 
 workflows_overview <- auftraege_lt_unit %>%
     filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
-    mutate(
-        delay_capped = ifelse(abweichung_unit < 0, 0, abweichung_unit)
-    ) %>%
     group_by(vorgangsfolge) %>%
     summarise(
-        `Avg LT/Unit [s]` = round(mean(lt_ist_order, na.rm = TRUE), 2),
-        `Avg Delay/Unit [s]` = round(mean(delay_capped, na.rm = TRUE), 2),
+        `Soll-LT/Unit [s]` = round(median(lt_soll_order, na.rm = TRUE), 2),
+        `Ist-LT/Unit [s]`  = round(median(lt_ist_order, na.rm = TRUE), 2),
+        `Avg Delay/Unit [s]` = round(
+            pmax(`Ist-LT/Unit [s]` - `Soll-LT/Unit [s]`, 0), 2
+        ),
         `# Orders` = n(),
-        servicelevel_numeric = mean(delay_capped == 0, na.rm = TRUE),
+        servicelevel_numeric = sum(abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(abweichung_unit)),
         .groups = "drop"
     ) %>%
     mutate(
@@ -42,7 +43,11 @@ workflows_overview <- auftraege_lt_unit %>%
         )
     ) %>%
     rename(`Workflow` = vorgangsfolge) %>%
-    dplyr::select(ampel_color, ampel, Workflow, `Avg LT/Unit [s]`, `Avg Delay/Unit [s]`, `# Orders`, `Servicelevel`) %>%
+    dplyr::select(
+        ampel_color, ampel, Workflow,
+        `Soll-LT/Unit [s]`, `Ist-LT/Unit [s]`, `Avg Delay/Unit [s]`,
+        `# Orders`, `Servicelevel`
+    ) %>%
     arrange(desc(`# Orders`))
 
 
