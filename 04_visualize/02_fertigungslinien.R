@@ -3,7 +3,6 @@ library(DT)
 library(ggplot2)
 library(plotly)
 
-# Lade bereinigte KPI-Tabelle
 source("02_model/kpis_linie.R", local = TRUE)
 
 linien_ui <- function(id) {
@@ -66,10 +65,10 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "⚠️ Bottleneck: Höchste Ø Abweichung",
+                title = "🚨 Bottleneck: Höchste Ø Abweichung",
                 width = 12,
+                status = "danger",
                 solidHeader = TRUE,
-                status = "warning",
                 htmlOutput(ns("bottleneck_text"))
             )
         )
@@ -82,15 +81,7 @@ linien_server <- function(id) {
         daten_gefiltert <- reactive({
             req(input$linie_select)
             linien_overview %>%
-                filter(fertigungslinie == input$linie_select) %>%
-                rename(
-                    abweichung_durchschnitt = Abweichung,
-                    durchschnitt_lt = Durchschnitt_LT,
-                    median_lt = Median_LT,
-                    termintreue = Termintreue_prozent,
-                    liefertreue = Liefertreue_prozent,
-                    anteil_prozent = Anteil_prozent
-                )
+                filter(fertigungslinie == input$linie_select)
         })
         
         output$linien_table <- renderDT({
@@ -104,73 +95,74 @@ linien_server <- function(id) {
         
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
-            ggplotly(
-                ggplot(df, aes(
-                    x = reorder(vorgangsfolge, median_lt),
-                    y = median_lt
-                )) +
-                    geom_col(fill = "#2C3E50") +
-                    coord_flip() +
-                    labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
-                    theme_minimal()
-            )
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, Median_LT),
+                y = Median_LT
+            )) +
+                geom_col(fill = "#2C3E50") +
+                coord_flip() +
+                labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
+                theme_minimal()
+            ggplotly(p)
         })
         
         output$anteil_donut <- renderPlotly({
             df <- daten_gefiltert()
             plot_ly(
                 data = df,
-                labels = ~paste0(vorgangsfolge, " (", anteil_prozent, "%)"),
+                labels = ~paste0(vorgangsfolge, " (", Anteil_prozent, "%)"),
                 values = ~Anzahl,
-                type = 'pie',
-                hole = 0.5,
-                textinfo = "label+percent"
+                type = "pie",
+                textposition = "inside",
+                textinfo = "label+percent",
+                hole = 0.5
             ) %>%
                 layout(title = "Verteilung der Vorgangsfolgen")
         })
         
         output$plot_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            ggplotly(
-                ggplot(df, aes(
-                    x = reorder(vorgangsfolge, abweichung_durchschnitt),
-                    y = abweichung_durchschnitt
-                )) +
-                    geom_col(fill = "#E74C3C") +
-                    coord_flip() +
-                    labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
-                    theme_minimal()
-            )
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, Abweichung),
+                y = Abweichung
+            )) +
+                geom_col(fill = "#E74C3C") +
+                coord_flip() +
+                labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
+                theme_minimal()
+            ggplotly(p)
         })
         
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert() %>%
-                select(vorgangsfolge, termintreue, liefertreue) %>%
+                select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent) %>%
                 tidyr::pivot_longer(
-                    cols = c(termintreue, liefertreue),
+                    cols = c(Termintreue_prozent, Liefertreue_prozent),
                     names_to = "Treueart",
                     values_to = "Wert"
                 )
-            ggplotly(
-                ggplot(df, aes(
-                    x = reorder(vorgangsfolge, -Wert),
-                    y = Wert,
-                    fill = Treueart
-                )) +
-                    geom_bar(stat = "identity", position = "dodge") +
-                    labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
-                    theme_minimal() +
-                    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-            )
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, -Wert),
+                y = Wert,
+                fill = Treueart
+            )) +
+                geom_bar(stat = "identity", position = "dodge") +
+                labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
+                theme_minimal() +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1))
+            ggplotly(p, tooltip = c("x", "y", "fill"))
         })
         
         output$bottleneck_text <- renderUI({
             df <- daten_gefiltert()
-            df_max <- df %>% filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE)) %>% slice(1)
+            req(nrow(df) > 0)
+            bottleneck <- df %>% filter(Abweichung == max(Abweichung, na.rm = TRUE)) %>% slice(1)
             HTML(paste0(
-                "<p><strong>⚠️ Bottleneck erkannt:</strong> Vorgangsfolge <code>", df_max$vorgangsfolge, 
-                "</code> hat die höchste Ø Abweichung mit <strong>", df_max$abweichung_durchschnitt, " Tagen</strong>.</p>"
+                "<strong>🚨 Engpass erkannt:</strong><br>",
+                "Vorgangsfolge <strong>", bottleneck$vorgangsfolge, "</strong> hat die höchste durchschnittliche Abweichung mit <strong>",
+                bottleneck$Abweichung, " Tagen</strong>."
             ))
         })
+        
     })
 }
