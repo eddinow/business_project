@@ -3,7 +3,6 @@ library(DT)
 library(ggplot2)
 library(plotly)
 
-# Datenquelle laden
 source("02_model/kpis_werke.R", local = TRUE)
 
 werke_server <- function(id) {
@@ -54,13 +53,16 @@ werke_server <- function(id) {
         
         output$plot_start_delay <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(x = reorder(vorgangsfolge, Durchschnitt_Startverzoegerung),
-                                y = Durchschnitt_Startverzoegerung)) +
-                geom_col(fill = "#E67E22") +
-                coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Ø Startverzögerung (Tage)") +
-                theme_minimal()
-            ggplotly(p)
+            ggplotly(
+                ggplot(df, aes(
+                    x = reorder(vorgangsfolge, Durchschnitt_Startverzoegerung),
+                    y = Durchschnitt_Startverzoegerung
+                )) +
+                    geom_col(fill = "#E67E22") +
+                    coord_flip() +
+                    labs(x = "Vorgangsfolge", y = "Ø Startverzögerung (Tage)") +
+                    theme_minimal()
+            )
         })
         
         output$plot_treue <- renderPlotly({
@@ -72,24 +74,25 @@ werke_server <- function(id) {
                     values_to = "Wert"
                 )
             
-            p <- ggplot(df, aes(x = reorder(vorgangsfolge, -Wert), y = Wert, fill = Treueart)) +
-                geom_bar(stat = "identity", position = "dodge") +
-                labs(
-                    x = "Vorgangsfolge",
-                    y = "Treue (%)",
-                    fill = "Treueart"
-                ) +
-                theme_minimal() +
-                theme(axis.text.x = element_text(angle = 45, hjust = 1))
-            ggplotly(p, tooltip = c("x", "y", "fill"))
+            ggplotly(
+                ggplot(df, aes(
+                    x = reorder(vorgangsfolge, -Wert),
+                    y = Wert,
+                    fill = Treueart
+                )) +
+                    geom_bar(stat = "identity", position = "dodge") +
+                    labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
+                    theme_minimal() +
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+            )
         })
         
         output$donut_top_vorgaenge <- renderPlotly({
             df <- daten_gefiltert()
             plot_ly(
                 data = df,
-                labels = ~vorgangsfolge,
-                values = ~Anteil_prozent,
+                labels = ~paste0(vorgangsfolge, " (", round(Anzahl / sum(Anzahl) * 100, 1), "%)"),
+                values = ~Anzahl,
                 type = 'pie',
                 hole = 0.5,
                 textinfo = "label+percent"
@@ -137,7 +140,7 @@ werke_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Termintreue vs. Liefertreue (in %)",
+                title = "Termintreue vs. Liefertreue (%)",
                 width = 12,
                 solidHeader = TRUE,
                 plotlyOutput(ns("plot_treue"))
@@ -145,7 +148,7 @@ werke_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Anteile der Vorgangsfolgen (Donut, %)",
+                title = "Top-Vorgangsfolgen im Werk (Donut)",
                 width = 12,
                 solidHeader = TRUE,
                 plotlyOutput(ns("donut_top_vorgaenge"))
