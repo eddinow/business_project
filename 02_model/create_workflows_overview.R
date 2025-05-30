@@ -15,10 +15,10 @@ all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 # aller Abweichung, no of orders die Anzahl der Aufträge. Servicelevel = Anzahl
 #Aufträge mit Abweichung größer gleich 0 / Anzahl aller Aufträge
 
-workflows_overview <- all_data_finalized %>%
+workflows_overview <- lt_per_unit %>%
     group_by(vorgangsfolge) %>%
     summarise(
-        `Avg LT/Order [d]` = median(lead_time_ist, na.rm = TRUE),
+        `Avg LT/Unit [s]` = round(median(lead_ist_order, na.rm = TRUE), 2),
         `Avg Delay/Order [d]` = round(min(median(abweichung, na.rm = TRUE), 0), 0),
         `# Orders` = n(),
         servicelevel_numeric = mean(abweichung <= 0, na.rm = TRUE),
@@ -39,4 +39,6 @@ workflows_overview <- all_data_finalized %>%
     rename(`Workflow` = vorgangsfolge) %>%
     dplyr::select(ampel_color, ampel, Workflow, `Avg LT/Order [d]`, `Avg Delay/Order [d]`, `# Orders`, `Servicelevel`) %>%
     arrange(desc(`# Orders`))
+
+view(lt_per_unit)
 
