@@ -298,4 +298,42 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         table = df_combined %>%
             dplyr::select(bin_label, bin_start, bin_end, variante, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
     ))
+
 }
+
+# ZEITEN PRO UNIT U ORDER-----------------------------------------------------
+# Wir berechnen für jeden vorgang eines auftrags die lt/unit um mengenunabhängig
+# vergleichen zu können. grundlage um aggregierte ist und soll kpis darzustellen
+
+
+lt_unit_df <- vorgaenge_cleaned |>
+
+    dplyr::left_join(
+        all_data_finalized |> dplyr::select(auftragsnummer, sollmenge),
+        by = c("Auftragsnummer" = "auftragsnummer")
+    ) |>
+
+    dplyr::left_join(
+        vorgaenge_raw |> dplyr::select(Auftragsnummer, Vorgangsnummer, `Gutmenge Vorgang`),
+        by = c("Auftragsnummer", "Vorgangsnummer")
+    ) |>
+
+    dplyr::mutate(
+        lt_soll_order = ifelse(sollmenge > 0, solldauer / sollmenge, NA),
+        lt_ist_order  = ifelse(`Gutmenge Vorgang` > 0, istdauer / `Gutmenge Vorgang`, NA)
+    ) |>
+    dplyr::select(Auftragsnummer, Vorgangsnummer, lt_soll_order, lt_ist_order)
+
+lt_per_unit <- vorgaenge_sorted |>
+    dplyr::left_join(lt_unit_df, by = c("Auftragsnummer", "Vorgangsnummer"))
+
+#Aggregieren der Werte nach Workflows für Diagramm 
+lt_agg_all <- lt_per_unit |>
+    group_by(vorgangsfolge, Vorgangsnummer) |>
+    summarise(
+        ist_lt = median(lt_ist_order, na.rm = TRUE) * 24 * 60 * 60,
+        soll_lt = Mode(lt_soll_order, na.rm = TRUE) * 24 * 60 * 60,
+        .groups = "drop"
+    ) |>
+    filter(!is.na(ist_lt), !is.na(soll_lt))
+

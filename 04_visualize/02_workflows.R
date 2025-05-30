@@ -7,8 +7,8 @@ library(readxl)
 library(DescTools)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
-source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)
+source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 
 # UI---------------------------------------------
 workflows_ui <- function(id) {
@@ -222,11 +222,11 @@ workflows_server <- function(id) {
         })
         
         output$avg_lt <- renderInfoBox({
-            lt <- median(all_data_finalized$lead_time_ist, na.rm = TRUE)
+            lt_sec <- median(lt_per_unit$lt_ist_order, na.rm = TRUE) * 24 * 60 * 60
             
             infoBox(
-                title = "Avg. LT/Order [d]",
-                value = round(lt, 1),
+                title = "Avg. LT/Unit [s]",
+                value = round(lt_sec, 2),
                 icon = icon("clock"),
                 color = "light-blue",
                 fill = TRUE
@@ -706,17 +706,8 @@ workflows_server <- function(id) {
             req(input$selected_workflow)
             
             # Aggregation
-            lt_agg <- lt_per_unit |>
-                filter(vorgangsfolge == input$selected_workflow) |>
-                group_by(Vorgangsnummer) |>
-                summarise(
-                    ist_lt = median(lt_ist_order, na.rm = TRUE) * 24 * 60 * 60,  # Sekunden
-                    soll_lt = Mode(lt_soll_order, na.rm = TRUE) * 24 * 60 * 60,
-                    .groups = "drop"
-                ) |>
-                filter(!is.na(ist_lt), !is.na(soll_lt))
-            
-            view(lt_agg)
+            lt_agg <- lt_agg_all |>
+                filter(vorgangsfolge == input$selected_workflow)
             
             # Plot
             ggplot(lt_agg, aes(x = factor(Vorgangsnummer))) +
