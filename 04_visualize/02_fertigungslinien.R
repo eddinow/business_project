@@ -24,22 +24,54 @@ linien_ui <- function(id) {
             )
         ),
         fluidRow(
-            box(title = "KPIs je Vorgangsfolge", width = 12, DTOutput(ns("linien_table")))
+            box(
+                title = "KPIs je Vorgangsfolge",
+                width = 12,
+                status = "primary",
+                solidHeader = TRUE,
+                DTOutput(ns("linien_table"))
+            )
         ),
         fluidRow(
-            box(title = "Median Lead Time je Vorgangsfolge", width = 12, plotlyOutput(ns("lt_plot")))
+            box(
+                title = "Median Lead Time je Vorgangsfolge",
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("lt_plot"))
+            )
         ),
         fluidRow(
-            box(title = "Anteil der Vorgangsfolgen (Donut Chart)", width = 12, plotlyOutput(ns("anteil_donut")))
+            box(
+                title = "Anteil der Vorgangsfolgen (Donut Chart)",
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("anteil_donut"))
+            )
         ),
         fluidRow(
-            box(title = "Ø Abweichung je Vorgangsfolge", width = 12, plotlyOutput(ns("plot_abweichung")))
+            box(
+                title = "Verspätung je Vorgangsfolge",
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("plot_abweichung"))
+            )
         ),
         fluidRow(
-            box(title = "Termintreue vs. Liefertreue (%)", width = 12, plotlyOutput(ns("plot_treue")))
+            box(
+                title = "Termintreue vs. Liefertreue (%)",
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("plot_treue"))
+            )
         ),
         fluidRow(
-            box(title = "Vorgangsfolge mit höchster Ø Abweichung", width = 12, status = "warning", plotlyOutput(ns("plot_top_abweichung")))
+            box(
+                title = "⚠️ Bottleneck: Höchste Ø Abweichung",
+                width = 12,
+                solidHeader = TRUE,
+                status = "warning",
+                htmlOutput(ns("bottleneck_text"))
+            )
         )
     )
 }
@@ -53,7 +85,10 @@ linien_server <- function(id) {
                 filter(fertigungslinie == input$linie_select) %>%
                 rename(
                     abweichung_durchschnitt = Abweichung,
+                    durchschnitt_lt = Durchschnitt_LT,
                     median_lt = Median_LT,
+                    termintreue = Termintreue_prozent,
+                    liefertreue = Liefertreue_prozent,
                     anteil_prozent = Anteil_prozent
                 )
         })
@@ -69,12 +104,16 @@ linien_server <- function(id) {
         
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(x = reorder(vorgangsfolge, median_lt), y = median_lt)) +
-                geom_col(fill = "#2C3E50") +
-                coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Median LT (Tage)") +
-                theme_minimal()
-            ggplotly(p)
+            ggplotly(
+                ggplot(df, aes(
+                    x = reorder(vorgangsfolge, median_lt),
+                    y = median_lt
+                )) +
+                    geom_col(fill = "#2C3E50") +
+                    coord_flip() +
+                    labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
+                    theme_minimal()
+            )
         })
         
         output$anteil_donut <- renderPlotly({
@@ -82,53 +121,56 @@ linien_server <- function(id) {
             plot_ly(
                 data = df,
                 labels = ~paste0(vorgangsfolge, " (", anteil_prozent, "%)"),
-                values = ~as.numeric(anteil_prozent),
+                values = ~Anzahl,
                 type = 'pie',
                 hole = 0.5,
                 textinfo = "label+percent"
             ) %>%
-                layout(title = paste("Anteil der Vorgangsfolgen in Linie", input$linie_select))
+                layout(title = "Verteilung der Vorgangsfolgen")
         })
         
         output$plot_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(x = reorder(vorgangsfolge, abweichung_durchschnitt), y = abweichung_durchschnitt)) +
-                geom_col(fill = "#E74C3C") +
-                coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
-                theme_minimal()
-            ggplotly(p)
+            ggplotly(
+                ggplot(df, aes(
+                    x = reorder(vorgangsfolge, abweichung_durchschnitt),
+                    y = abweichung_durchschnitt
+                )) +
+                    geom_col(fill = "#E74C3C") +
+                    coord_flip() +
+                    labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
+                    theme_minimal()
+            )
         })
         
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert() %>%
-                dplyr::select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent) %>%
-                tidyr::pivot_longer(cols = c(Termintreue_prozent, Liefertreue_prozent),
-                                    names_to = "Treueart", values_to = "Wert")
-            
-            p <- ggplot(df, aes(x = reorder(vorgangsfolge, -Wert), y = Wert, fill = Treueart)) +
-                geom_col(position = "dodge") +
-                labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
-                theme_minimal() +
-                theme(axis.text.x = element_text(angle = 45, hjust = 1))
-            ggplotly(p)
+                select(vorgangsfolge, termintreue, liefertreue) %>%
+                tidyr::pivot_longer(
+                    cols = c(termintreue, liefertreue),
+                    names_to = "Treueart",
+                    values_to = "Wert"
+                )
+            ggplotly(
+                ggplot(df, aes(
+                    x = reorder(vorgangsfolge, -Wert),
+                    y = Wert,
+                    fill = Treueart
+                )) +
+                    geom_bar(stat = "identity", position = "dodge") +
+                    labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
+                    theme_minimal() +
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+            )
         })
         
-        output$plot_top_abweichung <- renderPlotly({
+        output$bottleneck_text <- renderUI({
             df <- daten_gefiltert()
-            df_max <- df %>% filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE))
-            
-            plot_ly(
-                data = df_max,
-                x = ~vorgangsfolge,
-                y = ~abweichung_durchschnitt,
-                type = 'bar',
-                marker = list(color = "#F39C12")
-            ) %>%
-                layout(
-                    yaxis = list(title = "Höchste Ø Abweichung"),
-                    xaxis = list(title = "Vorgangsfolge")
-                )
+            df_max <- df %>% filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE)) %>% slice(1)
+            HTML(paste0(
+                "<p><strong>⚠️ Bottleneck erkannt:</strong> Vorgangsfolge <code>", df_max$vorgangsfolge, 
+                "</code> hat die höchste Ø Abweichung mit <strong>", df_max$abweichung_durchschnitt, " Tagen</strong>.</p>"
+            ))
         })
     })
 }
