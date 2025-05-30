@@ -1,3 +1,4 @@
+
 library(shiny)
 library(DT)
 library(ggplot2)
@@ -69,26 +70,26 @@ werke_server <- function(id) {
         
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert() %>%
-                select(vorgangsfolge, Termintreue, Liefertreue) %>%
-                tidyr::pivot_longer(cols = c(Termintreue, Liefertreue), names_to = "Treueart", values_to = "Wert")
+                dplyr::select(vorgangsfolge, Termintreue, Liefertreue) %>%
+                tidyr::pivot_longer(
+                    cols = c(Termintreue, Liefertreue),
+                    names_to = "Treueart",
+                    values_to = "Wert"
+                )
             
-            p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, -Wert),
-                y = Wert,
-                fill = Treueart
-            )) +
-                geom_bar(stat = "identity", position = position_dodge()) +
+            p <- ggplot(df, aes(x = reorder(vorgangsfolge, -Wert), y = Wert, fill = Treueart)) +
+                geom_bar(stat = "identity", position = "dodge") +
                 labs(
                     x = "Vorgangsfolge",
-                    y = "Anteil",
+                    y = "Treue (Quote)",
                     fill = "Treueart"
                 ) +
-                scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
                 theme_minimal() +
                 theme(axis.text.x = element_text(angle = 45, hjust = 1))
             
             ggplotly(p, tooltip = c("x", "y", "fill"))
         })
+        
         
         output$donut_top_vorgaenge <- renderPlotly({
             df <- daten_gefiltert()
