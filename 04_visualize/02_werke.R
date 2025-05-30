@@ -71,12 +71,13 @@ werke_server <- function(id) {
         
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert() %>%
-                select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent) %>%
-                pivot_longer(
+                dplyr::select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent) %>%
+                tidyr::pivot_longer(
                     cols = c(Termintreue_prozent, Liefertreue_prozent),
                     names_to = "Treueart",
                     values_to = "Wert"
                 )
+            
             
             ggplotly(
                 ggplot(df, aes(

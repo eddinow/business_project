@@ -24,54 +24,22 @@ linien_ui <- function(id) {
             )
         ),
         fluidRow(
-            box(
-                title = "KPIs je Vorgangsfolge",
-                width = 12,
-                status = "primary",
-                solidHeader = TRUE,
-                DTOutput(ns("linien_table"))
-            )
+            box(title = "KPIs je Vorgangsfolge", width = 12, DTOutput(ns("linien_table")))
         ),
         fluidRow(
-            box(
-                title = "Median Lead Time je Vorgangsfolge",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("lt_plot"))
-            )
+            box(title = "Median Lead Time je Vorgangsfolge", width = 12, plotlyOutput(ns("lt_plot")))
         ),
         fluidRow(
-            box(
-                title = "Anteil der Vorgangsfolgen (Donut Chart)",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("anteil_donut"))
-            )
+            box(title = "Anteil der Vorgangsfolgen (Donut Chart)", width = 12, plotlyOutput(ns("anteil_donut")))
         ),
         fluidRow(
-            box(
-                title = "Verspätung je Vorgangsfolge",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("plot_abweichung"))
-            )
+            box(title = "Ø Abweichung je Vorgangsfolge", width = 12, plotlyOutput(ns("plot_abweichung")))
         ),
         fluidRow(
-            box(
-                title = "Termintreue vs. Liefertreue",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("plot_treue"))
-            )
+            box(title = "Termintreue vs. Liefertreue (%)", width = 12, plotlyOutput(ns("plot_treue")))
         ),
         fluidRow(
-            box(
-                title = "Vorgangsfolge mit höchster Ø Abweichung",
-                width = 12,
-                solidHeader = TRUE,
-                status = "warning",
-                plotlyOutput(ns("plot_top_abweichung"))
-            )
+            box(title = "Vorgangsfolge mit höchster Ø Abweichung", width = 12, status = "warning", plotlyOutput(ns("plot_top_abweichung")))
         )
     )
 }
@@ -85,8 +53,8 @@ linien_server <- function(id) {
                 filter(fertigungslinie == input$linie_select) %>%
                 rename(
                     abweichung_durchschnitt = Abweichung,
-                    durchschnitt_lt = Durchschnitt_LT,
-                    median_lt = Median_LT
+                    median_lt = Median_LT,
+                    anteil_prozent = Anteil_prozent
                 )
         })
         
@@ -99,72 +67,56 @@ linien_server <- function(id) {
             )
         })
         
-        # Plot 1: Median LT
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, median_lt),
-                y = median_lt,
-                text = paste("Median LT:", median_lt, "<br>Anzahl:", Anzahl)
-            )) +
+            p <- ggplot(df, aes(x = reorder(vorgangsfolge, median_lt), y = median_lt)) +
                 geom_col(fill = "#2C3E50") +
                 coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
+                labs(x = "Vorgangsfolge", y = "Median LT (Tage)") +
                 theme_minimal()
-            
-            ggplotly(p, tooltip = "text")
+            ggplotly(p)
         })
         
-        # Plot 2: Donut
         output$anteil_donut <- renderPlotly({
             df <- daten_gefiltert()
             plot_ly(
                 data = df,
-                labels = ~vorgangsfolge,
-                values = ~as.numeric(Anteil),
+                labels = ~paste0(vorgangsfolge, " (", anteil_prozent, "%)"),
+                values = ~as.numeric(anteil_prozent),
                 type = 'pie',
-                textposition = 'inside',
-                textinfo = 'label+percent',
-                hole = 0.5
+                hole = 0.5,
+                textinfo = "label+percent"
             ) %>%
-                layout(showlegend = TRUE)
+                layout(title = paste("Anteil der Vorgangsfolgen in Linie", input$linie_select))
         })
         
-        # Plot 3: Ø Abweichung
         output$plot_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, abweichung_durchschnitt),
-                y = abweichung_durchschnitt
-            )) +
+            p <- ggplot(df, aes(x = reorder(vorgangsfolge, abweichung_durchschnitt), y = abweichung_durchschnitt)) +
                 geom_col(fill = "#E74C3C") +
                 coord_flip() +
                 labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
                 theme_minimal()
-            
             ggplotly(p)
         })
         
-        # Plot 4: Termintreue vs Liefertreue
         output$plot_treue <- renderPlotly({
-            df <- daten_gefiltert()
-            p <- ggplot(df, aes(
-                x = Termintreue,
-                y = Liefertreue,
-                label = vorgangsfolge
-            )) +
-                geom_point(aes(size = Anzahl), color = "#2980B9", alpha = 0.7) +
-                labs(x = "Termintreue", y = "Liefertreue") +
-                theme_minimal()
+            df <- daten_gefiltert() %>%
+                dplyr::select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent) %>%
+                tidyr::pivot_longer(cols = c(Termintreue_prozent, Liefertreue_prozent),
+                                    names_to = "Treueart", values_to = "Wert")
             
+            p <- ggplot(df, aes(x = reorder(vorgangsfolge, -Wert), y = Wert, fill = Treueart)) +
+                geom_col(position = "dodge") +
+                labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
+                theme_minimal() +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1))
             ggplotly(p)
         })
         
-        # Plot 5: Höchste Abweichung
         output$plot_top_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            df_max <- df %>%
-                filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE))
+            df_max <- df %>% filter(abweichung_durchschnitt == max(abweichung_durchschnitt, na.rm = TRUE))
             
             plot_ly(
                 data = df_max,
@@ -174,53 +126,9 @@ linien_server <- function(id) {
                 marker = list(color = "#F39C12")
             ) %>%
                 layout(
-                    yaxis = list(title = "Höchste Abweichung Durchschnitt"),
+                    yaxis = list(title = "Höchste Ø Abweichung"),
                     xaxis = list(title = "Vorgangsfolge")
                 )
         })
-        
-        # Delay-Ampeltabellen
-        delay_summary <- all_data_finalized %>%
-            filter(!is.na(abweichung)) %>%
-            mutate(delay = ifelse(abweichung > 0, abweichung, 0)) %>%
-            group_by(werk, fertigungslinie, planer) %>%
-            summarise(avg_delay = round(mean(delay, na.rm = TRUE), 1), .groups = "drop")
-        
-        color_column <- function(values) {
-            sapply(values, function(v) {
-                if (is.na(v)) return("⚪")
-                else if (v > 3) return("🔴")
-                else if (v > 1) return("🟠")
-                else return("🟢")
-            })
-        }
-        
-        output$table_werke <- renderDT({
-            df <- delay_summary %>%
-                select(Werk = werk, avg_delay) %>%
-                mutate(Status = color_column(avg_delay))
-            
-            datatable(df, colnames = c("Werk", "Avg. Delay [d]", " "), escape = FALSE,
-                      rownames = FALSE, options = list(dom = 'tip'))
-        })
-        
-        output$table_linien <- renderDT({
-            df <- delay_summary %>%
-                select(Linie = fertigungslinie, avg_delay) %>%
-                mutate(Status = color_column(avg_delay))
-            
-            datatable(df, colnames = c("Linie", "Avg. Delay [d]", " "), escape = FALSE,
-                      rownames = FALSE, options = list(dom = 'tip'))
-        })
-        
-        output$table_planer <- renderDT({
-            df <- delay_summary %>%
-                select(Planer = planer, avg_delay) %>%
-                mutate(Status = color_column(avg_delay))
-            
-            datatable(df, colnames = c("Planer", "Avg. Delay [d]", " "), escape = FALSE,
-                      rownames = FALSE, options = list(dom = 'tip'))
-        })
-        
-    })  # Ende moduleServer
-}      # Ende linien_server
+    })
+}
