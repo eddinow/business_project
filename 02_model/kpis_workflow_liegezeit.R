@@ -13,10 +13,13 @@ library(shiny)
 library(DT)
 library(stringr)
 library(plotly)
+library(lubridate)
 
 # Daten laden -------------------------------------------------------------------
-all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
-vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
+source("01_transform/create_lt_unit.R")
+
+# all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
+# vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
 
 # BALKENDIAGRAMM ZEITEN FÜR WORKFLOWS
@@ -25,61 +28,6 @@ vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 # ermitteln. Wir ermitteln außerdem die Liegezeiten als Differenz zwischen Enddatum
 # Vorgang 1 und Startdatum Folgevorgang. Wir ermitteln LT/Unit!
 
-vorgaenge_raw <- vorgaenge_raw %>%
-    filter(Auftragsnummer %in% all_data_finalized$auftragsnummer)
-
-vorgaenge_cleaned <- vorgaenge_raw %>%
-    left_join(
-        all_data_finalized %>%
-            dplyr::select(
-                auftragsnummer,
-                materialnummer,
-                werk,
-                starttermin_soll,
-                endtermin_soll,
-                fertigungslinie,
-                planer,
-                vorgangsfolge,
-                arbeitsplatzfolge
-            ),
-        by = c("Auftragsnummer" = "auftragsnummer")
-    )
-
-vorgaenge_cleaned <- vorgaenge_cleaned %>%
-    dplyr::select(-`ME`, -`Gutmenge Vorgang`, -`Ausschuss Vorgang`)
-
-vorgaenge_cleaned <- vorgaenge_cleaned %>%
-    mutate(
-        `Iststart Vorgang` = as.Date(`Iststart Vorgang`),
-        `Istende Vorgang`  = as.Date(`Istende Vorgang`)
-    )
-
-vorgaenge_cleaned <- vorgaenge_cleaned %>%
-    mutate(
-        solldauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days")),
-        istdauer = as.numeric(difftime(`Istende Vorgang`, `Iststart Vorgang`, units = "days")),
-        abweichung = istdauer - solldauer
-    )
-
-
-vorgaenge_cleaned <- vorgaenge_cleaned %>%
-    arrange(vorgangsfolge, Vorgangsnummer)
-
-vorgaenge_cleaned <- vorgaenge_cleaned %>%
-    mutate(gesamtdauer = as.numeric(`Istende Vorgang` - `Iststart Vorgang`))
-
-vorgaenge_sorted <- vorgaenge_cleaned %>%
-    arrange(Auftragsnummer, `Iststart Vorgang`)
-
-
-
-vorgaenge_sorted$starttermin_soll <- as.Date(vorgaenge_sorted$starttermin_soll)
-vorgaenge_sorted$`Istende Vorgang` <- as.Date(vorgaenge_sorted$`Istende Vorgang`)
-
-library(dplyr)
-library(lubridate)
-library(tidyr)
-library(stringr)
 
 # Dummy-Init für das Ergebnis
 create_lt_delay_workflows <- data.frame()

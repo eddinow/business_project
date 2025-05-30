@@ -8,6 +8,7 @@ library(DescTools)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
+source("01_transform/create_lt_unit.R", local = TRUE)
 source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)
 
 # UI---------------------------------------------
@@ -225,7 +226,7 @@ workflows_server <- function(id) {
             lt <- median(all_data_finalized$lead_time_ist, na.rm = TRUE)
             
             infoBox(
-                title = "Avg. LT/Order [d]",
+                title = "Avg LT/Unit [s]",
                 value = round(lt, 1),
                 icon = icon("clock"),
                 color = "light-blue",
@@ -234,34 +235,7 @@ workflows_server <- function(id) {
         })
         
         
-        workflows_overview <- all_data_finalized %>%
-            group_by(vorgangsfolge) %>%
-            summarise(
-                `Avg LT/Order [d]` = median(lead_time_ist, na.rm = TRUE),
-                `Avg Delay/Order [d]` = round(min(median(abweichung, na.rm = TRUE), 0), 0),
-                `# Orders` = n(),
-                servicelevel_numeric = mean(abweichung <= 0, na.rm = TRUE),
-                .groups = "drop"
-            ) %>%
-            mutate(
-                Servicelevel = paste0(round(servicelevel_numeric * 100, 0), "%"),
-                ampel_color = dplyr::case_when(
-                    servicelevel_numeric >= 0.95 ~ "green",
-                    servicelevel_numeric >= 0.7  ~ "orange",
-                    TRUE                         ~ "red"
-                ),
-                ampel = paste0(
-                    "<div style='color: ", ampel_color,
-                    "; font-size: 20px; text-align: center;'>&#9679;</div>"
-                )
-            ) %>%
-            rename(Workflow = vorgangsfolge) %>%
-            dplyr::select(
-                ampel_color, ampel, Workflow,
-                `Avg LT/Order [d]`, `Avg Delay/Order [d]`,
-                `# Orders`, Servicelevel
-            ) %>%
-            arrange(desc(`# Orders`))
+
       
             output$workflows_table <- renderDT({
                 datatable(
@@ -270,8 +244,8 @@ workflows_server <- function(id) {
                     colnames = c(
                         "ampel" = "ampel",
                         "Workflow" = "Workflow",
-                        "Avg LT/Order [d]" = "Avg LT/Order [d]",
-                        "Avg Delay/Order [d]" = "Avg Delay/Order [d]",
+                        "Avg LT/Unit [s]" = "Avg LT/Unit [s]",
+                        "Avg Delay/Unit [s]" = "Avg Delay/Unit [s]",
                         "# Orders" = "# Orders",
                         "Servicelevel" = "Servicelevel"
                     ),
@@ -706,7 +680,7 @@ workflows_server <- function(id) {
             req(input$selected_workflow)
             
             # Aggregation
-            lt_agg <- lt_per_unit |>
+            lt_agg <- lt_per_unit_workflows |>
                 filter(vorgangsfolge == input$selected_workflow) |>
                 group_by(Vorgangsnummer) |>
                 summarise(

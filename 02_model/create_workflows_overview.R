@@ -8,6 +8,7 @@ library(readxl)
 
 # Daten laden -------------------------------------------------------------------
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
+source("01_transform/create_lt_unit.R")
 
 # Transform------------------
 # Für die Übersichtsseite der Workflows erstellen wir ein Tableau mit allen WFs.
@@ -15,13 +16,17 @@ all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 # aller Abweichung, no of orders die Anzahl der Aufträge. Servicelevel = Anzahl
 #Aufträge mit Abweichung größer gleich 0 / Anzahl aller Aufträge
 
-workflows_overview <- lt_per_unit %>%
+workflows_overview <- auftraege_lt_unit %>%
+    filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
+    mutate(
+        delay_capped = ifelse(abweichung_unit < 0, 0, abweichung_unit)
+    ) %>%
     group_by(vorgangsfolge) %>%
     summarise(
-        `Avg LT/Unit [s]` = round(median(lead_ist_order, na.rm = TRUE), 2),
-        `Avg Delay/Order [d]` = round(min(median(abweichung, na.rm = TRUE), 0), 0),
+        `Avg LT/Unit [s]` = round(mean(lt_ist_order, na.rm = TRUE), 2),
+        `Avg Delay/Unit [s]` = round(mean(delay_capped, na.rm = TRUE), 2),
         `# Orders` = n(),
-        servicelevel_numeric = mean(abweichung <= 0, na.rm = TRUE),
+        servicelevel_numeric = mean(delay_capped == 0, na.rm = TRUE),
         .groups = "drop"
     ) %>%
     mutate(
@@ -37,8 +42,8 @@ workflows_overview <- lt_per_unit %>%
         )
     ) %>%
     rename(`Workflow` = vorgangsfolge) %>%
-    dplyr::select(ampel_color, ampel, Workflow, `Avg LT/Order [d]`, `Avg Delay/Order [d]`, `# Orders`, `Servicelevel`) %>%
+    dplyr::select(ampel_color, ampel, Workflow, `Avg LT/Unit [s]`, `Avg Delay/Unit [s]`, `# Orders`, `Servicelevel`) %>%
     arrange(desc(`# Orders`))
 
-view(lt_per_unit)
+
 
