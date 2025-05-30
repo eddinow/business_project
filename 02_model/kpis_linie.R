@@ -19,11 +19,4 @@ linien_overview <- all_data_finalized %>%
     mutate(
         Anteil_prozent = round(Anzahl / sum(Anzahl) * 100, 1)
     ) %>%
-    ungroup() %>%
-    mutate(
-        Anteil_prozent = ifelse(
-            Anteil_prozent < 0.1,
-            "<0.1%",
-            paste0(format(Anteil_prozent, nsmall = 1), "%")
-        )
-    )
+    ungroup()
