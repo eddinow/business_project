@@ -716,7 +716,6 @@ workflows_server <- function(id) {
                 ) |>
                 filter(!is.na(ist_lt), !is.na(soll_lt))
             
-            view(lt_agg)
             
             # Plot
             ggplot(lt_agg, aes(x = factor(Vorgangsnummer))) +
