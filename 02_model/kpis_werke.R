@@ -28,4 +28,7 @@ werke_overview <- all_data_finalized %>%
         Liefertreue_prozent = round(mean(gelieferte_menge >= sollmenge, na.rm = TRUE) * 100, 1),
         Termintreue_prozent = round(mean(abweichung <= 0, na.rm = TRUE) * 100, 1),
         .groups = "drop"
-    )
+    )  %>%
+    group_by(werk) %>%
+    mutate(Anteil_prozent = round(Anzahl / sum(Anzahl) * 100, 1)) %>%
+    ungroup()
