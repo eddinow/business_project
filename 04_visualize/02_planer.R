@@ -274,8 +274,8 @@ planer_server <- function(id) {
                 text = paste("Materialnummer:", materialnummer)
             )) +
                 geom_col(fill = "grey") +
-                # Label dezent innen am Balkenende
-                geom_text(aes(label = abweichung), hjust = 1, nudge_x = -0.2) +
+                # Label dezent innen am Balkenende (etwas weiter nach links)
+                geom_text(aes(label = abweichung), hjust = 1, nudge_x = -0.5) +
                 labs(x = "Verzögerung (Tage)", y = "Auftrag") +
                 theme_minimal()
             
@@ -307,8 +307,8 @@ planer_server <- function(id) {
                 text = paste("Materialnummer:", materialnummer)
             )) +
                 geom_col(fill = "grey") +
-                # Label dezent innen am Balkenende
-                geom_text(aes(label = abweichung), hjust = 0, nudge_x = 0.2) +
+                # Label dezent innen am Balkenende (etwas weiter nach rechts)
+                geom_text(aes(label = abweichung), hjust = 0, nudge_x = 0.5) +
                 labs(x = "Frühzeitige Fertigstellung (Tage)", y = "Auftrag") +
                 theme_minimal()
             
