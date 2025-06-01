@@ -72,7 +72,7 @@ ggplot(abc_summary, aes(x = ABC_Klasse, y = Gesamtmenge, fill = ABC_Klasse)) +
     scale_fill_brewer(palette = "Set2")
 
 abc_long3 <- abc_summary %>%
-    select(ABC_Klasse, Anzahl_Materialien, LT_pro_Schritt, Ø_Abweichung, Anteil_pünktlich) %>%
+    dplyr::select(ABC_Klasse, Anzahl_Materialien, LT_pro_Schritt, Ø_Abweichung, Anteil_pünktlich) %>%
     pivot_longer(
         cols = -ABC_Klasse, 
         names_to = "Kennzahl", 
