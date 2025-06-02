@@ -102,7 +102,7 @@ workflows_ui <- function(id) {
                         div(
                             DTOutput(ns("workflow_table_detail"))
                         )
-                    ),
+                    )
                     
                 ),
                 
@@ -126,10 +126,30 @@ workflows_ui <- function(id) {
                             br()
                     )
                 ),
+                
+                column(
+                    width = 6,
+                    div(
+                        tags$h4(
+                            "Bearbeitungs- und Liegezeiten",
+                            icon("info-circle", id = ns("info_leadtimes")),
+                            style = "font-weight: bold; font-size: 16px;"
+                        ),
+                        bsPopover(
+                            id = ns("info_lztimes"),
+                            title = "Was wird hier gezeigt?",
+                            content = "Durchschnittliche LT für jeden Vorgang des ausgewählten Workflows inkl. eventuelle durchschn. Liegezeiten.",
+                            placement = "right",
+                            trigger = "hover"
+                        ),
+                        plotOutput(ns("balkenplot"), height = "400px"),
+                        br()
+                        )
+                    )
+                )
                     
                 )
-            )
-        ),
+            ),
         
         fluidRow(
             box(title = "Performance", width = 12, status = "primary", solidHeader = FALSE,
@@ -182,10 +202,8 @@ workflows_ui <- function(id) {
                     )
                 )
             )
-        ),
-        
-    ) 
-    
+        )
+    )
 }
 
 
@@ -423,6 +441,23 @@ workflows_server <- function(id) {
         })
         
         
+    # Plot Liegezeiten u Bearbeitungszeiten
+        data_input <- reactive({
+            ausgabe_df %>% 
+                filter(!is.na(vorgangsfolge))
+        })
+        
+        aggregated_data <- reactive({
+            req(input$selected_workflow)
+            
+            data_input() %>%
+                filter(vorgangsfolge == input$selected_workflow) %>%
+                group_by(Vorgangsnummer) %>%
+                summarise(median_istdauer = median(istdauer, na.rm = TRUE)) %>%
+                ungroup()
+        })
+
+        
     # PRÜFEN-------------
         # Plot: Soll vs. Ist
         est_plot_obj <- reactive({
@@ -650,6 +685,21 @@ workflows_server <- function(id) {
                 theme_minimal()
             
             ggplotly(p, tooltip = c("x", "y"))
+        })
+        
+        # Diagramm Bearbeitungs- und Liegezeiten
+        output$balkenplot <- renderPlot({
+            df_plot <- aggregated_data()
+            
+            ggplot(df_plot, aes(x = Vorgangsnummer, y = median_istdauer)) +
+                geom_col(fill = "steelblue") +
+                labs(
+                    title = paste("Median Ist-Dauer –", input$selected_workflow),
+                    x = "Vorgang / Liegezeit",
+                    y = "Median Ist-Dauer (Tage)"
+                ) +
+                theme_minimal() +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1))
         })
         
         

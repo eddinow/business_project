@@ -120,3 +120,54 @@ for (auftrag in unique(vorgaenge_sorted$Auftragsnummer)) {
 create_lt_delay_workflows <- bind_rows(all_steps)
 
 
+# neu-----------------------------
+
+vorgaenge_chrono <- vorgaenge_lt_unit %>%
+    mutate(
+        `Iststart Vorgang` = ymd(`Iststart Vorgang`),
+        `Istende Vorgang` = ymd(`Istende Vorgang`)
+    ) %>%
+    arrange(Auftragsnummer, `Iststart Vorgang`)  # chronologisch sortieren
+
+# Schritt 2: Liegezeit berechnen (Differenz aus Start[n+1] - Ende[n])
+vorgaenge_mit_liegezeit <- vorgaenge_chrono %>%
+    group_by(Auftragsnummer) %>%
+    mutate(
+        liegezeit = as.numeric(lead(`Iststart Vorgang`) - `Istende Vorgang`)  # in Tagen
+    ) %>%
+    ungroup()
+
+expandiere_auftrag <- function(df) {
+    rows <- list()
+    
+    for (i in 1:nrow(df)) {
+        # Original-Vorgangszeile
+        rows[[length(rows) + 1]] <- df[i, ]
+        
+        # Liegezeitzeile ergänzen (mit vorgangsfolge!)
+        if (!is.na(df$liegezeit[i]) && df$liegezeit[i] > 0) {
+            liege_row <- tibble(
+                Auftragsnummer      = df$Auftragsnummer[i],
+                Vorgangsnummer      = paste0("Liegezeit nach ", df$Vorgangsnummer[i]),
+                Arbeitsplatz         = NA,
+                `Iststart Vorgang`   = NA,
+                `Istende Vorgang`    = NA,
+                istdauer             = df$liegezeit[i],
+                liegezeit            = df$liegezeit[i],
+                vorgangsfolge        = df$vorgangsfolge[i]
+            )
+            rows[[length(rows) + 1]] <- liege_row
+        }
+    }
+    
+    bind_rows(rows)
+}
+
+# Schritt 4: Auf alle Aufträge anwenden
+ausgabe_df <- vorgaenge_mit_liegezeit %>%
+    group_by(Auftragsnummer) %>%
+    group_split() %>%
+    lapply(expandiere_auftrag) %>%
+    bind_rows()
+
+view(ausgabe_df)
