@@ -1,3 +1,4 @@
+# Import------------------------------------------------------------------------
 library(shiny)
 library(shinyBS)
 library(DT)
@@ -6,12 +7,18 @@ library(plotly)
 library(readxl)
 library(DescTools)
 
+# Tidy--------------------------------------------------------------------------
+
+
+# Transform---------------------------------------------------------------------
 source("02_model/create_workflows_overview.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 source("01_transform/create_lt_unit.R", local = TRUE)
 source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)
 
-# UI---------------------------------------------
+# Visualize & Communicate-------------------------------------------------------
+
+# UI----------------------------------------------------------------------------
 workflows_ui <- function(id) {
 
     ns <- NS(id)
@@ -63,19 +70,17 @@ workflows_ui <- function(id) {
         
         fluidRow(
             box(title = "Lead Times", width = 12, status = "primary", solidHeader = FALSE,
-                
-                # Mengenabhängige Lead Time
                 div(
                     tags$h4("Mengenabhängige Lead Time [d]", style = "font-weight: bold; font-size: 16px;"),
                     plotlyOutput(ns("workflow_plot")),
                     br()
                 ),
                 
-                br(),  # Abstand vor nächstem Diagramm
+                br(),
                 
                 fluidRow(
                     column(
-                        width = 6,  # 👈 vorher 8
+                        width = 6, 
                         div(
                             tags$h4(
                                 "Detailansicht Ist-Lead Times ",
@@ -89,11 +94,11 @@ workflows_ui <- function(id) {
                                 placement = "right",
                                 trigger = "hover"
                             ),
-                            plotlyOutput(ns("stacked_bar_plot"), height = "100px")  # 👈 z. B. schmaler
+                            plotlyOutput(ns("stacked_bar_plot"), height = "100px") 
                         )
                     ),
                     column(
-                        width = 6,  # ggf. Tabelle etwas vergrößern
+                        width = 6, 
                         div(
                             DTOutput(ns("workflow_table_detail"))
                         )
@@ -103,7 +108,7 @@ workflows_ui <- function(id) {
                 
                 fluidRow( 
                     column(
-                        width = 6,  # 75 % Breite von 12
+                        width = 6,  
                         div(
                             tags$h4(
                                 "Lead Time je Vorgang ",
@@ -179,12 +184,12 @@ workflows_ui <- function(id) {
             )
         ),
         
-    )  # schließt tagList
+    ) 
     
 }
 
 
-# Server----------------------------------------------------
+# Server------------------------------------------------------------------------
 workflows_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         ns <- session$ns
@@ -263,24 +268,25 @@ workflows_server <- function(id) {
                 width = "100%"
             )
         }, server = FALSE, fillContainer = TRUE)
-        
-        # Dropdown füllen
+
         observe({
             workflows <- unique(all_data_finalized$vorgangsfolge)
             updateSelectInput(session, "selected_workflow", choices = workflows)
         })
         
-        # Wir geben für jedes Werk/Linie/Planer die Avg. LT/Order an. Damit man
-        # weiß ob akuter delay herrscht bewerten wir alle Abweichungen kleiner 0
-        # zu früh gefertigte Aufträge) und nehmen dann erst den Mittelwert
+        # User können sehen, in welche Werke, Linien und Planer dem ausgewählten
+        # Workflow zugeodnet sind. Avg. LT/Order und Delay pro Werk, Linie, Planer 
+        # wird angezeigt. Als Delays gelten alle Aufträge, die zu spät fertig
+        # wurden (Abweichung Ist-Soll<0). Bottlenecks werden aufgedeckt.
         
+        # Werke
         output$detail_table_a <- renderDT({
             req(input$selected_workflow)
             
             df <- auftraege_lt_unit %>%
                 filter(vorgangsfolge == input$selected_workflow) %>%
                 mutate(
-                    delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)  # ⬅️ nur >= 0 Werte behalten
+                    delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
                 ) %>%
                 group_by(werk) %>%
                 summarise(
@@ -320,6 +326,8 @@ workflows_server <- function(id) {
             )
         })
         
+        
+        # Fertigungslinien
         output$detail_table_b <- renderDT({
             req(input$selected_workflow)
             
@@ -367,6 +375,7 @@ workflows_server <- function(id) {
             )
         })
         
+        # Planer
         output$detail_table_c <- renderDT({
             req(input$selected_workflow)
         
@@ -414,6 +423,7 @@ workflows_server <- function(id) {
         })
         
         
+    # PRÜFEN-------------
         # Plot: Soll vs. Ist
         est_plot_obj <- reactive({
             req(input$selected_workflow)
@@ -426,7 +436,7 @@ workflows_server <- function(id) {
             plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color"))
         })
         
-        # Balkendiagramm Zeitanteile
+        # Abbilden Plot aus vorgaenge_lz_bz (Übersicht Bearbeitungs- u. Liegezeit)
         output$stacked_bar_plot <- renderPlotly({
             req(input$selected_workflow)
             
@@ -436,13 +446,13 @@ workflows_server <- function(id) {
             plot_workflow_structure(df)
         })
         
-        # Histogramm der Abweichungen
+        # Abbilden Histogramm der Abweichungen
         output$abweichung_hist_plot <- renderPlotly({
             req(input$selected_workflow)
             plot_abweichung_histogram(vorgaenge_sorted, input$selected_workflow)
         })
         
-        # Detailtabelle Zeitanteile
+        # Detailtabelle Zeitanteile, gehört zu vorgaenge_lz_bz Plot
         output$workflow_table_detail <- renderDT({
             req(input$selected_workflow)
             
@@ -464,8 +474,7 @@ workflows_server <- function(id) {
                     `Avg. LT (%)` = round(Time / sum(Time) * 100, 1)
                 ) %>%
                 dplyr::select(Vorgang, `Avg. LT (d)`, `Avg. LT (%)`)
-            
-            # Summenzeile hinzufügen
+
             total_row <- df %>%
                 summarise(
                     Vorgang = "Gesamt",
@@ -499,6 +508,7 @@ workflows_server <- function(id) {
                 )
         })
         
+# Detailansicht ausgewählter Workflow-------------------------------------------
         output$table_title <- renderText({
             req(input$selected_workflow)
             input$selected_workflow
@@ -509,19 +519,22 @@ workflows_server <- function(id) {
             h2(paste("Detailansicht Workflow", input$selected_workflow), style = "margin-top: 40px; margin-bottom: 20px;")
         })
         
-        # InfoBoxes (initial leer)
+        # Infobox Avg. LT
         output$workflow_value1 <- renderInfoBox({
             infoBox(title = "Avg. LT", value = "", icon = icon("clock"), color = "light-blue", fill = FALSE)
         })
         
+        # Infobox Avg. Delay
         output$workflow_value2 <- renderInfoBox({
             infoBox(title = "Avg. Delay", value = "", icon = icon("hourglass-half"), color = "yellow", fill = FALSE)
         })
         
+        # Infobox Servicelevel
         output$workflow_value4 <- renderInfoBox({
             infoBox(title = "Servicelevel", value = "", icon = icon("percent"), color = "teal", fill = FALSE)
         })
         
+        # Infobox Anzahl Aufträge
        output$workflow_value3 <- renderInfoBox({
             infoBox(title = "# Orders", 
                     value = if (!is.null(input$selected_workflow)) {
@@ -535,7 +548,7 @@ workflows_server <- function(id) {
        output$workflow_detail_value2 <- renderInfoBox({
            req(input$selected_workflow)
            
-           # Servicelevel-Berechnung nach workflows_overview-Logik
+           # Detail-Infobox Servicelevel
            servicelevel <- auftraege_lt_unit %>%
                filter(vorgangsfolge == input$selected_workflow) %>%
                summarise(
@@ -563,6 +576,7 @@ workflows_server <- function(id) {
            )
        })
        
+       #Detail-Infobox Bottleneck
        output$workflow_detail_value3 <- renderInfoBox({
            req(input$selected_workflow)
            
@@ -592,6 +606,7 @@ workflows_server <- function(id) {
            }
        })
         
+       #Detail-Infobox Anzahl Aufträge
         output$workflow_detail_value1 <- renderInfoBox({
             req(input$selected_workflow)
             count <- vorgaenge_sorted %>%
@@ -608,9 +623,7 @@ workflows_server <- function(id) {
         })
         
        
-        
-
-        
+       # Diagramm Vergleich Soll- und Ist-LTs 
         output$workflow_ist_soll_plot <- renderPlotly({
             req(input$selected_workflow)
             
@@ -629,7 +642,7 @@ workflows_server <- function(id) {
                 geom_segment(aes(x = as.numeric(factor(vorgangsnummer)) - 0.3,
                                  xend = as.numeric(factor(vorgangsnummer)) + 0.3,
                                  y = Soll, yend = Soll),
-                             color = "red", linewidth = 1) +
+                             color = "darkred", linewidth = 1) +
                 labs(
                     x = "Vorgang",
                     y = "Median Dauer [Tage]"
@@ -640,6 +653,7 @@ workflows_server <- function(id) {
         })
         
         
+        # Diagramm Zeitverlauf Abweichung Soll-Ist
         output$abweichung_time_plot <- renderPlotly({
             req(input$selected_workflow)
             
@@ -663,6 +677,7 @@ workflows_server <- function(id) {
             ggplotly(p, tooltip = c("x", "y"))
         })
         
+        # Diagramm Bearbeitungszeit + Liegezeit
         plot_workflow_structure <- function(df) {
             df <- df %>%
                 pivot_longer(
@@ -684,6 +699,8 @@ workflows_server <- function(id) {
                 scale_fill_manual(values = rep("#bdd7e7", nrow(df))) +
                 geom_text(aes(label = Vorgang), color = "white", size = 5, position = position_stack(vjust = 0.5))
         }
+        
+# PRÜFEN----------------------------------
         
         output$leadtime_chart <- renderPlot({
             req(input$selected_workflow)

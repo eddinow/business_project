@@ -1,20 +1,28 @@
-# Initialisierung ----------------------------------------------------------------
-# 
-# rm(list = ls())
-# set.seed(1)
+# Initialisierung --------------------------------------------------------------
 
 library(dplyr)
 library(readxl)
 
-# Daten laden -------------------------------------------------------------------
+# Daten laden ------------------------------------------------------------------
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
-source("01_transform/create_lt_unit.R")
 
 # Transform------------------
-# Für die Übersichtsseite der Workflows erstellen wir ein Tableau mit allen WFs.
-# Für jeden WF wird die Avg LT berechnet (Median aller LT). Avg Delay ist Median
-# aller Abweichung, no of orders die Anzahl der Aufträge. Servicelevel = Anzahl
-#Aufträge mit Abweichung größer gleich 0 / Anzahl aller Aufträge
+
+# In dem df create_lt_unit ergänzen wir die bereinigten Auftrags- und Vorgangs-
+# Frames um die notwendigen Spalten (u.a. LT's auf Unit-Ebene, Abweichungen usw.)
+
+source("01_transform/create_lt_unit.R")
+
+# Model ------------------------------------------------------------------------
+
+#Overview-Table ist für alle Kategorieseiten gleich gehalten: Ausprägung, zugehörige
+# Anzahl an Aufträgen (# Orders), durchschnittliche Soll-LT per unit [s] (Median 
+# der Soll-LT/unit aller zugehörigen Aufträge), durchschnittliche Ist-LT per unit [s] 
+# (Median der Ist-LT/unit aller zugehörigen Aufträge), durchschnittliche Verzögerung 
+# per unit [s] (Median aller LT-Abweichungen, die negativ sind, also nur Verspätungen), 
+# Servicelevel (Anteil der Aufträge, die rechtzeitig oder zu früh fertig sind). 
+# Nutzer können so die verschiedenen Ausprägungen einer Kategorie schnell miteinander 
+# vergleichen.
 
 workflows_overview <- auftraege_lt_unit %>%
     filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
@@ -30,18 +38,21 @@ workflows_overview <- auftraege_lt_unit %>%
             sum(!is.na(abweichung_unit)),
         .groups = "drop"
     ) %>%
-    mutate(
-        `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
-        ampel_color = case_when(
-            servicelevel_numeric >= 0.95 ~ "green",
-            servicelevel_numeric >= 0.7  ~ "orange",
-            TRUE                         ~ "red"
-        ),
-        ampel = paste0(
-            "<div style='color: ", ampel_color, 
-            "; font-size: 20px; text-align: center;'>&#9679;</div>"
-        )
-    ) %>%
+
+# Visualize --------------------------------------------------------------------
+
+mutate(
+    `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
+    ampel_color = case_when(
+        servicelevel_numeric >= 0.95 ~ "green",
+        servicelevel_numeric >= 0.7  ~ "orange",
+        TRUE                         ~ "red"
+    ),
+    ampel = paste0(
+        "<div style='color: ", ampel_color, 
+        "; font-size: 20px; text-align: center;'>&#9679;</div>"
+    )
+) %>%
     rename(`Workflow` = vorgangsfolge) %>%
     dplyr::select(
         ampel_color, ampel, Workflow,
@@ -50,5 +61,5 @@ workflows_overview <- auftraege_lt_unit %>%
     ) %>%
     arrange(desc(`# Orders`))
 
-
+# Communicate ------------------------------------------------------------------
 

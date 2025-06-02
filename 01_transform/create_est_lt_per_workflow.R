@@ -1,7 +1,7 @@
-# Initialisierung ----------------------------------------------------------------
+# Erzeugen der Soll- und Ist-LT's in Abhängigkeit von der Sollmenge auf Workflow-
+# ebene.
 
-# rm(list = ls())
-# set.seed(1)
+# Initialisierung --------------------------------------------------------------
 
 library(dplyr)
 library(tidyr)
@@ -10,23 +10,30 @@ library(scales)
 library(ggplot2)
 library(readxl)
 
-# Daten laden -------------------------------------------------------------------
+# Tidy -------------------------------------------------------------------------
+
+# Dateireinigung in all_data_finalized abgeschlossen
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
+
+# Transform --------------------------------------------------------------------
+
+# Data Frames in create_lt_unit und kpis_workflow_arbeitsplatz für Analyse auf
+# Workflowebene aufbereitet
 source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)  
 source("01_transform/create_lt_unit.R", local = TRUE)
 
-# Wir machen perzentil-abhängige Cutoffs, um Ausreißer zu entfernen. Wir packen 
-# dann die Sollmengen in Bins. Dann bilden wir für jeden Bin den Median und
-# oberes bzw unteres Perzentil. So können wir einigermaßen mengenabhängig die LT 
-# prognostizieren.
+# Model ------------------------------------------------------------------------
 
-#SOLLZEITEN------------------------------
+# Bilden perzentilabhängiger Cutoffs, um Ausreißer zu entfernen. Kategorisieren
+# der Sollmengen in dynamischen Bins. Dann bilden des Medians und der Ober- und
+# Unterperzentile für jeden Bin. User kann so mengenabhängig die LT abschätzen.
 
+#SOLLZEITEN--------
+
+# Tidy
 create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
     df_step <- df %>%
         filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_soll))
-
-
 
     # Cutoffs
     cutoffs <- df_step %>%
@@ -42,9 +49,8 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
             between(sollmenge, cutoffs$menge_min, cutoffs$menge_max),
             between(lead_time_soll, cutoffs$lt_min, cutoffs$lt_max)
         )
-
-
-
+    
+# Transform
     # Bin-Breite automatisch bestimmen (mit fallback)
     iqr <- IQR(df_clean$sollmenge, na.rm = TRUE)
     n <- sum(!is.na(df_clean$sollmenge))
@@ -59,6 +65,7 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
             bin = cut(sollmenge, breaks = breaks, include.lowest = TRUE, right = FALSE)
         )
 
+# Model
     lt_by_bin <- df_binned %>%
         group_by(bin) %>%
         summarise(
@@ -69,14 +76,10 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
         ) %>%
         filter(!is.na(bin))
 
-    # 3. Hole Breaks und berechne Labels
     bin_levels <- levels(df_binned$bin)
-
-    # Saubere Extraktion von Start- und Endwerten pro Bin
     bin_starts <- as.numeric(gsub("^\\[|\\(|,.*$", "", bin_levels))
     bin_ends   <- as.numeric(gsub("^.*,(.*)\\]$", "\\1", bin_levels))
 
-    # Bin-Bounds mit Labels
     bin_bounds <- tibble(bin = factor(bin_levels, levels = bin_levels)) %>%
         mutate(
             bin_start = bin_starts,
@@ -88,24 +91,22 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
         ) %>%
         filter(bin %in% lt_by_bin$bin)
 
-    # 4. Join der Labels
+# Visualize
     lt_by_bin <- lt_by_bin %>%
         left_join(bin_bounds, by = "bin") %>%
         mutate(bin_label = factor(bin_label, levels = bin_label))
-    # 📊 Plot erstellen
+    
     p <- ggplot(lt_by_bin, aes(x = bin_label)) +
         geom_ribbon(aes(ymin = p10, ymax = p90, group = 1), fill = "#002366", alpha = 0.2) +
         geom_line(aes(y = median_lt, group = 1), color = "#002366", linewidth = 1) +
         geom_point(aes(y = median_lt), color = "#002366", size = 2) +
         labs(
-            #title = paste("Lead Time je Losgrößen-Bin –", vorgangsfolge_id),
             x = "Sollmengen-Bereich",
             y = "Lead Time (soll)"
         ) +
         theme_minimal() +
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-    # Rückgabe als Liste mit Plot UND Tabelle
     return(list(
         plot = p,
         table = lt_by_bin %>%
@@ -116,6 +117,8 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
 
 
 # #ISTZEITEN------------------------------
+
+# Tidy
 create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
     df_step_ist <- df %>%
         filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_ist))
@@ -135,7 +138,7 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
             between(lead_time_ist, cutoffs_ist$lt_min, cutoffs_ist$lt_max)
         )
 
-    # Bin-Breite automatisch bestimmen (mit fallback)
+# Transform
     iqr_ist <- IQR(df_clean_ist$sollmenge, na.rm = TRUE)
     n_ist <- sum(!is.na(df_clean_ist$sollmenge))
     bin_size_ist <- 2 * iqr_ist / (n_ist^(1/3))
@@ -159,7 +162,6 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
         ) %>%
         filter(!is.na(bin))
 
-    # 3. Hole Breaks und berechne Labels
     bin_levels_ist <- levels(df_binned_ist$bin)
     bin_starts_ist <- as.numeric(gsub("^\\[|\\(|,.*$", "", bin_levels_ist))
     bin_ends_ist   <- as.numeric(gsub("^.*,(.*)\\]$", "\\1", bin_levels_ist))
@@ -175,11 +177,12 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
         ) %>%
         filter(bin %in% lt_by_bin_ist$bin)
 
+# Model
     lt_by_bin_ist <- lt_by_bin_ist %>%
         left_join(bin_bounds_ist, by = "bin") %>%
         mutate(bin_label = factor(bin_label, levels = bin_label))
 
-    # 📊 Plot
+# Visualize
     p_ist <- ggplot(lt_by_bin_ist, aes(x = bin_label)) +
         geom_ribbon(aes(ymin = p10, ymax = p90, group = 1), fill = "#002366", alpha = 0.2) +
         geom_line(aes(y = median_lt, group = 1), color = "#002366", linewidth = 1) +
@@ -198,8 +201,12 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
             dplyr::select(bin_label, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
     ))
 }
+
+
+# SOLL- UND IST ------------
+
+# Model
 create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100000, session = NULL) {
-    # Hilfsfunktion für eine Variante (soll oder ist)
     compute_variant <- function(df, vorgangsfolge_id, col_name, label) {
         df_step <- df %>%
             filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(.data[[col_name]]))
@@ -250,14 +257,14 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         
         return(lt_by_bin)
     }
-    
+
     df_soll <- compute_variant(df, vorgangsfolge_id, "lead_time_soll", "Soll")
     df_ist  <- compute_variant(df, vorgangsfolge_id, "lead_time_ist", "Ist")
     if (is.null(df_soll) || is.null(df_ist)) return(NULL)
     
     df_combined <- bind_rows(df_soll, df_ist)
     
-    # Falls session übergeben wurde, Slider updaten
+# Visualize
     if (!is.null(session)) {
         updateSliderInput(session, "selected_sollmenge",
                           min = min(df_combined$bin_start, na.rm = TRUE),
@@ -266,7 +273,7 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
                           step = 1000)
     }
     
-    # Achsenbeschriftungen reduzieren
+    
     all_labels <- levels(df_combined$bin_label)
     selected_labels <- all_labels[seq(1, length(all_labels), by = ceiling(length(all_labels) / 5))]
     
@@ -279,7 +286,7 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         scale_color_manual(values = c("Soll" = "#002366", "Ist" = "#CC0000")) +
         scale_fill_manual(values = c("Soll" = "#002366", "Ist" = "#CC000088")) +
         labs(
-            #title = paste("Lead Time je Losgrößen-Bin –", vorgangsfolge_id),
+            #title = paste("Soll- und Ist-Lead Time", vorgangsfolge_id),
             x = "Sollmengen-Bereich",
             y = "Lead Time",
             color = "Variante",
@@ -301,3 +308,5 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
             dplyr::select(bin_label, bin_start, bin_end, variante, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
     ))
 }
+
+# Communicate ------------------------------------------------------------------

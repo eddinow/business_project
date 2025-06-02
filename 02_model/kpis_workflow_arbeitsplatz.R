@@ -1,8 +1,5 @@
 # Initialisierung ----------------------------------------------------------------
 
-# rm(list = ls())
-# set.seed(1)
-
 library(tidyverse)
 library(tidyr)
 library(readxl)
@@ -19,25 +16,36 @@ all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 source("01_transform/create_lt_unit.R")
 
+# Tidy --------
 
-# BALKENDIAGRAMM ZEITEN FÜR WORKFLOWS
+# Transform -------
+
+# Model -----------
+
+# Visualize -------
+
+# Communicate ------
+
+
+# Lead Times der Workflows auf Vorgangsebene-------
 #Um wieder die Lead Times auf Vorgangs- und Arbeitsplatzebene sehen zu können, 
 # müssen die sap_vorgaenge cleanen und dann pro Vorgang u Arbeitsplatz wieder die LT
 # ermitteln. Wir ermitteln außerdem die Liegezeiten als Differenz zwischen Enddatum
 # Vorgang 1 und Startdatum Folgevorgang. Wir ermitteln LT/Unit!
 
+# Um die Liegezeiten zu ermitteln, werden die Endtermine jedes Vorgangs n mit den
+# Startterminen des Vorgangs n+1 verglichen. Differenzen werden dann als Liegezeit
+# festgehalten. Pro Workflow und Vorgang wird der Median aller Werte angegeben.
 
-
+# Transform
 vorgaenge_sollzeiten <- vorgaenge_sorted %>%
     mutate(solldauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days"))) %>%
     filter(!is.na(solldauer))
 
-# 2. Berechne den Median der Soll-Dauer pro Workflow und Vorgang
+# Model
 solldauer_median <- vorgaenge_sollzeiten %>%
     group_by(vorgangsfolge, Vorgangsnummer) %>%
     summarise(solldauer_median = median(solldauer, na.rm = TRUE), .groups = "drop")
-
-
 
 vorgaenge_sorted <- vorgaenge_cleaned %>%
     arrange(Auftragsnummer, `Iststart Vorgang`)
@@ -57,8 +65,6 @@ liegezeiten_plot <- vorgaenge_sorted %>%
     ) %>%
     dplyr::select(Auftragsnummer, Typ, Start, Ende)
 
-
-
 vorgaenge_plot <- vorgaenge_sorted %>%
     dplyr::select(
         Auftragsnummer,
@@ -73,7 +79,6 @@ workflow_plot_data <- bind_rows(vorgaenge_plot, liegezeiten_plot) %>%
     group_by(Auftragsnummer) %>%
     mutate(Schritt = row_number()) %>%
     ungroup()
-
 
 liegezeiten_df <- vorgaenge_sorted %>%
     group_by(Auftragsnummer) %>%
@@ -90,7 +95,6 @@ liegezeiten_df <- vorgaenge_sorted %>%
         .groups = "drop"
     )
 
-# Alle Aufträge mit Vorgangsdauern (auch ohne Liegezeiten)
 auftrags_dauer <- vorgaenge_sorted %>%
     dplyr::select(Auftragsnummer, Vorgangsnummer, istdauer) %>%
     pivot_wider(
@@ -102,8 +106,6 @@ auftrags_dauer <- vorgaenge_sorted %>%
     dplyr::select(Auftragsnummer, Vorgangsnummer, istdauer) %>%
     pivot_wider(names_from = Vorgangsnummer, values_from = istdauer)
 
-
-# 2. Kombinieren mit Liegezeiten (auch wenn keine vorhanden)
 liegezeit_u_auftragszeit <- auftrags_dauer %>%
     left_join(liegezeiten_df, by = "Auftragsnummer")
 
@@ -127,11 +129,8 @@ vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
         .names = "{.col}_median"
     )) 
 
-
-
 df <- vorgaenge_lz_bz
 
-# Funktion zur Umwandlung einer Zeile in langes Format
 transform_row_to_long <- function(row) {
     row <- as_tibble(row)  # 🔧 Liste zu Tibble umwandeln
     id <- row$vorgangsfolge
@@ -149,6 +148,8 @@ transform_row_to_long <- function(row) {
         )
     return(row_long)
 }
+
+# Visualize
 plot_workflow_structure <- function(df) {
     if (nrow(df) == 0) return(NULL)
     
@@ -208,7 +209,9 @@ plot_workflow_structure <- function(df) {
     ggplotly(p, tooltip = "text")
 }
 
-# Häufigkeitsverteilung der Abweichungen für jeden Workflow
+
+
+# Häufigkeitsverteilung LT-Abweichungen-----------------------------------------
 
 plot_abweichung_histogram <- function(df, selected_workflow) {
     df_filtered <- df %>%

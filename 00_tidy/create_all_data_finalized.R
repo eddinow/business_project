@@ -17,6 +17,17 @@ source("00_tidy/02_data_cleaning.R")
 source("00_tidy/Master Excel gebündelt mir Arbeitsplatz + Vorgangsfolgen.R")
 
 
+# Tidy --------
+
+# Transform -------
+
+# Model -----------
+
+# Den bereinigten Auftragsdaten werden die Vorgangsfolgen und Arbeitsplatz-
+# folgen hinzugefügt, damit wir die Lead Times auf Workflowebene abgebildet 
+# werden können.
+
+
 all_data_finalized <- fast_fertiger_datensatz_auftragskoepfe %>%
     left_join(
         auftraege_inkl_vorgangsfolgen %>%
@@ -28,5 +39,10 @@ all_data_finalized <- fast_fertiger_datensatz_auftragskoepfe %>%
         by = c("auftragsnummer" = "Auftragsnummer")
     )
 
-write_xlsx(all_data_finalized, path = "00_tidy/all_data_finalized.xlsx")
+# Visualize -------
 
+# Communicate ------
+
+# Erzeugen einer Exceldatei, um Ladedauer zu reduzieren
+
+write_xlsx(all_data_finalized, path = "00_tidy/all_data_finalized.xlsx")

@@ -1,10 +1,5 @@
 # Initialize -------------------------------------------------------------------
-#RM müssen wir hier aussschalten weil für create all data finalized die datei 
-# aus zwei skripten erstellt wird und wir sonst dieses data frame hier wieder
-#"sperren"
 
-#rm(list = ls())
-#set.seed(1)
 
 library(tidyverse)
 library(tidyr)
