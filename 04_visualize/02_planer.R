@@ -8,9 +8,9 @@ library(ggplot2)
 library(plotly)
 library(stringr)
 
-# Quellen laden (erstellt u. a. 'planer_overview' und 'all_data_finalized')
+# Quellen laden (erstellt u. a. 'planer_overview' und 'auftraege_lt_unit')
 source("02_model/create_planer_overview.R", local = TRUE)
-source("02_model/kpis_planer.R")
+source("01_transform/create_lt_unit.R")
 
 # UI-Modul --------------------------------------------------------------------
 planer_ui <- function(id) {
@@ -40,7 +40,7 @@ planer_ui <- function(id) {
                 selectInput(
                     inputId = ns("planer_select"),
                     label   = "Select Planner:",
-                    choices = sort(unique(all_data_finalized$planer))
+                    choices = sort(unique(auftraege_lt_unit$planer))
                 ),
                 
                 br(),
@@ -94,7 +94,7 @@ planer_server <- function(id) {
         # Subset für den ausgewählten Planer
         df_planer <- reactive({
             req(input$planer_select)
-            all_data_finalized %>% filter(planer == input$planer_select)
+            auftraege_lt_unit %>% filter(planer == input$planer_select)
         })
         
         # Plot 1: Werke nach Anzahl der Aufträge
@@ -143,14 +143,14 @@ planer_server <- function(id) {
         # Performance-Check Tabelle (kompletter Code wie zuvor)
         output$perf_check_table <- renderDT({
             sel  <- input$planer_select
-            df_s <- all_data_finalized %>% filter(planer == sel)
-            df_o <- all_data_finalized %>% filter(planer != sel)
+            df_s <- auftraege_lt_unit %>% filter(planer == sel)
+            df_o <- auftraege_lt_unit %>% filter(planer != sel)
             
             # 1) Pünktlichkeitsrate (%)
-            sel_pct    <- mean(df_s$abweichung <= 0, na.rm = TRUE) * 100
+            sel_pct    <- mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100
             oth_pct    <- df_o %>%
                 group_by(planer) %>%
-                summarise(rate = mean(abweichung <= 0, na.rm = TRUE) * 100) %>%
+                summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE) * 100) %>%
                 pull(rate) %>% mean(., na.rm = TRUE)
             dev_pct    <- ifelse(is.na(sel_pct - oth_pct), 0, sel_pct - oth_pct)
             interp_pct <- if (dev_pct < 0) {
@@ -162,12 +162,12 @@ planer_server <- function(id) {
             }
             
             # 2) Ø Verzögerung (Tage)
-            sel_del_raw   <- median(df_s$abweichung[df_s$abweichung > 0], na.rm = TRUE)
+            sel_del_raw   <- median(df_s$abweichung_unit[df_s$abweichung_unit > 0], na.rm = TRUE)
             sel_del       <- ifelse(is.nan(sel_del_raw), 0, sel_del_raw)
             other_del_raw <- df_o %>%
-                filter(abweichung > 0) %>%
+                filter(abweichung_unit > 0) %>%
                 group_by(planer) %>%
-                summarise(avg = median(abweichung, na.rm = TRUE)) %>%
+                summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>%
                 pull(avg) %>% mean(., na.rm = TRUE)
             other_del     <- ifelse(is.nan(other_del_raw), 0, other_del_raw)
             dev_del       <- ifelse(is.na(sel_del - other_del), 0, sel_del - other_del)
@@ -231,7 +231,7 @@ planer_server <- function(id) {
                     round(oth_ops, 1),
                     round(oth_n, 1)
                 ),
-                `Abweichung vom Ø anderer Planer` = c(
+                `abweichung_unit vom Ø anderer Planer` = c(
                     round(dev_pct, 1),
                     round(dev_del, 1),
                     round(dev_ops, 1),
