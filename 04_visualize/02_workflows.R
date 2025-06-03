@@ -15,6 +15,7 @@ source("02_model/create_workflows_overview.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 source("01_transform/create_lt_unit.R", local = TRUE)
 source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)
+source("02_model/kpis_workflow_liegezeit.R", local = TRUE)
 
 # Visualize & Communicate-------------------------------------------------------
 
@@ -71,54 +72,27 @@ workflows_ui <- function(id) {
         fluidRow(
             box(title = "Lead Times", width = 12, status = "primary", solidHeader = FALSE,
                 div(
-                    tags$h4("Mengenabhängige Lead Time [d]", style = "font-weight: bold; font-size: 16px;"),
+                    tags$h4("Lead Time nach Sollmenge [d]", style = "font-weight: bold; font-size: 16px;"),
                     plotlyOutput(ns("workflow_plot")),
                     br()
                 ),
                 
                 br(),
                 
-                fluidRow(
-                    column(
-                        width = 6, 
-                        div(
-                            tags$h4(
-                                "Detailansicht Ist-Lead Times ",
-                                icon("info-circle", id = ns("info_leadtimes")),
-                                style = "font-weight: bold; font-size: 16px;"
-                            ),
-                            bsPopover(
-                                id = ns("info_leadtimes"),
-                                title = "Was wird hier gezeigt?",
-                                content = "Durchschnittliche LT für jeden Vorgang des ausgewählten Workflows inkl. eventuelle durchschn. Liegezeiten.",
-                                placement = "right",
-                                trigger = "hover"
-                            ),
-                            plotlyOutput(ns("stacked_bar_plot"), height = "100px") 
-                        )
-                    ),
-                    column(
-                        width = 6, 
-                        div(
-                            DTOutput(ns("workflow_table_detail"))
-                        )
-                    )
-                    
-                ),
                 
                 fluidRow( 
                     column(
                         width = 6,  
                         div(
                             tags$h4(
-                                "Lead Time je Vorgang ",
+                                "Lead Time nach Vorgangsnummer [s/unit] ",
                                 icon("info-circle", id = ns("info_leadtimes")),
                                 style = "font-weight: bold; font-size: 16px;"
                             ),
                             bsPopover(
                                 id = ns("info_leadtimes"),
                                 title = "Was wird hier gezeigt?",
-                                content = "Durchschnittliche LT für jeden Vorgang des ausgewählten Workflows inkl. eventuelle durchschn. Liegezeiten.",
+                                content = "Ist- und Soll-LT für jeden Vorgang des ausgewählten Workflows in der Einheit LT/unit [s]",
                                 placement = "right",
                                 trigger = "hover"
                             ),
@@ -131,14 +105,14 @@ workflows_ui <- function(id) {
                     width = 6,
                     div(
                         tags$h4(
-                            "Bearbeitungs- und Liegezeiten",
+                            "Lead Time inkl. Liegezeiten [d/auftrag]",
                             icon("info-circle", id = ns("info_leadtimes")),
                             style = "font-weight: bold; font-size: 16px;"
                         ),
                         bsPopover(
                             id = ns("info_lztimes"),
                             title = "Was wird hier gezeigt?",
-                            content = "Durchschnittliche LT für jeden Vorgang des ausgewählten Workflows inkl. eventuelle durchschn. Liegezeiten.",
+                            content = "Durchschnittliche LT für jeden Vorgang des ausgewählten Workflows in der Einheit LT [d].",
                             placement = "right",
                             trigger = "hover"
                         ),
@@ -157,7 +131,7 @@ workflows_ui <- function(id) {
                     width = 12,
                     div(
                         tags$h4(
-                            "Zeitverlauf der Lead Time-Abweichung",
+                            "Abweichung im Zeitverlauf",
                             icon("info-circle", id = ns("info_performance")),
                             style = "font-weight: bold; font-size: 16px;"
                         ),
@@ -179,7 +153,7 @@ workflows_ui <- function(id) {
                         width = 6,
                         div(
                             tags$h4(
-                                "Streuung der Lead Time-Abweichung",
+                                "Verteilung der Abweichung",
                                 icon("info-circle", id = ns("info_streuung")),
                                 style = "font-weight: bold; font-size: 16px;"
                             ),
@@ -191,13 +165,6 @@ workflows_ui <- function(id) {
                                 trigger = "hover"
                             ),
                             plotlyOutput(ns("abweichung_hist_plot"))
-                        )
-                    ),
-                    column(
-                        width = 6,
-                        div(
-                            tags$h4("Soll-Ist Vergleich pro Vorgang", style = "font-weight: bold; font-size: 16px;"),
-                            plotlyOutput(ns("workflow_ist_soll_plot"))
                         )
                     )
                 )
@@ -692,14 +659,13 @@ workflows_server <- function(id) {
             df_plot <- aggregated_data()
             
             ggplot(df_plot, aes(x = Vorgangsnummer, y = median_istdauer)) +
-                geom_col(fill = "steelblue") +
+                geom_col(fill = "#002366", width = 0.15) +
                 labs(
-                    title = paste("Median Ist-Dauer –", input$selected_workflow),
                     x = "Vorgang / Liegezeit",
-                    y = "Median Ist-Dauer (Tage)"
+                    y = "Ist-LT [d]"
                 ) +
                 theme_minimal() +
-                theme(axis.text.x = element_text(angle = 45, hjust = 1))
+                theme(axis.text.x = element_text(hjust = 1))
         })
         
         
@@ -713,14 +679,14 @@ workflows_server <- function(id) {
                 slice(seq(1, n(), by = 10))  # 👈 nur jeden 10. Wert behalten
             
             p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
-                geom_line(color = "#002366", size = 0.2) +
-                geom_point(color = "#002366", size = 0.3, alpha = 0.6) +
+                # geom_line(color = "#002366", size = 0.2) +
+                # geom_point(color = "#002366", size = 0.3, alpha = 0.6) +
                 geom_smooth(
-                    method = "loess", se = FALSE, span = 0.2, color = "darkred", size = 0.7
+                    method = "loess", se = FALSE, span = 0.2, color = "#002366", size = 0.7
                 ) +
                 labs(
-                    x = "Starttermin (Ist)",
-                    y = "Abweichung [Tage]"
+                    x = "Ist-Starttermin",
+                    y = "Abweichung von Soll-LT [d]"
                 ) +
                 theme_minimal()
             
