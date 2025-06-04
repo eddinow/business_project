@@ -66,7 +66,7 @@ linien_server <- function(id) {
             df <- daten_gefiltert() %>%
                 dplyr::select(
                     vorgangsfolge, fertigungslinie, Anzahl,
-                    Median_LT, Abweichung, Average_Delay
+                    Median_LT, Abweichung, Average_Delay,  Servicelevel_prozent
                 )
             datatable(
                 df,
