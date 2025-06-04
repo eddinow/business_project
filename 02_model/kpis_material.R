@@ -1,38 +1,45 @@
 library(dplyr)
 library(tidyr)
-library(readxl)
 library(stringr)
-library(readr)
+library(readxl)
 
-# Daten einlesen
-all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
+# Daten laden
 source("01_transform/create_lt_unit.R", local = TRUE)
+all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 
-# Hauptabfolge (= häufigste Vorgangsfolge je Materialnummer)
+# Schritt 1: Prozessschritte ("Hauptabfolge") je Materialnummer bestimmen
 material_abfolge <- all_data_finalized %>%
-    group_by(materialnummer, vorgangsfolge) %>%
-    summarise(Anzahl = n(), .groups = "drop") %>%
     group_by(materialnummer) %>%
-    slice_max(order_by = Anzahl, n = 1, with_ties = FALSE) %>%
-    select(materialnummer, Hauptabfolge = vorgangsfolge)
+    summarise(
+        prozessschritte = names(sort(table(vorgangsfolge), decreasing = TRUE))[1], .groups = "drop"
+    )
 
-# Materialnummer-Übersicht auf Unit-Basis
+# Schritt 2: Materialnummer-Übersicht OHNE prozessschritte/Prozesstiefe
 materialnummer_overview <- auftraege_lt_unit %>%
     group_by(materialnummer) %>%
     summarise(
         Anzahl = n(),
         Gesamtmenge = sum(gelieferte_menge, na.rm = TRUE),
         Sollmenge = sum(sollmenge, na.rm = TRUE),
-        Ø_Abweichung = round(mean(abweichung_unit, na.rm = TRUE), 2),
-        Ø_LT_pro_Unit = round(mean(lt_ist_order, na.rm = TRUE), 2),
+        Ø_Abweichung_h = round(mean(abweichung_unit, na.rm = TRUE) / 3600, 2),
+        Ø_LT_pro_Unit_h = round(mean(lt_ist_order, na.rm = TRUE) / 3600, 2),
+        Ø_Soll_LT_pro_Unit_h = round(mean(lt_soll_order, na.rm = TRUE) / 3600, 2),
         Anteil_pünktlich = round(mean(abweichung_unit <= 0, na.rm = TRUE), 2)
     ) %>%
-    left_join(material_abfolge, by = "materialnummer") %>%
-    ungroup()
+    arrange(desc(Gesamtmenge))
 
-# ABC-Analyse auf Gesamtmenge
+# Schritt 3: Prozessschritte dazujoinen
 materialnummer_overview <- materialnummer_overview %>%
-    arrange(desc(Gesamtmenge)) %>%
+    left_join(material_abfolge, by = "materialnummer")
+
+# Schritt 4: Prozesstiefe berechnen (auf Basis der Hauptabfolge!)
+materialnummer_overview <- materialnummer_overview %>%
+    mutate(
+        Prozesstiefe = str_count(prozessschritte, "→") + 1
+    )
+
+# Schritt 5: ABC-Klassen berechnen
+materialnummer_overview <- materialnummer_overview %>%
     mutate(
         kum_anteil = cumsum(Gesamtmenge) / sum(Gesamtmenge),
         ABC_Klasse = case_when(
@@ -42,16 +49,15 @@ materialnummer_overview <- materialnummer_overview %>%
         )
     )
 
-# Übersichtstabelle je Klasse (ABC)
+# Schritt 6: ABC-Summary
 abc_summary <- materialnummer_overview %>%
     group_by(ABC_Klasse) %>%
     summarise(
         Anzahl_Materialien = n(),
-        Gesamt_Anzahl = sum(Anzahl, na.rm = TRUE),
         Gesamtmenge = sum(Gesamtmenge, na.rm = TRUE),
-        Gesamtsollmenge = sum(Sollmenge, na.rm = TRUE),
-        Ø_Abweichung = round(mean(Ø_Abweichung, na.rm = TRUE), 2),
-        Ø_LT_pro_Unit = round(mean(Ø_LT_pro_Unit, na.rm = TRUE), 2),
-        Anteil_pünktlich = round(mean(Anteil_pünktlich, na.rm = TRUE), 2)
-    ) %>%
-    ungroup()
+        Ø_Abweichung_h = round(mean(Ø_Abweichung_h, na.rm = TRUE), 2),
+        Ø_LT_pro_Unit_h = round(mean(Ø_LT_pro_Unit_h, na.rm = TRUE), 2),
+        Ø_Soll_LT_pro_Unit_h = round(mean(Ø_Soll_LT_pro_Unit_h, na.rm = TRUE), 2),
+        Anteil_pünktlich = round(mean(Anteil_pünktlich, na.rm = TRUE), 2),
+        Prozesstiefe = round(mean(Prozesstiefe, na.rm = TRUE), 2)
+    )
