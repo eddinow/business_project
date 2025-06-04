@@ -13,7 +13,9 @@ werke_ui <- function(id) {
         fluidRow(
             box(
                 title = "Werk auswählen",
-                width = 12, status = "primary", solidHeader = TRUE,
+                width = 12,
+                status = "primary",
+                solidHeader = TRUE,
                 selectInput(
                     ns("werk_select"),
                     "Werk:",
@@ -24,41 +26,43 @@ werke_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "KPIs je Vorgangsfolge",
-                width = 12, status = "primary", solidHeader = TRUE,
-                DTOutput(ns("werke_table"))
-            )
-        ),
-        fluidRow(
-            box(
                 title = "Automatische Interpretation",
-                width = 12, status = "info", solidHeader = TRUE,
+                width = 12,
+                status = "info",
+                solidHeader = TRUE,
                 htmlOutput(ns("werk_insights"))
             )
         ),
         fluidRow(
             box(
+                title = "KPIs je Vorgangsfolge",
+                width = 12,
+                status = "primary",
+                solidHeader = TRUE,
+                DTOutput(ns("werke_table")),
+                br(),
+                downloadButton(ns("download_csv"), "CSV exportieren")
+            )
+        ),
+        fluidRow(
+            box(
                 title = "Anteil der Vorgangsfolgen (Donut Chart)",
-                width = 12, solidHeader = TRUE,
-                plotlyOutput(ns("anteil_donut"))
+                width = 12,
+                solidHeader = TRUE,
+                plotlyOutput(ns("donut_top_vorgaenge"))
             )
         ),
         fluidRow(
             box(
                 title = "Termintreue, Liefertreue & Servicelevel (%)",
-                width = 12, solidHeader = TRUE,
+                width = 12,
+                solidHeader = TRUE,
                 plotlyOutput(ns("plot_treue"))
-            )
-        ),
-        fluidRow(
-            box(
-                title = "Durchschnittliche Liefermenge je Vorgangsfolge",
-                width = 12, solidHeader = TRUE,
-                plotlyOutput(ns("plot_liefermenge"))
             )
         )
     )
 }
+
 
 werke_server <- function(id) {
     moduleServer(id, function(input, output, session) {
