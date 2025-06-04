@@ -14,7 +14,7 @@ material_abfolge <- all_data_finalized %>%
         prozessschritte = names(sort(table(vorgangsfolge), decreasing = TRUE))[1], .groups = "drop"
     )
 
-# Schritt 2: Materialnummer-Übersicht OHNE prozessschritte/Prozesstiefe
+# Schritt 2: Materialnummer-Übersicht OHNE Soll-LT
 materialnummer_overview <- auftraege_lt_unit %>%
     group_by(materialnummer) %>%
     summarise(
@@ -23,22 +23,16 @@ materialnummer_overview <- auftraege_lt_unit %>%
         Sollmenge = sum(sollmenge, na.rm = TRUE),
         Ø_Abweichung_h = round(mean(abweichung_unit, na.rm = TRUE) / 3600, 2),
         Ø_LT_pro_Unit_h = round(mean(lt_ist_order, na.rm = TRUE) / 3600, 2),
-        Ø_Soll_LT_pro_Unit_h = round(mean(lt_soll_order, na.rm = TRUE) / 3600, 2),
         Anteil_pünktlich = round(mean(abweichung_unit <= 0, na.rm = TRUE), 2)
     ) %>%
     arrange(desc(Gesamtmenge))
 
 # Schritt 3: Prozessschritte dazujoinen
 materialnummer_overview <- materialnummer_overview %>%
-    left_join(material_abfolge, by = "materialnummer")
+    left_join(material_abfolge, by = "materialnummer") %>%
+    mutate(Prozesstiefe = str_count(prozessschritte, "→") + 1)
 
-# Schritt 4: Prozesstiefe berechnen (auf Basis der Hauptabfolge!)
-materialnummer_overview <- materialnummer_overview %>%
-    mutate(
-        Prozesstiefe = str_count(prozessschritte, "→") + 1
-    )
-
-# Schritt 5: ABC-Klassen berechnen
+# Schritt 4: ABC-Klassen berechnen
 materialnummer_overview <- materialnummer_overview %>%
     mutate(
         kum_anteil = cumsum(Gesamtmenge) / sum(Gesamtmenge),
@@ -49,8 +43,14 @@ materialnummer_overview <- materialnummer_overview %>%
         )
     )
 
-# Schritt 6: ABC-Summary
+# Schritt 5: ABC-Summary (hier NUR Soll-LT mit aufnehmen!)
 abc_summary <- materialnummer_overview %>%
+    left_join(
+        auftraege_lt_unit %>%
+            group_by(materialnummer) %>%
+            summarise(Ø_Soll_LT_pro_Unit_h = round(mean(lt_soll_order, na.rm = TRUE) / 3600, 2)),
+        by = "materialnummer"
+    ) %>%
     group_by(ABC_Klasse) %>%
     summarise(
         Anzahl_Materialien = n(),
