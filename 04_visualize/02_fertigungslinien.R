@@ -3,6 +3,7 @@ library(DT)
 library(ggplot2)
 library(plotly)
 
+# KPI-Daten laden
 source("02_model/kpis_linie.R", local = TRUE)
 
 linien_ui <- function(id) {
@@ -85,8 +86,11 @@ linien_server <- function(id) {
         })
         
         output$linien_table <- renderDT({
+            df <- daten_gefiltert() %>%
+                select(-Termintreue_prozent, -Liefertreue_prozent, -Anteil_prozent)
+            
             datatable(
-                daten_gefiltert(),
+                df,
                 options = list(pageLength = 10, scrollX = TRUE),
                 rownames = FALSE,
                 class = "stripe hover cell-border"
@@ -95,10 +99,7 @@ linien_server <- function(id) {
         
         output$lt_plot <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, Median_LT),
-                y = Median_LT
-            )) +
+            p <- ggplot(df, aes(x = reorder(vorgangsfolge, Median_LT), y = Median_LT)) +
                 geom_col(fill = "#2C3E50") +
                 coord_flip() +
                 labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
@@ -111,7 +112,7 @@ linien_server <- function(id) {
             plot_ly(
                 data = df,
                 labels = ~paste0(vorgangsfolge, " (", Anteil_prozent, "%)"),
-                values = ~Anzahl,
+                values = ~Anteil_prozent,
                 type = "pie",
                 textposition = "inside",
                 textinfo = "label+percent",
@@ -122,10 +123,7 @@ linien_server <- function(id) {
         
         output$plot_abweichung <- renderPlotly({
             df <- daten_gefiltert()
-            p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, Abweichung),
-                y = Abweichung
-            )) +
+            p <- ggplot(df, aes(x = reorder(vorgangsfolge, Abweichung), y = Abweichung)) +
                 geom_col(fill = "#E74C3C") +
                 coord_flip() +
                 labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
@@ -141,6 +139,7 @@ linien_server <- function(id) {
                     names_to = "Treueart",
                     values_to = "Wert"
                 )
+            
             p <- ggplot(df, aes(
                 x = reorder(vorgangsfolge, -Wert),
                 y = Wert,
@@ -150,16 +149,21 @@ linien_server <- function(id) {
                 labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
                 theme_minimal() +
                 theme(axis.text.x = element_text(angle = 45, hjust = 1))
+            
             ggplotly(p, tooltip = c("x", "y", "fill"))
         })
         
         output$bottleneck_text <- renderUI({
             df <- daten_gefiltert()
             req(nrow(df) > 0)
-            bottleneck <- df %>% filter(Abweichung == max(Abweichung, na.rm = TRUE)) %>% slice(1)
+            bottleneck <- df %>%
+                filter(Abweichung == max(Abweichung, na.rm = TRUE)) %>%
+                slice(1)
+            
             HTML(paste0(
                 "<strong>🚨 Engpass erkannt:</strong><br>",
-                "Vorgangsfolge <strong>", bottleneck$vorgangsfolge, "</strong> hat die höchste durchschnittliche Abweichung mit <strong>",
+                "Vorgangsfolge <strong>", bottleneck$vorgangsfolge,
+                "</strong> hat die höchste durchschnittliche Abweichung mit <strong>",
                 bottleneck$Abweichung, " Tagen</strong>."
             ))
         })
