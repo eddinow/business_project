@@ -54,25 +54,30 @@ material_ui <- function(id) {
 material_server <- function(id) {
     moduleServer(id, function(input, output, session) {
         
-        # Infobox: OVERALL SERVICELEVEL (Anteil pünktlicher Lieferungen)
+        # Infoboxen
         output$material_servicelevel <- renderInfoBox({
-            sl <- mean(materialnummer_overview$Ø_Abweichung <= 0, na.rm = TRUE)
-            sl_percent <- round(sl * 100, 2)
-            color <- if (sl_percent < 70) "red" else if (sl_percent < 95) "orange" else "green"
+            sl <- mean(materialnummer_overview$Anteil_pünktlich, na.rm = TRUE)
+            sl_percent <- round(sl * 100)
+            color <- if (sl_percent < 70) {
+                "red"
+            } else if (sl_percent < 95) {
+                "orange"
+            } else {
+                "green"
+            }
             infoBox(
-                title = "OVERALL SERVICELEVEL",
-                value = paste0(format(sl_percent, big.mark = ".", decimal.mark = ","), "%"),
+                title = "Overall Servicelevel",
+                value = paste0(sl_percent, "%"),
                 icon = icon("percent"),
                 color = color,
                 fill = TRUE
             )
         })
         
-        # Infobox: AVG. DELAY/UNIT [S]
         output$material_avg_delay <- renderInfoBox({
             avg_delay <- round(mean(materialnummer_overview$Ø_Abweichung, na.rm = TRUE), 2)
             infoBox(
-                title = "AVG. DELAY/UNIT [S]",
+                title = "Avg. Delay/Unit [s]",
                 value = format(avg_delay, big.mark = ".", decimal.mark = ","),
                 icon = icon("hourglass-half"),
                 color = "light-blue",
@@ -80,11 +85,10 @@ material_server <- function(id) {
             )
         })
         
-        # Infobox: AVG LT/UNIT [S]
         output$material_avg_lt <- renderInfoBox({
             avg_lt <- round(mean(materialnummer_overview$Ø_LT_pro_Unit, na.rm = TRUE), 2)
             infoBox(
-                title = "AVG LT/UNIT [S]",
+                title = "Avg. LT/Unit [s]",
                 value = format(avg_lt, big.mark = ".", decimal.mark = ","),
                 icon = icon("clock"),
                 color = "light-blue",
@@ -92,10 +96,22 @@ material_server <- function(id) {
             )
         })
         
-        # Übersichtstabelle der ABC-Klassen (mit Tausender-Trennzeichen)
+        # ABC-Summary Tabelle
         output$abc_table <- renderDT({
             datatable(
                 abc_summary %>%
+                    select(
+                        ABC_Klasse,
+                        Anzahl_Materialien,
+                        Gesamt_Anzahl,
+                        Gesamtmenge,
+                        Gesamtsollmenge,
+                        `Ø_Abweichung [s]` = Ø_Abweichung,
+                        `Ø_LT_pro_Unit [s]` = Ø_LT_pro_Unit,
+                        Anteil_pünktlich,
+                        Prozesstiefe,
+                        `SOLL_LT_pro_Unit [s]`
+                    ) %>%
                     mutate(across(where(is.numeric), ~format(.x, big.mark = ".", decimal.mark = ","))),
                 options = list(pageLength = 5, scrollX = TRUE),
                 rownames = FALSE,
@@ -103,14 +119,21 @@ material_server <- function(id) {
             )
         })
         
-        # Reaktive Tabelle für gewählte ABC-Klasse
+        # Tabelle für gewählte Klasse
         filtered_materials <- reactive({
             req(input$abc_select)
             materialnummer_overview %>%
                 filter(ABC_Klasse == input$abc_select) %>%
                 select(
-                    materialnummer, Anzahl, Gesamtmenge, Sollmenge,
-                    Ø_Abweichung, Ø_LT_pro_Unit, Anteil_pünktlich, Prozesstiefe, hauptabfolge
+                    materialnummer,
+                    Anzahl,
+                    Gesamtmenge,
+                    Sollmenge,
+                    `Ø_Abweichung [s]` = Ø_Abweichung,
+                    `Ø_LT_pro_Unit [s]` = Ø_LT_pro_Unit,
+                    Anteil_pünktlich,
+                    Prozesstiefe,
+                    hauptabfolge
                 ) %>%
                 mutate(across(where(is.numeric), ~format(.x, big.mark = ".", decimal.mark = ",")))
         })
@@ -123,8 +146,8 @@ material_server <- function(id) {
                         "Aufträge" = Anzahl,
                         "Gelieferte Menge" = Gesamtmenge,
                         "Sollmenge" = Sollmenge,
-                        "Ø Delay/Unit [s]" = Ø_Abweichung,
-                        "Ø LT/Unit [s]" = Ø_LT_pro_Unit,
+                        "Ø Delay/Unit [s]" = `Ø_Abweichung [s]`,
+                        "Ø LT/Unit [s]" = `Ø_LT_pro_Unit [s]`,
                         "Servicelevel" = Anteil_pünktlich,
                         "Prozesstiefe" = Prozesstiefe,
                         "Prozessschritte" = hauptabfolge
@@ -135,11 +158,12 @@ material_server <- function(id) {
             )
         })
         
-        # Barplot: Gesamtmenge je ABC-Klasse (mit Werten auf Balken, Tausenderpunkt)
+        # Barplot Gesamtmenge mit Werten IN den Balken
         output$abc_barplot <- renderPlot({
             ggplot(abc_summary, aes(x = ABC_Klasse, y = Gesamtmenge, fill = ABC_Klasse)) +
                 geom_bar(stat = "identity") +
-                geom_text(aes(label = format(Gesamtmenge, big.mark = ".", decimal.mark = ",")), vjust = -0.5, size = 5) +
+                geom_text(aes(label = format(round(Gesamtmenge, 2), big.mark = ".", decimal.mark = ",")),
+                          vjust = 1, color = "white", fontface = "bold", size = 5) +
                 labs(
                     title = "Gesamtmenge je ABC-Klasse",
                     x = "ABC-Klasse",
@@ -149,21 +173,21 @@ material_server <- function(id) {
                 scale_fill_brewer(palette = "Set2")
         })
         
-        # KPI-Plot: Materialanzahl, LT/Unit, Ø-Abweichung, Anteil pünktlich (mit Wert)
+        # KPI-Plot mit Werten IN den Balken
         output$abc_kpi_plot <- renderPlot({
-            abc_long <- abc_summary %>%
-                select(ABC_Klasse, Anzahl_Materialien, Ø_LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
+            abc_long3 <- abc_summary %>%
+                select(
+                    ABC_Klasse, Anzahl_Materialien, `Ø_LT_pro_Unit [s]`, `Ø_Abweichung [s]` = Ø_Abweichung, Anteil_pünktlich
+                ) %>%
                 pivot_longer(
                     cols = -ABC_Klasse,
                     names_to = "Kennzahl",
                     values_to = "Wert"
-                ) %>%
-                mutate(Wert = as.numeric(Wert))
-            
-            ggplot(abc_long, aes(x = ABC_Klasse, y = Wert, fill = ABC_Klasse)) +
+                )
+            ggplot(abc_long3, aes(x = ABC_Klasse, y = as.numeric(Wert), fill = ABC_Klasse)) +
                 geom_bar(stat = "identity", position = "dodge") +
                 geom_text(aes(label = format(round(Wert, 2), big.mark = ".", decimal.mark = ",")),
-                          vjust = -0.5, size = 4) +
+                          position = position_dodge(width = 0.9), vjust = 1, color = "white", fontface = "bold", size = 5) +
                 facet_wrap(~Kennzahl, scales = "free_y") +
                 labs(
                     title = "ABC-Klassen: Materialanzahl, LT/Unit, Ø-Abweichung, Anteil pünktlich",
