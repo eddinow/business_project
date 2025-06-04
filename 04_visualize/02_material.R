@@ -11,7 +11,6 @@ library(shinyBS)
 #source("02_model/create_material_overview.R")
 source("02_model/kpis_material.R")
 
-
 # In material_ui kommt der ui-teil des shinydashboards. 
 #Den namen materia_ui nicht ändern!
 
@@ -20,53 +19,46 @@ material_ui <- function(id) {
     ns <- NS(id)
     tagList(
         h1("Materialnummern-Analyse", style = "font-weight: bold; margin-bottom: 40px;"),
-        
         fluidRow(
             infoBoxOutput(ns("material_servicelevel")),
             infoBoxOutput(ns("material_avg_delay")),
             infoBoxOutput(ns("material_avg_lt"))
         ),
-        
         fluidRow(
-            box(title = "ABC-Klassen Übersicht", width = 12, status = "primary", solidHeader = TRUE,
+            box(
+                title = "ABC-Klassen Übersicht", width = 12, status = "primary", solidHeader = TRUE,
                 DTOutput(ns("abc_table")),
                 br(),
                 selectInput(ns("abc_select"), "ABC-Klasse auswählen:", choices = c("A", "B", "C"), selected = "A"),
                 DTOutput(ns("abc_class_table"))
             )
         ),
-        
         fluidRow(
-            box(title = "Gesamtmenge je ABC-Klasse", width = 12, status = "success", solidHeader = TRUE,
+            box(
+                title = "Gesamtmenge je ABC-Klasse", width = 12, status = "success", solidHeader = TRUE,
                 plotOutput(ns("abc_barplot"))
             )
         ),
-        
         fluidRow(
-            box(title = "Kennzahlenvergleich zwischen ABC-Klassen", width = 12, status = "info", solidHeader = TRUE,
+            box(
+                title = "Kennzahlenvergleich zwischen ABC-Klassen", width = 12, status = "info", solidHeader = TRUE,
                 plotOutput(ns("abc_kpi_plot"))
             )
         )
     )
 }
 
+
 # Server-Modul-Funktion für Materialnummern
 material_server <- function(id) {
     moduleServer(id, function(input, output, session) {
-        
-        # Infobox: Ø Servicelevel
+        # Infobox: Overall Servicelevel
         output$material_servicelevel <- renderInfoBox({
             sl <- mean(materialnummer_overview$Anteil_pünktlich, na.rm = TRUE)
-            sl_percent <- round(sl * 100)
-            color <- if (sl_percent < 70) {
-                "red"
-            } else if (sl_percent < 95) {
-                "orange"
-            } else {
-                "green"
-            }
+            sl_percent <- round(sl * 100, 2)
+            color <- if (sl_percent < 70) "red" else if (sl_percent < 95) "orange" else "green"
             infoBox(
-                title = "Ø Servicelevel",
+                title = "Overall Servicelevel",
                 value = paste0(sl_percent, "%"),
                 icon = icon("percent"),
                 color = color,
@@ -74,11 +66,11 @@ material_server <- function(id) {
             )
         })
         
-        # Infobox: Ø Abweichung
+        # Infobox: Avg. Delay/Unit [s]
         output$material_avg_delay <- renderInfoBox({
             avg_delay <- round(mean(materialnummer_overview$Ø_Abweichung, na.rm = TRUE), 2)
             infoBox(
-                title = "Ø Abweichung [d]",
+                title = "Avg. Delay/Unit [d]",
                 value = avg_delay,
                 icon = icon("hourglass-half"),
                 color = "light-blue",
@@ -86,11 +78,11 @@ material_server <- function(id) {
             )
         })
         
-        # Infobox: Ø Lead Time
+        # Infobox: Avg LT/Unit [s]
         output$material_avg_lt <- renderInfoBox({
-            avg_lt <- round(mean(materialnummer_overview$Ø_LT, na.rm = TRUE), 2)
+            avg_lt <- round(mean(materialnummer_overview$Ø_LT_pro_Unit, na.rm = TRUE), 2)
             infoBox(
-                title = "Ø Lead Time [d]",
+                title = "Avg LT/Unit [d]",
                 value = avg_lt,
                 icon = icon("clock"),
                 color = "light-blue",
@@ -98,7 +90,7 @@ material_server <- function(id) {
             )
         })
         
-        # Übersichtstabelle der ABC-Klassen
+        # ABC-Summary Tabelle (ohne kum_anteil, ohne ABC_Klasse)
         output$abc_table <- renderDT({
             datatable(
                 abc_summary,
@@ -112,7 +104,21 @@ material_server <- function(id) {
         filtered_materials <- reactive({
             req(input$abc_select)
             materialnummer_overview %>%
-                filter(ABC_Klasse == input$abc_select)
+                filter(ABC_Klasse == input$abc_select) %>%
+                select(
+                    materialnummer, Anzahl, Gesamtmenge, Sollmenge, 
+                    Ø_Abweichung, Ø_LT_pro_Unit, Anteil_pünktlich, Hauptabfolge
+                ) %>%
+                rename(
+                    `Materialnummer` = materialnummer,
+                    `# Aufträge` = Anzahl,
+                    `Gelieferte Menge` = Gesamtmenge,
+                    `Sollmenge` = Sollmenge,
+                    `Ø Abweichung [d]` = Ø_Abweichung,
+                    `Ø LT/Unit [d]` = Ø_LT_pro_Unit,
+                    `Servicelevel` = Anteil_pünktlich,
+                    `Prozessschritte` = Hauptabfolge
+                )
         })
         
         output$abc_class_table <- renderDT({
@@ -137,20 +143,20 @@ material_server <- function(id) {
                 scale_fill_brewer(palette = "Set2")
         })
         
-        # KPI-Plot: Materialanzahl, LT/Schritt, Ø-Abweichung, Anteil pünktlich
+        # KPI-Plot: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel
         output$abc_kpi_plot <- renderPlot({
-            abc_long3 <- abc_summary %>%
-                select(ABC_Klasse, Anzahl_Materialien, LT_pro_Schritt, Ø_Abweichung, Anteil_pünktlich) %>%
+            abc_long <- abc_summary %>%
+                select(ABC_Klasse, Anzahl_Materialien, Ø_LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
                 pivot_longer(
                     cols = -ABC_Klasse, 
                     names_to = "Kennzahl", 
                     values_to = "Wert"
                 )
-            ggplot(abc_long3, aes(x = ABC_Klasse, y = Wert, fill = ABC_Klasse)) +
+            ggplot(abc_long, aes(x = ABC_Klasse, y = Wert, fill = ABC_Klasse)) +
                 geom_bar(stat = "identity", position = "dodge") +
                 facet_wrap(~Kennzahl, scales = "free_y") +
                 labs(
-                    title = "ABC-Klassen: Materialanzahl, LT/Schritt, Ø-Abweichung, Anteil pünktlich",
+                    title = "ABC-Klassen: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel",
                     x = "ABC-Klasse",
                     y = "Wert"
                 ) +
