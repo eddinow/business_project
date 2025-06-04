@@ -1,7 +1,5 @@
 library(dplyr)
 library(readxl)
-library(stringr)
-library(readr)
 
 # Daten einlesen
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
@@ -24,7 +22,7 @@ materialnummer_overview <- auftraege_lt_unit %>%
         Sollmenge = sum(sollmenge, na.rm = TRUE),
         Ø_Abweichung = round(mean(abweichung_unit, na.rm = TRUE), 2),
         Ø_LT_pro_Unit = round(mean(lt_ist_order, na.rm = TRUE), 2),
-        Anteil_pünktlich = round(mean(abweichung_unit <= 0, na.rm = TRUE), 2)
+        Anteil_pünktlich = mean(abweichung_unit <= 0, na.rm = TRUE) # KEIN round, Anteil für Prozent später
     ) %>%
     left_join(material_abfolge, by = "materialnummer") %>%
     ungroup()
@@ -51,6 +49,6 @@ abc_summary <- materialnummer_overview %>%
         Gesamtsollmenge = sum(Sollmenge, na.rm = TRUE),
         Ø_Abweichung = round(mean(Ø_Abweichung, na.rm = TRUE), 2),
         Ø_LT_pro_Unit = round(mean(Ø_LT_pro_Unit, na.rm = TRUE), 2),
-        Anteil_pünktlich = round(mean(Anteil_pünktlich, na.rm = TRUE), 2)
+        Anteil_pünktlich = mean(Anteil_pünktlich, na.rm = TRUE) # KEIN round!
     ) %>%
     ungroup()

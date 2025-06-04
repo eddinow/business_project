@@ -49,7 +49,6 @@ material_ui <- function(id) {
 }
 
 
-
 # Server-Modul-Funktion für Materialnummern
 material_server <- function(id) {
     moduleServer(id, function(input, output, session) {
@@ -57,7 +56,7 @@ material_server <- function(id) {
         # Infobox: Overall Servicelevel
         output$material_servicelevel <- renderInfoBox({
             sl <- mean(materialnummer_overview$Anteil_pünktlich, na.rm = TRUE)
-            sl_percent <- round(sl * 100, 2)
+            sl_percent <- sl * 100
             color <- if (sl_percent < 70) "red" else if (sl_percent < 95) "orange" else "green"
             infoBox(
                 title = "Overall Servicelevel",
@@ -92,22 +91,29 @@ material_server <- function(id) {
             )
         })
         
-        # ABC-Summary Tabelle (ohne kum_anteil, ohne ABC_Klasse im Frontend)
+        # ABC-Summary Tabelle **MIT** ABC-Klasse-Spalte!
         output$abc_table <- renderDT({
             abc_summary_display <- abc_summary %>%
-                select(-ABC_Klasse) %>%
-                rename(
+                mutate(
+                    Servicelevel = Anteil_pünktlich * 100,
+                    Servicelevel = paste0(formatC(Servicelevel, format="f", digits=2, decimal.mark = ","), "%")
+                ) %>%
+                select(
+                    "ABC-Klasse" = ABC_Klasse,
                     "Materialanzahl" = Anzahl_Materialien,
                     "Gesamtanzahl Aufträge" = Gesamt_Anzahl,
                     "Gesamtmenge" = Gesamtmenge,
                     "Gesamtsollmenge" = Gesamtsollmenge,
                     "Ø Abweichung [s]" = Ø_Abweichung,
                     "Ø LT/Unit [s]" = Ø_LT_pro_Unit,
-                    "Servicelevel" = Anteil_pünktlich
+                    "Servicelevel"
                 ) %>%
                 mutate(
-                    across(where(is.numeric), ~formatC(.x, format="f", big.mark=".", decimal.mark = ",", digits=2)),
-                    Servicelevel = paste0(formatC(as.numeric(Servicelevel) * 100, format="f", digits=2, decimal.mark = ","), "%")
+                    across(
+                        c("Materialanzahl", "Gesamtanzahl Aufträge", "Gesamtmenge", "Gesamtsollmenge",
+                          "Ø Abweichung [s]", "Ø LT/Unit [s]"),
+                        ~formatC(.x, format="f", big.mark=".", decimal.mark = ",", digits=2)
+                    )
                 )
             
             datatable(
@@ -174,7 +180,7 @@ material_server <- function(id) {
         output$abc_kpi_plot <- renderPlot({
             abc_long <- abc_summary %>%
                 select(ABC_Klasse, Anzahl_Materialien, Ø_LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
-                pivot_longer(
+                tidyr::pivot_longer(
                     cols = -ABC_Klasse,
                     names_to = "Kennzahl",
                     values_to = "Wert"
@@ -184,11 +190,11 @@ material_server <- function(id) {
                         Kennzahl == "Anteil_pünktlich" ~ paste0(formatC(Wert * 100, format="f", digits=2, decimal.mark = ","), "%"),
                         TRUE ~ formatC(Wert, format="f", big.mark=".", decimal.mark = ",", digits=2)
                     ),
-                    Kennzahl = recode(Kennzahl,
-                                      "Anzahl_Materialien" = "Materialanzahl",
-                                      "Ø_LT_pro_Unit" = "Ø LT/Unit [s]",
-                                      "Ø_Abweichung" = "Ø Abweichung [s]",
-                                      "Anteil_pünktlich" = "Servicelevel"
+                    Kennzahl = dplyr::recode(Kennzahl,
+                                             "Anzahl_Materialien" = "Materialanzahl",
+                                             "Ø_LT_pro_Unit" = "Ø LT/Unit [s]",
+                                             "Ø_Abweichung" = "Ø Abweichung [s]",
+                                             "Anteil_pünktlich" = "Servicelevel"
                     )
                 )
             
