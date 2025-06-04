@@ -72,11 +72,24 @@ workflows_ui <- function(id) {
         fluidRow(
             box(title = "Lead Times", width = 12, status = "primary", solidHeader = FALSE,
                 div(
-                    tags$h4("Lead Time nach Sollmenge [d]", style = "font-weight: bold; font-size: 16px;"),
+                    tags$h4(
+                        "Lead Time nach Sollmenge [d]", 
+                        icon("info-circle", id = ns("info_leadtimes")),
+                        style = "font-weight: bold; font-size: 16px;"),
+                    
+                    bsPopover(
+                        id = ns("info_leadtimes"),
+                        title = "Was wird hier gezeigt?",
+                        content = "Ist- und Soll-LT für jeden Vorgang des ausgewählten Workflows in der Einheit LT/unit [s]",
+                        placement = "right",
+                        trigger = "hover"
+                    ),
                     plotlyOutput(ns("workflow_plot")),
                     br()
                 ),
                 
+                br(),
+                br(),
                 br(),
                 
                 
@@ -147,6 +160,9 @@ workflows_ui <- function(id) {
                     )
                 ),
                 
+                br(),
+                br(),
+                br(),
 
                 fluidRow(
                     column(
