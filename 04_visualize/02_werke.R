@@ -5,7 +5,6 @@ library(plotly)
 library(dplyr)
 library(tidyr)
 
-# KPI-Daten laden
 source("02_model/kpis_werke.R", local = TRUE)
 
 werke_ui <- function(id) {
@@ -86,13 +85,10 @@ werke_server <- function(id) {
         
         output$werke_table <- renderDT({
             df <- daten_gefiltert() %>%
-                select(
-                    vorgangsfolge, Anzahl,
-                    Median_LT,
-                    Durchschnitt_Abweichung,
-                    Average_Delay,
-                    Servicelevel_prozent
-                )
+                dplyr::select(dplyr::any_of(c(
+                    "vorgangsfolge", "Anzahl", "Median_LT",
+                    "Durchschnitt_Abweichung", "Average_Delay", "Servicelevel_prozent"
+                )))
             
             datatable(
                 df,
@@ -115,17 +111,17 @@ werke_server <- function(id) {
             df <- daten_gefiltert()
             req(nrow(df) > 0)
             
-            top_row <- df[which.max(df$Anzahl), ]
+            top <- df[which.max(df$Anzahl), ]
+            short <- df[which.min(df$Median_LT), ]
+            low_tt <- df[which.min(df$Termintreue_prozent), ]
             
             HTML(paste0(
-                "<p><strong>Häufigste Vorgangsfolge:</strong> ", top_row$vorgangsfolge,
-                " (", top_row$Anteil_prozent, "% Anteil)</p>",
-                "<p><strong>Kürzeste Median LT:</strong> ",
-                df$vorgangsfolge[which.min(df$Median_LT)],
-                " (", min(df$Median_LT, na.rm = TRUE), " Tage)</p>",
-                "<p><strong>Niedrigste Termintreue:</strong> ",
-                df$vorgangsfolge[which.min(df$Termintreue_prozent)],
-                " (", min(df$Termintreue_prozent, na.rm = TRUE), "%)</p>"
+                "<p><strong>Häufigste Vorgangsfolge:</strong> ", top$vorgangsfolge,
+                " (", top$Anzahl, " Aufträge, ", top$Anteil_prozent, "% Anteil)</p>",
+                "<p><strong>Kürzeste Median LT:</strong> ", short$vorgangsfolge, 
+                " (", short$Median_LT, " Tage)</p>",
+                "<p><strong>Niedrigste Termintreue:</strong> ", low_tt$vorgangsfolge, 
+                " (", low_tt$Termintreue_prozent, "%)</p>"
             ))
         })
         
@@ -144,9 +140,12 @@ werke_server <- function(id) {
         
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert() %>%
-                select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent, Servicelevel_prozent) %>%
-                pivot_longer(
-                    cols = c(Termintreue_prozent, Liefertreue_prozent, Servicelevel_prozent),
+                dplyr::select(dplyr::any_of(c(
+                    "vorgangsfolge",
+                    "Termintreue_prozent", "Liefertreue_prozent", "Servicelevel_prozent"
+                ))) %>%
+                tidyr::pivot_longer(
+                    cols = -vorgangsfolge,
                     names_to = "Treueart",
                     values_to = "Wert"
                 )
