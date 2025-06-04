@@ -61,16 +61,28 @@ planer_ui <- function(id) {
                         DTOutput(ns("perf_check_table")))
                 ),
                 
-                # Top Aufträge mit Verzögerung (als Chart)
+                # Zwei nebeneinander liegende Grafiken mit schlichter Paging-Leiste
                 fluidRow(
-                    box(title = "Top Aufträge mit Verzögerung", width = 12,
-                        plotlyOutput(ns("delay_plot"), height = "500px"))
-                ),
-                
-                # Top Aufträge mit frühzeitiger Fertigstellung (als Chart)
-                fluidRow(
-                    box(title = "Top Aufträge mit frühzeitiger Fertigstellung", width = 12,
-                        plotlyOutput(ns("early_plot"), height = "500px"))
+                    # Linke Grafik: Verzögerung
+                    box(
+                        title = "Top Aufträge mit Verzögerung",
+                        width = 6,
+                        status = "primary",
+                        solidHeader = TRUE,
+                        plotlyOutput(ns("delay_plot"), height = "350px"),
+                        # Schlichte Pager unter der Grafik
+                        uiOutput(ns("delay_pager"))
+                    ),
+                    # Rechte Grafik: Frühzeitige Fertigstellung
+                    box(
+                        title = "Top Aufträge mit frühzeitiger Fertigstellung",
+                        width = 6,
+                        status = "primary",
+                        solidHeader = TRUE,
+                        plotlyOutput(ns("early_plot"), height = "350px"),
+                        # Schlichte Pager unter der Grafik
+                        uiOutput(ns("early_pager"))
+                    )
                 )
             )
         )
@@ -80,6 +92,7 @@ planer_ui <- function(id) {
 # Server-Modul ----------------------------------------------------------------
 planer_server <- function(id) {
     moduleServer(id, function(input, output, session) {
+        ns <- session$ns
         
         # Übersichtstabelle
         output$planer_table <- renderDT({
@@ -140,7 +153,7 @@ planer_server <- function(id) {
             ggplotly(p, tooltip = "text")
         })
         
-        # Performance-Check Tabelle (kompletter Code wie zuvor)
+        # Performance-Check Tabelle
         output$perf_check_table <- renderDT({
             sel  <- input$planer_select
             df_s <- auftraege_lt_unit %>% filter(planer == sel)
@@ -174,7 +187,7 @@ planer_server <- function(id) {
             interp_del <- if (dev_del < 0) {
                 '<span style="color:green">Die durchschnittliche Verspätung des ausgewählten Planers liegt unter dem Durchschnitt der übrigen Planer</span>'
             } else if (dev_del == 0) {
-                'Die durchschnittliche Verspätung des ausgewählten Planers bewegt sich auf dem Niveau seiner Kollegen'
+                'Die durchschnittliche Verzögerung des ausgewählten Planers bewegt sich auf dem Niveau seiner Kollegen'
             } else {
                 '<span style="color:red">Der Planer weist im Vergleich zu seinen Kollegen eine überdurchschnittliche Verspätung auf</span>'
             }
@@ -231,7 +244,7 @@ planer_server <- function(id) {
                     round(oth_ops, 1),
                     round(oth_n, 1)
                 ),
-                `abweichung_unit vom Ø anderer Planer` = c(
+                `Abweichung vom Ø anderer Planer` = c(
                     round(dev_pct, 1),
                     round(dev_del, 1),
                     round(dev_ops, 1),
@@ -250,10 +263,81 @@ planer_server <- function(id) {
             )
         })
         
-        # Top 20 verspätete Aufträge als horizontale Bar-Chart
+        # Reactive Value für Paging (Verzögerung)
+        rv_delay_page <- reactiveVal(1)
+        # Reactive Value für Paging (Frühfertig)
+        rv_early_page <- reactiveVal(1)
+        
+        # Delay‐Pager UI (schlicht: zeigt nur Prev, "Page X of Y", Next)
+        output$delay_pager <- renderUI({
+            df_all <- df_planer() %>% filter(abweichung > 0)
+            total <- nrow(df_all)
+            if (total <= 10) return(NULL)
+            
+            pages <- ceiling(total / 10)
+            page  <- rv_delay_page()
+            
+            prev_disabled <- if (page == 1) "disabled" else NULL
+            next_disabled <- if (page == pages) "disabled" else NULL
+            
+            tags$div(
+                class = "pagination-container",
+                actionLink(ns("delay_prev"), "Previous", class = prev_disabled),
+                tags$span(paste0("  Page ", page, " of ", pages, "  "), class = "current-page"),
+                actionLink(ns("delay_next"), "Next", class = next_disabled),
+                style = "margin-top: 10px; text-align: center;"
+            )
+        })
+        
+        # Early‐Pager UI (schlicht: zeigt nur Prev, "Page X of Y", Next)
+        output$early_pager <- renderUI({
+            df_all <- df_planer() %>% filter(abweichung < 0)
+            total <- nrow(df_all)
+            if (total <= 10) return(NULL)
+            
+            pages <- ceiling(total / 10)
+            page  <- rv_early_page()
+            
+            prev_disabled <- if (page == 1) "disabled" else NULL
+            next_disabled <- if (page == pages) "disabled" else NULL
+            
+            tags$div(
+                class = "pagination-container",
+                actionLink(ns("early_prev"), "Previous", class = prev_disabled),
+                tags$span(paste0("  Page ", page, " of ", pages, "  "), class = "current-page"),
+                actionLink(ns("early_next"), "Next", class = next_disabled),
+                style = "margin-top: 10px; text-align: center;"
+            )
+        })
+        
+        # Beobachter für Delay‐Paging: Prev / Next
+        observeEvent(input$delay_prev, {
+            current <- rv_delay_page()
+            if (current > 1) rv_delay_page(current - 1)
+        })
+        observeEvent(input$delay_next, {
+            df_all <- df_planer() %>% filter(abweichung > 0)
+            pages <- ceiling(nrow(df_all) / 10)
+            current <- rv_delay_page()
+            if (current < pages) rv_delay_page(current + 1)
+        })
+        
+        # Beobachter für Early‐Paging: Prev / Next
+        observeEvent(input$early_prev, {
+            current <- rv_early_page()
+            if (current > 1) rv_early_page(current - 1)
+        })
+        observeEvent(input$early_next, {
+            df_all <- df_planer() %>% filter(abweichung < 0)
+            pages <- ceiling(nrow(df_all) / 10)
+            current <- rv_early_page()
+            if (current < pages) rv_early_page(current + 1)
+        })
+        
+        # Top verspätete Aufträge: horizontale Balken mit korrekter Sortierung und einheitlichem Abstand
         output$delay_plot <- renderPlotly({
-            df <- df_planer() %>% filter(abweichung > 0)
-            if (nrow(df) == 0) {
+            df_all <- df_planer() %>% filter(abweichung > 0)
+            if (nrow(df_all) == 0) {
                 return(
                     plotly_empty(type = "scatter") %>%
                         layout(annotations = list(
@@ -262,31 +346,82 @@ planer_server <- function(id) {
                         ))
                 )
             }
-            df <- df %>%
+            
+            # Global sortieren nach absteigender Verzögerung    
+            df_sorted <- df_all %>%
                 arrange(desc(abweichung)) %>%
-                slice_head(n = 20) %>%
-                # Levels reversed damit größte Verzögerung oben steht
-                mutate(auftrag = factor(auftragsnummer, levels = rev(auftragsnummer)))
+                mutate(
+                    abs_dev = abweichung,  # positive Werte bleiben als solche
+                    label_text = paste0(auftragsnummer, " | ", materialnummer)
+                )
             
-            p <- ggplot(df, aes(
-                x = abweichung,
-                y = auftrag,
-                text = paste("Materialnummer:", materialnummer)
-            )) +
-                geom_col(fill = "grey") +
-                # Label dezent innen am Balkenende (etwas weiter nach links)
-                geom_text(aes(label = abweichung), hjust = 1, nudge_x = -0.5) +
-                labs(x = "Verzögerung (Tage)", y = "Auftrag") +
-                theme_minimal()
+            # Faktorlevels exakt in dieser Reihenfolge (erste Zeile = höchste Verzögerung)
+            global_levels <- df_sorted$label_text
             
-            ggplotly(p, tooltip = "text") %>%
-                layout(margin = list(l = 150, r = 50))
+            max_val   <- max(df_sorted$abs_dev, na.rm = TRUE)
+            pad       <- max_val * 0.1            # 10% Puffer links und rechts
+            axis_min  <- -pad
+            axis_max  <- max_val + pad
+            
+            # Paging: jeweils 10 Zeilen
+            page    <- rv_delay_page()
+            start   <- (page - 1) * 10 + 1
+            end_idx <- min(start + 9, nrow(df_sorted))
+            df_page <- df_sorted %>% slice(start:end_idx)
+            
+            # Y-Faktor basierend auf global_levels
+            df_page <- df_page %>%
+                mutate(y_factor = factor(label_text, levels = global_levels))
+            
+            # Hintergrund-Balken (hellgrau) und blauer Balken
+            fig <- plot_ly(
+                x = rep(max_val, nrow(df_page)),
+                y = df_page$y_factor,
+                type = 'bar',
+                orientation = 'h',
+                marker = list(color = 'lightgrey'),
+                showlegend = FALSE,
+                hoverinfo = 'none'
+            ) %>%
+                add_trace(
+                    x = df_page$abs_dev,
+                    y = df_page$y_factor,
+                    type = 'bar',
+                    orientation = 'h',
+                    marker = list(color = '#1f77b4'),
+                    text = df_page$abs_dev,
+                    textposition = 'outside',                     # Zahl rechts außen
+                    textfont = list(color = 'black', size = 12),  # schwarze Schrift
+                    showlegend = FALSE,
+                    hoverinfo = 'none'
+                ) %>%
+                layout(
+                    barmode = 'overlay',
+                    bargap = 0.6,
+                    xaxis = list(
+                        title = "Verzögerung (Tage)",
+                        showgrid = FALSE,
+                        zeroline = FALSE,
+                        showticklabels = FALSE,
+                        range = c(axis_min, axis_max)
+                    ),
+                    yaxis = list(
+                        title = "Auftrag | Materialnummer",
+                        autorange = 'reversed',
+                        showgrid = FALSE,
+                        zeroline = FALSE,
+                        tickfont = list(size = 12)
+                    ),
+                    margin = list(l = 180, r = 20, t = 30, b = 30)
+                )
+            
+            fig
         })
         
-        # Top 20 frühzeitige Fertigstellungen als horizontale Bar-Chart
+        # Top frühzeitige Fertigstellungen: horizontale Balken mit korrekter Sortierung und einheitlichem Abstand
         output$early_plot <- renderPlotly({
-            df <- df_planer() %>% filter(abweichung < 0)
-            if (nrow(df) == 0) {
+            df_all <- df_planer() %>% filter(abweichung < 0)
+            if (nrow(df_all) == 0) {
                 return(
                     plotly_empty(type = "scatter") %>%
                         layout(annotations = list(
@@ -295,25 +430,76 @@ planer_server <- function(id) {
                         ))
                 )
             }
-            df <- df %>%
+            
+            # Global sortieren nach aufsteigend (negativster Wert zuerst)
+            df_sorted <- df_all %>%
                 arrange(abweichung) %>%
-                slice_head(n = 20) %>%
-                # Levels reversed damit früheste Abschlüsse oben stehen
-                mutate(auftrag = factor(auftragsnummer, levels = rev(auftragsnummer)))
+                mutate(
+                    abs_dev = abs(abweichung), 
+                    label_text = paste0(auftragsnummer, " | ", materialnummer)
+                )
             
-            p <- ggplot(df, aes(
-                x = abweichung,
-                y = auftrag,
-                text = paste("Materialnummer:", materialnummer)
-            )) +
-                geom_col(fill = "grey") +
-                # Label dezent innen am Balkenende (etwas weiter nach rechts)
-                geom_text(aes(label = abweichung), hjust = 0, nudge_x = 0.5) +
-                labs(x = "Frühzeitige Fertigstellung (Tage)", y = "Auftrag") +
-                theme_minimal()
+            # Faktorlevels exakt in dieser Reihenfolge (erste Zeile = negativster Wert)
+            global_levels <- df_sorted$label_text
             
-            ggplotly(p, tooltip = "text") %>%
-                layout(margin = list(l = 150, r = 50))
+            max_val   <- max(df_sorted$abs_dev, na.rm = TRUE)
+            pad       <- max_val * 0.1             # 10% Puffer links und rechts
+            axis_min  <- -pad
+            axis_max  <- max_val + pad
+            
+            # Paging: jeweils 10 Zeilen
+            page    <- rv_early_page()
+            start   <- (page - 1) * 10 + 1
+            end_idx <- min(start + 9, nrow(df_sorted))
+            df_page <- df_sorted %>% slice(start:end_idx)
+            
+            # Y-Faktor basierend auf global_levels
+            df_page <- df_page %>%
+                mutate(y_factor = factor(label_text, levels = global_levels))
+            
+            # Hintergrund-Balken (hellgrau) und blauer Balken
+            fig <- plot_ly(
+                x = rep(max_val, nrow(df_page)),
+                y = df_page$y_factor,
+                type = 'bar',
+                orientation = 'h',
+                marker = list(color = 'lightgrey'),
+                showlegend = FALSE,
+                hoverinfo = 'none'
+            ) %>%
+                add_trace(
+                    x = df_page$abs_dev,
+                    y = df_page$y_factor,
+                    type = 'bar',
+                    orientation = 'h',
+                    marker = list(color = '#1f77b4'),
+                    text = df_page$abweichung,                 # negatives Label anzeigen
+                    textposition = 'outside',                  # Zahl rechts außen
+                    textfont = list(color = 'black', size = 12),# schwarze Schrift
+                    showlegend = FALSE,
+                    hoverinfo = 'none'
+                ) %>%
+                layout(
+                    barmode = 'overlay',
+                    bargap = 0.6,
+                    xaxis = list(
+                        title = "Frühzeitige Fertigstellung (Tage)",
+                        showgrid = FALSE,
+                        zeroline = FALSE,
+                        showticklabels = FALSE,
+                        range = c(axis_min, axis_max)
+                    ),
+                    yaxis = list(
+                        title = "Auftrag | Materialnummer",
+                        autorange = 'reversed',
+                        showgrid = FALSE,
+                        zeroline = FALSE,
+                        tickfont = list(size = 12)
+                    ),
+                    margin = list(l = 180, r = 20, t = 30, b = 30)
+                )
+            
+            fig
         })
         
     })
