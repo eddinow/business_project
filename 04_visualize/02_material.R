@@ -19,31 +19,29 @@ material_ui <- function(id) {
     ns <- NS(id)
     tagList(
         h1("Materialnummern-Analyse", style = "font-weight: bold; margin-bottom: 40px;"),
-        
         fluidRow(
             infoBoxOutput(ns("material_servicelevel")),
             infoBoxOutput(ns("material_avg_delay")),
             infoBoxOutput(ns("material_avg_lt"))
         ),
-        
         fluidRow(
-            box(title = "ABC-Klassen Übersicht", width = 12, status = "primary", solidHeader = TRUE,
+            box(
+                title = "ABC-Klassen Übersicht", width = 12, status = "primary", solidHeader = TRUE,
                 DTOutput(ns("abc_table")),
                 br(),
                 selectInput(ns("abc_select"), "ABC-Klasse auswählen:", choices = c("A", "B", "C"), selected = "A"),
-                downloadButton(ns("download_abc_class"), "Herunterladen (CSV)"),
                 DTOutput(ns("abc_class_table"))
             )
         ),
-        
         fluidRow(
-            box(title = "Gesamtmenge je ABC-Klasse", width = 12, status = "success", solidHeader = TRUE,
+            box(
+                title = "Gesamtmenge je ABC-Klasse", width = 12, status = "success", solidHeader = TRUE,
                 plotOutput(ns("abc_barplot"))
             )
         ),
-        
         fluidRow(
-            box(title = "Kennzahlenvergleich zwischen ABC-Klassen", width = 12, status = "info", solidHeader = TRUE,
+            box(
+                title = "Kennzahlenvergleich zwischen ABC-Klassen", width = 12, status = "info", solidHeader = TRUE,
                 plotOutput(ns("abc_kpi_plot"))
             )
         )
@@ -54,9 +52,9 @@ material_ui <- function(id) {
 # Server-Modul-Funktion für Materialnummern
 material_server <- function(id) {
     moduleServer(id, function(input, output, session) {
-        
+        # Infobox: Overall Servicelevel
         output$material_servicelevel <- renderInfoBox({
-            sl <- mean(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE)
+            sl <- mean(materialnummer_overview$Anteil_pünktlich, na.rm = TRUE)
             sl_percent <- round(sl * 100, 2)
             color <- if (sl_percent < 70) "red" else if (sl_percent < 95) "orange" else "green"
             infoBox(
@@ -68,10 +66,11 @@ material_server <- function(id) {
             )
         })
         
+        # Infobox: Avg. Delay/Unit [s]
         output$material_avg_delay <- renderInfoBox({
-            avg_delay <- round(median(auftraege_lt_unit$abweichung_unit, na.rm = TRUE), 2)
+            avg_delay <- round(mean(materialnummer_overview$Ø_Abweichung, na.rm = TRUE), 2)
             infoBox(
-                title = "Avg. Delay/Unit [s]",
+                title = "Avg. Delay/Unit [d]",
                 value = avg_delay,
                 icon = icon("hourglass-half"),
                 color = "light-blue",
@@ -79,10 +78,11 @@ material_server <- function(id) {
             )
         })
         
+        # Infobox: Avg LT/Unit [s]
         output$material_avg_lt <- renderInfoBox({
-            avg_lt <- round(median(auftraege_lt_unit$lt_ist_order, na.rm = TRUE), 2)
+            avg_lt <- round(mean(materialnummer_overview$Ø_LT_pro_Unit, na.rm = TRUE), 2)
             infoBox(
-                title = "Avg LT/Unit [s]",
+                title = "Avg LT/Unit [d]",
                 value = avg_lt,
                 icon = icon("clock"),
                 color = "light-blue",
@@ -90,6 +90,7 @@ material_server <- function(id) {
             )
         })
         
+        # ABC-Summary Tabelle (ohne kum_anteil, ohne ABC_Klasse)
         output$abc_table <- renderDT({
             datatable(
                 abc_summary,
@@ -99,13 +100,24 @@ material_server <- function(id) {
             )
         })
         
+        # Reaktive Tabelle für gewählte ABC-Klasse
         filtered_materials <- reactive({
             req(input$abc_select)
             materialnummer_overview %>%
                 filter(ABC_Klasse == input$abc_select) %>%
                 select(
                     materialnummer, Anzahl, Gesamtmenge, Sollmenge, 
-                    Ø_Abweichung, Ø_LT, Anteil_pünktlich, LT_pro_Unit, Prozesstiefe, prozessschritte
+                    Ø_Abweichung, Ø_LT_pro_Unit, Anteil_pünktlich, Hauptabfolge
+                ) %>%
+                rename(
+                    `Materialnummer` = materialnummer,
+                    `# Aufträge` = Anzahl,
+                    `Gelieferte Menge` = Gesamtmenge,
+                    `Sollmenge` = Sollmenge,
+                    `Ø Abweichung [d]` = Ø_Abweichung,
+                    `Ø LT/Unit [d]` = Ø_LT_pro_Unit,
+                    `Servicelevel` = Anteil_pünktlich,
+                    `Prozessschritte` = Hauptabfolge
                 )
         })
         
@@ -118,15 +130,7 @@ material_server <- function(id) {
             )
         })
         
-        output$download_abc_class <- downloadHandler(
-            filename = function() {
-                paste0("materialnummer_klasse_", input$abc_select, "_", Sys.Date(), ".csv")
-            },
-            content = function(file) {
-                write.csv(filtered_materials(), file, row.names = FALSE)
-            }
-        )
-        
+        # Barplot: Gesamtmenge je ABC-Klasse
         output$abc_barplot <- renderPlot({
             ggplot(abc_summary, aes(x = ABC_Klasse, y = Gesamtmenge, fill = ABC_Klasse)) +
                 geom_bar(stat = "identity") +
@@ -139,19 +143,20 @@ material_server <- function(id) {
                 scale_fill_brewer(palette = "Set2")
         })
         
+        # KPI-Plot: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel
         output$abc_kpi_plot <- renderPlot({
-            abc_long3 <- abc_summary %>%
-                select(ABC_Klasse, Anzahl_Materialien, LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
+            abc_long <- abc_summary %>%
+                select(ABC_Klasse, Anzahl_Materialien, Ø_LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
                 pivot_longer(
                     cols = -ABC_Klasse, 
                     names_to = "Kennzahl", 
                     values_to = "Wert"
                 )
-            ggplot(abc_long3, aes(x = ABC_Klasse, y = Wert, fill = ABC_Klasse)) +
+            ggplot(abc_long, aes(x = ABC_Klasse, y = Wert, fill = ABC_Klasse)) +
                 geom_bar(stat = "identity", position = "dodge") +
                 facet_wrap(~Kennzahl, scales = "free_y") +
                 labs(
-                    title = "ABC-Klassen: Materialanzahl, LT/Unit, Ø-Abweichung, Anteil pünktlich",
+                    title = "ABC-Klassen: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel",
                     x = "ABC-Klasse",
                     y = "Wert"
                 ) +

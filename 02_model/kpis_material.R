@@ -14,9 +14,7 @@ material_abfolge <- all_data_finalized %>%
     summarise(Anzahl = n(), .groups = "drop") %>%
     group_by(materialnummer) %>%
     slice_max(order_by = Anzahl, n = 1, with_ties = FALSE) %>%
-    ungroup()
-
-str(material_abfolge)
+    dplyr::select(materialnummer, Hauptabfolge = vorgangsfolge)
 
 # Materialnummer-Übersicht auf Unit-Basis
 materialnummer_overview <- auftraege_lt_unit %>%
@@ -49,6 +47,7 @@ abc_summary <- materialnummer_overview %>%
     group_by(ABC_Klasse) %>%
     summarise(
         Anzahl_Materialien = n(),
+        Gesamt_Anzahl = sum(Anzahl, na.rm = TRUE),
         Gesamtmenge = sum(Gesamtmenge, na.rm = TRUE),
         Gesamtsollmenge = sum(Sollmenge, na.rm = TRUE),
         Ø_Abweichung = round(mean(Ø_Abweichung, na.rm = TRUE), 2),
