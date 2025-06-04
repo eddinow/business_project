@@ -3,6 +3,7 @@ library(DT)
 library(ggplot2)
 library(plotly)
 
+# KPI-Daten laden
 source("02_model/kpis_linie.R", local = TRUE)
 
 linien_ui <- function(id) {
@@ -33,26 +34,10 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "Median Lead Time je Vorgangsfolge",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("lt_plot"))
-            )
-        ),
-        fluidRow(
-            box(
                 title = "Anteil der Vorgangsfolgen (Donut Chart)",
                 width = 12,
                 solidHeader = TRUE,
                 plotlyOutput(ns("anteil_donut"))
-            )
-        ),
-        fluidRow(
-            box(
-                title = "Verspätung je Vorgangsfolge",
-                width = 12,
-                solidHeader = TRUE,
-                plotlyOutput(ns("plot_abweichung"))
             )
         ),
         fluidRow(
@@ -65,11 +50,10 @@ linien_ui <- function(id) {
         ),
         fluidRow(
             box(
-                title = "🚨 Bottleneck: Höchste Ø Abweichung",
+                title = "Durchschnittliche Liefermenge je Vorgangsfolge",
                 width = 12,
-                status = "danger",
                 solidHeader = TRUE,
-                htmlOutput(ns("bottleneck_text"))
+                plotlyOutput(ns("plot_liefermenge"))
             )
         )
     )
@@ -85,25 +69,15 @@ linien_server <- function(id) {
         })
         
         output$linien_table <- renderDT({
+            df <- daten_gefiltert() %>%
+                select(vorgangsfolge, fertigungslinie, Anzahl, Median_LT, Abweichung)
+            
             datatable(
-                daten_gefiltert(),
+                df,
                 options = list(pageLength = 10, scrollX = TRUE),
                 rownames = FALSE,
                 class = "stripe hover cell-border"
             )
-        })
-        
-        output$lt_plot <- renderPlotly({
-            df <- daten_gefiltert()
-            p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, Median_LT),
-                y = Median_LT
-            )) +
-                geom_col(fill = "#2C3E50") +
-                coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Median Lead Time (Tage)") +
-                theme_minimal()
-            ggplotly(p)
         })
         
         output$anteil_donut <- renderPlotly({
@@ -111,26 +85,13 @@ linien_server <- function(id) {
             plot_ly(
                 data = df,
                 labels = ~paste0(vorgangsfolge, " (", Anteil_prozent, "%)"),
-                values = ~Anzahl,
+                values = ~Anteil_prozent,
                 type = "pie",
                 textposition = "inside",
                 textinfo = "label+percent",
                 hole = 0.5
             ) %>%
-                layout(title = "Verteilung der Vorgangsfolgen")
-        })
-        
-        output$plot_abweichung <- renderPlotly({
-            df <- daten_gefiltert()
-            p <- ggplot(df, aes(
-                x = reorder(vorgangsfolge, Abweichung),
-                y = Abweichung
-            )) +
-                geom_col(fill = "#E74C3C") +
-                coord_flip() +
-                labs(x = "Vorgangsfolge", y = "Ø Abweichung (Tage)") +
-                theme_minimal()
-            ggplotly(p)
+                layout(title = "Anteil je Vorgangsfolge")
         })
         
         output$plot_treue <- renderPlotly({
@@ -141,28 +102,31 @@ linien_server <- function(id) {
                     names_to = "Treueart",
                     values_to = "Wert"
                 )
+            
             p <- ggplot(df, aes(
                 x = reorder(vorgangsfolge, -Wert),
                 y = Wert,
                 fill = Treueart
             )) +
                 geom_bar(stat = "identity", position = "dodge") +
-                labs(x = "Vorgangsfolge", y = "Treue (%)", fill = "Treueart") +
+                labs(x = "Vorgangsfolge", y = "Quote (%)", fill = "Treueart") +
                 theme_minimal() +
                 theme(axis.text.x = element_text(angle = 45, hjust = 1))
+            
             ggplotly(p, tooltip = c("x", "y", "fill"))
         })
         
-        output$bottleneck_text <- renderUI({
+        output$plot_liefermenge <- renderPlotly({
             df <- daten_gefiltert()
-            req(nrow(df) > 0)
-            bottleneck <- df %>% filter(Abweichung == max(Abweichung, na.rm = TRUE)) %>% slice(1)
-            HTML(paste0(
-                "<strong>🚨 Engpass erkannt:</strong><br>",
-                "Vorgangsfolge <strong>", bottleneck$vorgangsfolge, "</strong> hat die höchste durchschnittliche Abweichung mit <strong>",
-                bottleneck$Abweichung, " Tagen</strong>."
-            ))
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, -Durchschnitt_Liefermenge),
+                y = Durchschnitt_Liefermenge
+            )) +
+                geom_col(fill = "#3498DB") +
+                labs(x = "Vorgangsfolge", y = "Ø Liefermenge") +
+                coord_flip() +
+                theme_minimal()
+            ggplotly(p)
         })
-        
     })
 }
