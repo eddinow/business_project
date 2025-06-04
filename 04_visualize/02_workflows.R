@@ -301,7 +301,7 @@ workflows_server <- function(id) {
                         TRUE                         ~ "red"
                     ),
                     ampel = paste0(
-                        "<div style='color: ", ampel_color, 
+                        "<div style='background-color: ", ampel_color, 
                         "; font-size: 20px; text-align: center;'>&#9679;</div>"
                     )
                 ) %>%
