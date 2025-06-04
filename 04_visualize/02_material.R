@@ -49,9 +49,11 @@ material_ui <- function(id) {
 }
 
 
+
 # Server-Modul-Funktion für Materialnummern
 material_server <- function(id) {
     moduleServer(id, function(input, output, session) {
+        
         # Infobox: Overall Servicelevel
         output$material_servicelevel <- renderInfoBox({
             sl <- mean(materialnummer_overview$Anteil_pünktlich, na.rm = TRUE)
@@ -59,7 +61,7 @@ material_server <- function(id) {
             color <- if (sl_percent < 70) "red" else if (sl_percent < 95) "orange" else "green"
             infoBox(
                 title = "Overall Servicelevel",
-                value = paste0(sl_percent, "%"),
+                value = paste0(formatC(sl_percent, format="f", digits=2, decimal.mark = ","), "%"),
                 icon = icon("percent"),
                 color = color,
                 fill = TRUE
@@ -68,10 +70,10 @@ material_server <- function(id) {
         
         # Infobox: Avg. Delay/Unit [s]
         output$material_avg_delay <- renderInfoBox({
-            avg_delay <- round(mean(materialnummer_overview$Ø_Abweichung, na.rm = TRUE), 2)
+            avg_delay <- mean(materialnummer_overview$Ø_Abweichung, na.rm = TRUE)
             infoBox(
-                title = "Avg. Delay/Unit [d]",
-                value = avg_delay,
+                title = "Avg. Delay/Unit [s]",
+                value = formatC(avg_delay, format="f", big.mark=".", decimal.mark = ",", digits=2),
                 icon = icon("hourglass-half"),
                 color = "light-blue",
                 fill = TRUE
@@ -80,20 +82,36 @@ material_server <- function(id) {
         
         # Infobox: Avg LT/Unit [s]
         output$material_avg_lt <- renderInfoBox({
-            avg_lt <- round(mean(materialnummer_overview$Ø_LT_pro_Unit, na.rm = TRUE), 2)
+            avg_lt <- mean(materialnummer_overview$Ø_LT_pro_Unit, na.rm = TRUE)
             infoBox(
-                title = "Avg LT/Unit [d]",
-                value = avg_lt,
+                title = "Avg LT/Unit [s]",
+                value = formatC(avg_lt, format="f", big.mark=".", decimal.mark = ",", digits=2),
                 icon = icon("clock"),
                 color = "light-blue",
                 fill = TRUE
             )
         })
         
-        # ABC-Summary Tabelle (ohne kum_anteil, ohne ABC_Klasse)
+        # ABC-Summary Tabelle (ohne kum_anteil, ohne ABC_Klasse im Frontend)
         output$abc_table <- renderDT({
+            abc_summary_display <- abc_summary %>%
+                select(-ABC_Klasse) %>%
+                rename(
+                    "Materialanzahl" = Anzahl_Materialien,
+                    "Gesamtanzahl Aufträge" = Gesamt_Anzahl,
+                    "Gesamtmenge" = Gesamtmenge,
+                    "Gesamtsollmenge" = Gesamtsollmenge,
+                    "Ø Abweichung [s]" = Ø_Abweichung,
+                    "Ø LT/Unit [s]" = Ø_LT_pro_Unit,
+                    "Servicelevel" = Anteil_pünktlich
+                ) %>%
+                mutate(
+                    across(where(is.numeric), ~formatC(.x, format="f", big.mark=".", decimal.mark = ",", digits=2)),
+                    Servicelevel = paste0(formatC(as.numeric(Servicelevel) * 100, format="f", digits=2, decimal.mark = ","), "%")
+                )
+            
             datatable(
-                abc_summary,
+                abc_summary_display,
                 options = list(pageLength = 5, scrollX = TRUE),
                 rownames = FALSE,
                 class = "stripe hover cell-border"
@@ -106,18 +124,26 @@ material_server <- function(id) {
             materialnummer_overview %>%
                 filter(ABC_Klasse == input$abc_select) %>%
                 select(
-                    materialnummer, Anzahl, Gesamtmenge, Sollmenge, 
+                    materialnummer, Anzahl, Gesamtmenge, Sollmenge,
                     Ø_Abweichung, Ø_LT_pro_Unit, Anteil_pünktlich, Hauptabfolge
                 ) %>%
                 rename(
-                    `Materialnummer` = materialnummer,
-                    `# Aufträge` = Anzahl,
-                    `Gelieferte Menge` = Gesamtmenge,
-                    `Sollmenge` = Sollmenge,
-                    `Ø Abweichung [d]` = Ø_Abweichung,
-                    `Ø LT/Unit [d]` = Ø_LT_pro_Unit,
-                    `Servicelevel` = Anteil_pünktlich,
-                    `Prozessschritte` = Hauptabfolge
+                    "Materialnummer" = materialnummer,
+                    "# Aufträge" = Anzahl,
+                    "Gelieferte Menge" = Gesamtmenge,
+                    "Sollmenge" = Sollmenge,
+                    "Ø Abweichung [s]" = Ø_Abweichung,
+                    "Ø LT/Unit [s]" = Ø_LT_pro_Unit,
+                    "Servicelevel" = Anteil_pünktlich,
+                    "Prozessschritte" = Hauptabfolge
+                ) %>%
+                mutate(
+                    "# Aufträge" = formatC(`# Aufträge`, format="f", big.mark=".", digits=0),
+                    `Gelieferte Menge` = formatC(`Gelieferte Menge`, format="f", big.mark=".", digits=0),
+                    Sollmenge = formatC(Sollmenge, format="f", big.mark=".", digits=0),
+                    `Ø Abweichung [s]` = formatC(`Ø Abweichung [s]`, format="f", big.mark=".", decimal.mark = ",", digits=2),
+                    `Ø LT/Unit [s]` = formatC(`Ø LT/Unit [s]`, format="f", big.mark=".", decimal.mark = ",", digits=2),
+                    Servicelevel = paste0(formatC(as.numeric(Servicelevel) * 100, format="f", digits=2, decimal.mark = ","), "%")
                 )
         })
         
@@ -130,38 +156,54 @@ material_server <- function(id) {
             )
         })
         
-        # Barplot: Gesamtmenge je ABC-Klasse
+        # Barplot: Gesamtmenge je ABC-Klasse mit Werten auf den Balken
         output$abc_barplot <- renderPlot({
             ggplot(abc_summary, aes(x = ABC_Klasse, y = Gesamtmenge, fill = ABC_Klasse)) +
                 geom_bar(stat = "identity") +
+                geom_text(aes(label = formatC(Gesamtmenge, format="f", big.mark=".", digits=0)), vjust = -0.2, size = 5) +
                 labs(
                     title = "Gesamtmenge je ABC-Klasse",
                     x = "ABC-Klasse",
                     y = "Gesamt gelieferte Menge"
                 ) +
-                theme_minimal() +
+                theme_minimal(base_size = 15) +
                 scale_fill_brewer(palette = "Set2")
         })
         
-        # KPI-Plot: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel
+        # KPI-Plot: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel mit Beschriftung
         output$abc_kpi_plot <- renderPlot({
             abc_long <- abc_summary %>%
                 select(ABC_Klasse, Anzahl_Materialien, Ø_LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
                 pivot_longer(
-                    cols = -ABC_Klasse, 
-                    names_to = "Kennzahl", 
+                    cols = -ABC_Klasse,
+                    names_to = "Kennzahl",
                     values_to = "Wert"
+                ) %>%
+                mutate(
+                    Wert_anzeige = case_when(
+                        Kennzahl == "Anteil_pünktlich" ~ paste0(formatC(Wert * 100, format="f", digits=2, decimal.mark = ","), "%"),
+                        TRUE ~ formatC(Wert, format="f", big.mark=".", decimal.mark = ",", digits=2)
+                    ),
+                    Kennzahl = recode(Kennzahl,
+                                      "Anzahl_Materialien" = "Materialanzahl",
+                                      "Ø_LT_pro_Unit" = "Ø LT/Unit [s]",
+                                      "Ø_Abweichung" = "Ø Abweichung [s]",
+                                      "Anteil_pünktlich" = "Servicelevel"
+                    )
                 )
+            
             ggplot(abc_long, aes(x = ABC_Klasse, y = Wert, fill = ABC_Klasse)) +
                 geom_bar(stat = "identity", position = "dodge") +
+                geom_text(aes(label = Wert_anzeige), vjust = -0.2, size = 4) +
                 facet_wrap(~Kennzahl, scales = "free_y") +
                 labs(
                     title = "ABC-Klassen: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel",
                     x = "ABC-Klasse",
                     y = "Wert"
                 ) +
-                theme_minimal() +
+                theme_minimal(base_size = 13) +
                 scale_fill_brewer(palette = "Set2")
         })
+        
     })
 }
