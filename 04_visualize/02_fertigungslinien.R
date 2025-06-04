@@ -2,6 +2,7 @@ library(shiny)
 library(DT)
 library(ggplot2)
 library(plotly)
+library(dplyr)
 library(tidyr)
 
 source("02_model/kpis_linie.R", local = TRUE)
@@ -12,9 +13,7 @@ linien_ui <- function(id) {
         fluidRow(
             box(
                 title = "Fertigungslinie auswählen",
-                width = 12,
-                status = "primary",
-                solidHeader = TRUE,
+                width = 12, status = "primary", solidHeader = TRUE,
                 selectInput(
                     ns("linie_select"),
                     "Fertigungslinie:",
@@ -26,33 +25,28 @@ linien_ui <- function(id) {
         fluidRow(
             box(
                 title = "KPIs je Vorgangsfolge",
-                width = 12,
-                status = "primary",
-                solidHeader = TRUE,
+                width = 12, status = "primary", solidHeader = TRUE,
                 DTOutput(ns("linien_table"))
             )
         ),
         fluidRow(
             box(
                 title = "Anteil der Vorgangsfolgen (Donut Chart)",
-                width = 12,
-                solidHeader = TRUE,
+                width = 12, solidHeader = TRUE,
                 plotlyOutput(ns("anteil_donut"))
             )
         ),
         fluidRow(
             box(
-                title = "Termintreue vs. Liefertreue (%)",
-                width = 12,
-                solidHeader = TRUE,
+                title = "Termintreue, Liefertreue & Servicelevel (%)",
+                width = 12, solidHeader = TRUE,
                 plotlyOutput(ns("plot_treue"))
             )
         ),
         fluidRow(
             box(
                 title = "Durchschnittliche Liefermenge je Vorgangsfolge",
-                width = 12,
-                solidHeader = TRUE,
+                width = 12, solidHeader = TRUE,
                 plotlyOutput(ns("plot_liefermenge"))
             )
         )
@@ -70,8 +64,10 @@ linien_server <- function(id) {
         
         output$linien_table <- renderDT({
             df <- daten_gefiltert() %>%
-                select(vorgangsfolge, fertigungslinie, Anzahl, Median_LT, Abweichung)
-            
+                dplyr::select(
+                    vorgangsfolge, fertigungslinie, Anzahl,
+                    Median_LT, Abweichung, Average_Delay
+                )
             datatable(
                 df,
                 options = list(pageLength = 10, scrollX = TRUE),
@@ -87,40 +83,44 @@ linien_server <- function(id) {
                 labels = ~paste0(vorgangsfolge, " (", Anteil_prozent, "%)"),
                 values = ~Anteil_prozent,
                 type = "pie",
-                hole = 0.5,
-                textinfo = "label+percent"
+                textposition = "inside",
+                textinfo = "label+percent",
+                hole = 0.5
             ) %>%
-                layout(title = "Anteil je Vorgangsfolge")
+                layout(title = "Anteil der Vorgangsfolgen")
         })
         
         output$plot_treue <- renderPlotly({
             df <- daten_gefiltert() %>%
-                select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent) %>%
+                dplyr::select(vorgangsfolge, Termintreue_prozent, Liefertreue_prozent, Servicelevel_prozent) %>%
                 pivot_longer(
-                    cols = c(Termintreue_prozent, Liefertreue_prozent),
+                    cols = c(Termintreue_prozent, Liefertreue_prozent, Servicelevel_prozent),
                     names_to = "Treueart",
                     values_to = "Wert"
                 )
-            
-            ggplotly(
-                ggplot(df, aes(x = reorder(vorgangsfolge, -Wert), y = Wert, fill = Treueart)) +
-                    geom_bar(stat = "identity", position = "dodge") +
-                    labs(x = "Vorgangsfolge", y = "Quote (%)", fill = "Treueart") +
-                    theme_minimal() +
-                    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-            )
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, -Wert),
+                y = Wert,
+                fill = Treueart
+            )) +
+                geom_bar(stat = "identity", position = "dodge") +
+                labs(x = "Vorgangsfolge", y = "Quote (%)", fill = "Treueart") +
+                theme_minimal() +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1))
+            ggplotly(p, tooltip = c("x", "y", "fill"))
         })
         
         output$plot_liefermenge <- renderPlotly({
             df <- daten_gefiltert()
-            ggplotly(
-                ggplot(df, aes(x = reorder(vorgangsfolge, -Durchschnitt_Liefermenge), y = Durchschnitt_Liefermenge)) +
-                    geom_col(fill = "#3498DB") +
-                    labs(x = "Vorgangsfolge", y = "Ø Liefermenge") +
-                    coord_flip() +
-                    theme_minimal()
-            )
+            p <- ggplot(df, aes(
+                x = reorder(vorgangsfolge, -Durchschnitt_Liefermenge),
+                y = Durchschnitt_Liefermenge
+            )) +
+                geom_col(fill = "#3498DB") +
+                labs(x = "Vorgangsfolge", y = "Ø Liefermenge") +
+                coord_flip() +
+                theme_minimal()
+            ggplotly(p)
         })
-        
     })
 }
