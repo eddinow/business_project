@@ -1,6 +1,7 @@
 library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
+library(shinydashboardPlus)
 library(DT)
 library(bsplus)
 
@@ -71,6 +72,7 @@ workflows_ui <- fluidPage(
         padding: 60px 68px;
         margin-bottom: 20px;
         width: 100%;
+        min-height: 140px; 
       }
 
       .white-box h4 {
@@ -174,7 +176,23 @@ workflows_ui <- fluidPage(
     
     # INHALT: max-width Wrapper
     div(style = "max-width: 1100px; margin: 0 auto;",
-    
+        
+        # KPI-Boxen nebeneinander
+        fluidRow(
+            column(width = 4,  # Box mit "Workflows"
+                   div(
+                       class = "white-box",
+                       style = "height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;",
+                       span(
+                           style = "font-weight: 600; font-size: 32px; line-height: 1.2; color: #202124;",
+                           "Workflows"
+                       )
+                   )
+            ),
+            column(width = 4, uiOutput("overall_servicelevel")),
+            column(width = 4, uiOutput("ist_lt"))
+        ),
+        
         fluidRow(
             column(
                 width = 12,
@@ -203,24 +221,18 @@ workflows_ui <- fluidPage(
             )
         ),
         
-        # KPI-Boxen nebeneinander
-        fluidRow(
-            column(width = 6, uiOutput("overall_servicelevel")),
-            column(width = 6, uiOutput("ist_lt"))
-        ),
-        
         # Tabelle mit Header und Download
         fluidRow(
             column(
                 width = 12,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; justify-content: space-between; align-items: center;",
-                            div(
-                                style = "display: flex; align-items: center;",
-                                span("Lead Times nach Workflows", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                tags$details(
+                    open = TRUE,  # oder FALSE, wenn sie standardmäßig zu sein soll
+                    div(
+                        class = "white-box",
+                        tagList(
+                            tags$summary(
+                                style = "font-weight: 600; font-size: 16px; color: #202124; margin-bottom: 12px; cursor: pointer;",
+                                span("Lead Times nach Workflows"),
                                 tags$span(icon("circle-question"), id = "workflows_info", 
                                           style = "color: #5f6368; margin-left: 8px;") %>%
                                     bs_embed_popover(title = "Workflows Übersicht", 
@@ -228,19 +240,18 @@ workflows_ui <- fluidPage(
                                                      placement = "right", trigger = "focus")
                             ),
                             div(
-                                style = "display: flex; align-items: center;",
+                                style = "display: flex; justify-content: flex-end; align-items: baseline; margin-bottom: 12px;",
                                 div(style = "margin-right: 12px;",
                                     selectInput("sortierung_workflows", label = NULL,
                                                 choices = c("Top", "Kritisch"), selected = "Top", width = "140px")
                                 ),
                                 downloadButton(
                                     "download_csv_workflows", label = NULL, icon = icon("download"),
-                                    style = "padding: 6px 10px; margin-top: -16px;"
+                                    style = "padding: 6px 10px;"
                                 )
-                            )
-                        ),
-                        br(),
-                        DTOutput("workflow_table")
+                            ),
+                            DTOutput("workflow_table")
+                        )
                     )
                 )
             )
