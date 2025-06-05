@@ -213,7 +213,7 @@ workflows_ui <- fluidPage(
                             inputId = "selected_workflow",
                             label = NULL,
                             choices = c("Workflow auswählen" = ""),
-                            selected = "",
+                            selected = "0010",
                             width = "100%"
                         )
                     )
@@ -255,9 +255,135 @@ workflows_ui <- fluidPage(
                     )
                 )
             )
+        ),
+        
+        fluidRow(
+            # Linke Box – 2/3 der Zeile
+            column(
+                width = 8,
+                div(
+                    class = "white-box",
+                    tagList(
+                        # Titelzeile
+                        div(
+                            style = "display: flex; justify-content: space-between; align-items: center;",
+                            div(
+                                style = "display: flex; align-items: center;",
+                                span("Lead Time nach Bottleneck", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                tags$span(icon("circle-question"), style = "color: #5f6368; margin-left: 8px;")
+                            )
+                        ),
+                        br(),
+                        
+                        # Tab-Auswahl
+                        tabsetPanel(
+                            type = "tabs",
+                            tabPanel("Werke", DTOutput("detail_table_werke")),
+                            tabPanel("Linien", DTOutput("detail_table_linien")),
+                            tabPanel("Planer", DTOutput("detail_table_planer"))
+                        )
+                    )
+                )
+            ),
+            
+            # Rechte Box – 1/3 der Zeile
+            column(
+                width = 4,
+                div(
+                    class = "white-box",
+                    style = "min-height: 340px; display: flex; flex-direction: column; justify-content: space-between;",
+                    tagList(
+                        
+                        # Titelzeile wie in den anderen Boxen
+                        div(
+                            style = "display: flex; justify-content: space-between; align-items: center;",
+                            div(
+                                style = "display: flex; align-items: center;",
+                                span("Livetracker", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                tags$span(icon("circle-question"),
+                                          style = "color: #5f6368; margin-left: 8px;")
+                            )
+                        ),
+                        
+                        br(),  # Abstand unter der Überschrift
+                        
+                        # Tabelle mit den Livetracker-Daten
+                        div(
+                            style = "height: 100%; min-height: 294px; display: flex; flex-direction: column; justify-content: space-around;",
+                            
+                            # Zeile 1 – Aufträge
+                            div(style = "display: flex; align-items: center; justify-content: space-between;",
+                                div(style = "display: flex; align-items: center;",
+                                    icon("box", style = "font-size: 30px; color: #4285F4; margin-right: 12px;"),
+                                    span("# Aufträge", style = "font-size: 14px;")
+                                ),
+                                uiOutput("anzahl_auftraege")
+                            ),
+                            
+                            # Zeile 2 – Servicelevel
+                            div(style = "display: flex; align-items: center; justify-content: space-between;",
+                                div(style = "display: flex; align-items: center;",
+                                    icon("bullseye", style = "font-size: 30px; color: #34A853; margin-right: 12px;"),
+                                    span("Servicelevel", style = "font-size: 14px;")
+                                ),
+                                uiOutput("livetracker_servicelevel")
+                            ),
+                            
+                            # Zeile 3 – Bottleneck
+                            div(style = "display: flex; align-items: center; justify-content: space-between;",
+                                div(style = "display: flex; align-items: center;",
+                                    icon("triangle-exclamation", style = "font-size: 30px; color: #EA4335; margin-right: 12px;"),
+                                    span("Bottleneck", style = "font-size: 14px;")
+                                ),
+                                span(style = "font-weight: bold; font-size: 14px;", "Linie 3")
+                            )
+                        )
+                    )
+                )
+                
+            )
+        ),
+        
+        # Neue Zeile mit zwei gleich großen Boxen
+        fluidRow(
+            column(
+                width = 6,
+                div(
+                    class = "white-box",
+                    tagList(
+                        # Boxüberschrift mit Icon
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time Chart", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"),
+                                      style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                        ),
+                        br(),
+                        # Hier kommt dein Plot rein
+                        plotOutput("leadtime_chart", height = "240px")
+                    )
+                )
+            ),
+            column(
+                width = 6,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Box links", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                        ),
+                        br(),
+                        # Optionaler Inhalt hier
+                        span("Inhalt Box 2...")
+                    )
+                )
+            )
         )
+        
     )
-)
+    )
             
             workflows_server <- function(input, output, session) {
                 
@@ -267,7 +393,7 @@ workflows_ui <- fluidPage(
                         session,
                         inputId = "selected_workflow",
                         choices = c("Workflow auswählen" = "", workflows),
-                        selected = ""
+                        selected = "0010"
                     )
                 })
                 
@@ -372,6 +498,231 @@ workflows_ui <- fluidPage(
                         write.csv(df, file, row.names = FALSE)
                     }
                 )
+                
+                # Reaktive Datenquelle, basierend auf dem aktiven Tab
+                output$detail_table_werke <- renderDT({
+                    req(input$selected_workflow)
+                    
+                    df <- auftraege_lt_unit %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        mutate(
+                            delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
+                        ) %>%
+                        group_by(werk) %>%
+                        summarise(
+                            #`Soll-LT/ME [s]` = round(median(lt_soll_order, na.rm = TRUE), 2),
+                            #`Ist-LT/ME [s]`  = round(median(lt_ist_order, na.rm = TRUE), 2),
+                            `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
+                            .groups = "drop"
+                        ) %>%
+                        mutate(
+                            ampel_color = case_when(
+                                `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
+                                `Avg. Delay/Unit [s]` <= 2   ~ "orange",
+                                TRUE                         ~ "red"
+                            ),
+                            ampel = paste0(
+                                "<div style='color: ", ampel_color, 
+                                "; font-size: 20px; text-align: center;'>&#9679;</div>"
+                            )
+                        ) %>%
+                        dplyr::select(ampel_color, ampel, Werk = werk, `Avg. Delay/Unit [s]`)
+                    
+                    
+                    datatable(
+                        df,
+                        escape = FALSE,
+                        options = list(
+                            pageLength = 3,
+                            dom = 'tip',
+                            ordering = TRUE,
+                            pagingType = 'simple', 
+                            columnDefs = list(
+                                list(visible = FALSE, targets = 0),
+                                list(width = '25px', targets = 1),
+                                list(orderData = 0, targets = 1),
+                                list(title = "", targets = 1)
+                            )
+                        ),
+                        rownames = FALSE,
+                        class = "hover"
+                    )
+                })
+                
+                
+                # Fertigungslinien
+                output$detail_table_linien <- renderDT({
+                    req(input$selected_workflow)
+                    
+                    df <- auftraege_lt_unit %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        mutate(
+                            delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
+                        ) %>%
+                        group_by(fertigungslinie) %>%
+                        summarise(
+                            #`Soll-LT/ME [s]` = round(median(lt_soll_order, na.rm = TRUE), 2),
+                            #`Ist-LT/ME [s]`  = round(median(lt_ist_order, na.rm = TRUE), 2),
+                            `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
+                            .groups = "drop"
+                        ) %>%
+                        mutate(
+                            ampel_color = case_when(
+                                `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
+                                `Avg. Delay/Unit [s]` <= 2   ~ "orange",
+                                TRUE                         ~ "red"
+                            ),
+                            ampel = paste0(
+                                "<div style='color: ", ampel_color, 
+                                "; font-size: 20px; text-align: center;'>&#9679;</div>"
+                            )
+                        ) %>%
+                        dplyr::select(ampel_color, ampel, Linie = fertigungslinie, `Avg. Delay/Unit [s]`)
+                    
+                    
+                    datatable(
+                        df,
+                        escape = FALSE,
+                        options = list(
+                            pageLength = 3,
+                            dom = 'tip',
+                            ordering = TRUE,
+                            pagingType = 'simple', 
+                            columnDefs = list(
+                                list(visible = FALSE, targets = 0),
+                                list(width = '25px', targets = 1),
+                                list(orderData = 0, targets = 1),
+                                list(title = "", targets = 1)
+                            )
+                        ),
+                        rownames = FALSE,
+                        class = "hover"
+                    )
+                })
+                
+                # Planer
+                output$detail_table_planer <- renderDT({
+                    req(input$selected_workflow)
+                    
+                    df <- auftraege_lt_unit %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        mutate(
+                            delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
+                        ) %>%
+                        group_by(planer) %>%
+                        summarise(
+                            `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
+                            .groups = "drop"
+                        ) %>%
+                        mutate(
+                            ampel_color = case_when(
+                                `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
+                                `Avg. Delay/Unit [s]` <= 2   ~ "orange",
+                                TRUE                         ~ "red"
+                            ),
+                            ampel = paste0(
+                                "<div style='color: ", ampel_color, 
+                                "; font-size: 20px; text-align: center;'>&#9679;</div>"
+                            )
+                        ) %>%
+                        dplyr::select(ampel_color, ampel, Planer = planer, `Avg. Delay/Unit [s]`)
+                    
+                    datatable(
+                        df,
+                        escape = FALSE,
+                        options = list(
+                            pageLength = 3,
+                            dom = 'tip',
+                            ordering = TRUE,
+                            pagingType = 'simple', 
+                            columnDefs = list(
+                                list(visible = FALSE, targets = 0),
+                                list(width = '25px', targets = 1),
+                                list(orderData = 0, targets = 1),
+                                list(title = "", targets = 1)
+                            )
+                        ),
+                        rownames = FALSE,
+                        class = "hover"
+                    )
+                })
+                
+                output$anzahl_auftraege <- renderUI({
+                    req(input$selected_workflow)
+                    
+                    anzahl <- auftraege_lt_unit %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        summarise(n = n_distinct(auftragsnummer)) %>%
+                        pull(n)
+                    
+                    span(style = "font-weight: bold; font-size: 14x;", anzahl)
+                })
+                
+                output$livetracker_servicelevel <- renderUI({
+                    req(input$selected_workflow)
+                    
+                    filtered <- auftraege_lt_unit %>%
+                        filter(vorgangsfolge == input$selected_workflow)
+                    
+                    if (nrow(filtered) == 0) {
+                        return(span(style = "font-weight: bold; font-size: 14px;", "–"))
+                    }
+                    
+                    sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
+                        sum(!is.na(filtered$abweichung_unit))
+                    
+                    sl_percent <- paste0(round(sl * 100), "%")
+                    
+                    span(style = "font-weight: bold; font-size: 14px;", sl_percent)
+                })
+                
+                output$leadtime_chart <- renderPlot({
+                    req(input$selected_workflow)
+                    
+                    # Aggregation
+                    lt_agg <- vorgaenge_lt_unit %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        group_by(Vorgangsnummer) %>%
+                        summarise(
+                            ist_lt = median(lt_ist_order, na.rm = TRUE),
+                            soll_lt = Mode(lt_soll_order, na.rm = TRUE),
+                            .groups = "drop"
+                        ) |>
+                        filter(!is.na(ist_lt), !is.na(soll_lt))
+                    
+                    
+                    # Plot
+                    ggplot(lt_agg, aes(x = factor(Vorgangsnummer))) +
+                        # Balken: halb so breit, etwas weniger transparent
+                        geom_col(aes(y = ist_lt), fill = "#002366", alpha = 0.6, width = 0.15) +
+                        
+                        # Linie: ebenfalls nur halb so breit (x-Spanne) und dünner
+                        geom_segment(aes(
+                            x = as.numeric(factor(Vorgangsnummer)) - 0.075,
+                            xend = as.numeric(factor(Vorgangsnummer)) + 0.075,
+                            y = soll_lt,
+                            yend = soll_lt
+                        ), color = "darkred", linewidth = 0.6) +
+                        
+                        # Text: klein, leserlich
+                        geom_text(aes(
+                            y = soll_lt + max(ist_lt) * 0.05,
+                            label = paste0(round(soll_lt, 2), " h")
+                        ), color = "black", size = 4) +
+                        
+                        # Layout
+                        labs(
+                            x = "Vorgangsnummer",
+                            y = "Lead Time per Unit [s]",
+                            caption = "Balken = Median Ist-LT | Linie = Median Soll-LT"
+                        ) +
+                        theme_minimal() +
+                        theme(
+                            plot.caption = element_text(hjust = 1, size = 8),
+                            axis.text = element_text(size = 10),
+                            axis.title = element_text(size = 11))
+                })
+                
             }
             
             shinyApp(workflows_ui, workflows_server)
