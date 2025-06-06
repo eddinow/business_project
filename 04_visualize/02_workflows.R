@@ -670,7 +670,23 @@ workflows_server <- function(id) {
             ggplotly(p, tooltip = c("x", "y"))
         })
         
-        # Diagramm Bearbeitungs- und Liegezeiten
+       #hier # Diagramm Bearbeitungs- und Liegezeiten
+        
+        data_input <- reactive({
+            ausgabe_df %>% 
+                filter(!is.na(vorgangsfolge))
+        })
+        
+        aggregated_data <- reactive({
+            req(input$selected_workflow)
+            
+            data_input() %>%
+                filter(vorgangsfolge == input$selected_workflow) %>%
+                group_by(Vorgangsnummer) %>%
+                summarise(median_istdauer = median(istdauer, na.rm = TRUE)) %>%
+                ungroup()
+        })
+        
         output$balkenplot <- renderPlot({
             df_plot <- aggregated_data()
             

@@ -6,6 +6,8 @@ library(DT)
 library(bsplus)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
+source("02_model/kpis_workflow_liegezeit.R", local = TRUE)
+source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 
 #UI-----------------------------------------------------------------------------
 workflows_ui <- fluidPage(
@@ -232,7 +234,7 @@ workflows_ui <- fluidPage(
                         tagList(
                             tags$summary(
                                 style = "font-weight: 600; font-size: 16px; color: #202124; margin-bottom: 12px; cursor: pointer;",
-                                span("Lead Times nach Workflows"),
+                                span("Lead Time nach Workflows"),
                                 tags$span(icon("circle-question"), id = "workflows_info", 
                                           style = "color: #5f6368; margin-left: 8px;") %>%
                                     bs_embed_popover(title = "Workflows Übersicht", 
@@ -269,7 +271,7 @@ workflows_ui <- fluidPage(
                             style = "display: flex; justify-content: space-between; align-items: center;",
                             div(
                                 style = "display: flex; align-items: center;",
-                                span("Lead Time nach Bottleneck", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                span("Bottlenecks [Verzögerung]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                 tags$span(icon("circle-question"), style = "color: #5f6368; margin-left: 8px;")
                             )
                         ),
@@ -354,7 +356,7 @@ workflows_ui <- fluidPage(
                         # Boxüberschrift mit Icon
                         div(
                             style = "display: flex; align-items: center;",
-                            span("Lead Time Chart", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            span("Lead Time nach Vorgang [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                             tags$span(icon("circle-question"),
                                       style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
                         ),
@@ -371,12 +373,80 @@ workflows_ui <- fluidPage(
                     tagList(
                         div(
                             style = "display: flex; align-items: center;",
-                            span("Box links", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            span("Lead Time und Liegezeit nach Vorgang [Tag pro Auftrag]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                             tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
                         ),
                         br(),
-                        # Optionaler Inhalt hier
-                        span("Inhalt Box 2...")
+                        plotOutput("balkenplot", height = "240px") 
+                    )
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time nach Sollmenge [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                        ),
+                        br(),
+                        plotly::plotlyOutput("workflow_plot", height = "240px")
+                    )
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 6,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time Abweichung nach Häufigkeit", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                        ),
+                        br(),
+                        span("Inhalt für die linke Box…")  # z.B. plotOutput(), DTOutput(), uiOutput()
+                    )
+                )
+            ),
+            column(
+                width = 6,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Box rechts", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                        ),
+                        br(),
+                        span("Inhalt für die rechte Box…")
+                    )
+                )
+            )
+        )
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                        ),
+                        br(),
+                        plotly::plotlyOutput("abweichung_time_plot", height = "240px")
                     )
                 )
             )
@@ -676,6 +746,11 @@ workflows_ui <- fluidPage(
                     span(style = "font-weight: bold; font-size: 14px;", sl_percent)
                 })
                 
+                modus <- function(x) {
+                    ux <- unique(x[!is.na(x)])
+                    ux[which.max(tabulate(match(x, ux)))]
+                }
+                
                 output$leadtime_chart <- renderPlot({
                     req(input$selected_workflow)
                     
@@ -685,7 +760,7 @@ workflows_ui <- fluidPage(
                         group_by(Vorgangsnummer) %>%
                         summarise(
                             ist_lt = median(lt_ist_order, na.rm = TRUE),
-                            soll_lt = Mode(lt_soll_order, na.rm = TRUE),
+                            soll_lt = as.numeric(modus(lt_soll_order)),
                             .groups = "drop"
                         ) |>
                         filter(!is.na(ist_lt), !is.na(soll_lt))
@@ -721,6 +796,69 @@ workflows_ui <- fluidPage(
                             plot.caption = element_text(hjust = 1, size = 8),
                             axis.text = element_text(size = 10),
                             axis.title = element_text(size = 11))
+                })
+                
+                # Liegezeiten
+                data_input <- reactive({
+                    ausgabe_df %>% 
+                        filter(!is.na(vorgangsfolge))
+                })
+                
+                aggregated_data <- reactive({
+                    req(input$selected_workflow)
+                    
+                    data_input() %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        group_by(Vorgangsnummer) %>%
+                        summarise(median_istdauer = median(istdauer, na.rm = TRUE)) %>%
+                        ungroup()
+                })
+                
+                output$balkenplot <- renderPlot({
+                    df_plot <- aggregated_data()
+                    
+                    ggplot(df_plot, aes(x = Vorgangsnummer, y = median_istdauer)) +
+                        geom_col(fill = "#002366", width = 0.15) +
+                        labs(
+                            x = "Vorgang / Liegezeit",
+                            y = "Ist-LT [d]"
+                        ) +
+                        theme_minimal() +
+                        theme(axis.text.x = element_text(hjust = 1))
+                })
+                
+                est_plot_obj <- reactive({
+                    req(input$selected_workflow)
+                    create_est_lt_combined(auftraege_lt_unit, input$selected_workflow, session = session)
+                })
+                
+                output$workflow_plot <- plotly::renderPlotly({
+                    result <- est_plot_obj()
+                    req(result)
+                    plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color"))
+                })
+                
+                output$abweichung_time_plot <- renderPlotly({
+                    req(input$selected_workflow)
+                    
+                    df <- all_data_finalized %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        arrange(starttermin_ist) %>%
+                        slice(seq(1, n(), by = 10))  # 👈 nur jeden 10. Wert behalten
+                    
+                    p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
+                        # geom_line(color = "#002366", size = 0.2) +
+                        # geom_point(color = "#002366", size = 0.3, alpha = 0.6) +
+                        geom_smooth(
+                            method = "loess", se = FALSE, span = 0.2, color = "#002366", size = 0.7
+                        ) +
+                        labs(
+                            x = "Ist-Starttermin",
+                            y = "Abweichung von Soll-LT [d]"
+                        ) +
+                        theme_minimal()
+                    
+                    ggplotly(p, tooltip = c("x", "y"))
                 })
                 
             }
