@@ -260,91 +260,64 @@ workflows_ui <- fluidPage(
         ),
         
         fluidRow(
-            # Linke Box – 2/3 der Zeile
+            # Linke große Box
             column(
                 width = 8,
                 div(
-                    class = "white-box",
-                    tagList(
-                        # Titelzeile
-                        div(
-                            style = "display: flex; justify-content: space-between; align-items: center;",
+                    style = "height: 455px;",
+                    div(
+                        class = "white-box",
+                        style = "height: 100%;",
+                        tagList(
                             div(
-                                style = "display: flex; align-items: center;",
-                                span("Bottlenecks [Verzögerung]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                tags$span(icon("circle-question"), style = "color: #5f6368; margin-left: 8px;")
+                                style = "display: flex; justify-content: space-between; align-items: center;",
+                                div(
+                                    style = "display: flex; align-items: center;",
+                                    span("Quick View Verzögerungen", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                    tags$span(icon("circle-question"), style = "color: #5f6368; margin-left: 8px;")
+                                )
+                            ),
+                            br(),
+                            tabsetPanel(
+                                type = "tabs",
+                                tabPanel("Werke", DTOutput("detail_table_werke")),
+                                tabPanel("Linien", DTOutput("detail_table_linien")),
+                                tabPanel("Planer", DTOutput("detail_table_planer"))
                             )
-                        ),
-                        br(),
-                        
-                        # Tab-Auswahl
-                        tabsetPanel(
-                            type = "tabs",
-                            tabPanel("Werke", DTOutput("detail_table_werke")),
-                            tabPanel("Linien", DTOutput("detail_table_linien")),
-                            tabPanel("Planer", DTOutput("detail_table_planer"))
                         )
                     )
                 )
             ),
             
-            # Rechte Box – 1/3 der Zeile
+# Rechte Spalte
             column(
                 width = 4,
                 div(
-                    class = "white-box",
-                    style = "min-height: 340px; display: flex; flex-direction: column; justify-content: space-between;",
-                    tagList(
-                        
-                        # Titelzeile wie in den anderen Boxen
-                        div(
-                            style = "display: flex; justify-content: space-between; align-items: center;",
-                            div(
-                                style = "display: flex; align-items: center;",
-                                span("Livetracker", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                tags$span(icon("circle-question"),
-                                          style = "color: #5f6368; margin-left: 8px;")
-                            )
-                        ),
-                        
-                        br(),  # Abstand unter der Überschrift
-                        
-                        # Tabelle mit den Livetracker-Daten
-                        div(
-                            style = "height: 100%; min-height: 294px; display: flex; flex-direction: column; justify-content: space-around;",
-                            
-                            # Zeile 1 – Aufträge
-                            div(style = "display: flex; align-items: center; justify-content: space-between;",
-                                div(style = "display: flex; align-items: center;",
-                                    icon("box", style = "font-size: 30px; color: #4285F4; margin-right: 12px;"),
-                                    span("# Aufträge", style = "font-size: 14px;")
-                                ),
-                                uiOutput("anzahl_auftraege")
-                            ),
-                            
-                            # Zeile 2 – Servicelevel
-                            div(style = "display: flex; align-items: center; justify-content: space-between;",
-                                div(style = "display: flex; align-items: center;",
-                                    icon("bullseye", style = "font-size: 30px; color: #34A853; margin-right: 12px;"),
-                                    span("Servicelevel", style = "font-size: 14px;")
-                                ),
-                                uiOutput("livetracker_servicelevel")
-                            ),
-                            
-                            # Zeile 3 – Bottleneck
-                            div(style = "display: flex; align-items: center; justify-content: space-between;",
-                                div(style = "display: flex; align-items: center;",
-                                    icon("triangle-exclamation", style = "font-size: 30px; color: #EA4335; margin-right: 12px;"),
-                                    span("Bottleneck", style = "font-size: 14px;")
-                                ),
-                                span(style = "font-weight: bold; font-size: 14px;", "Linie 3")
-                            )
-                        )
+                    # Box 1
+                    div(
+                        class = "white-box",
+                        style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                        uiOutput("livetracker_auftraege")
+                    ),
+                    
+                    # Box 2
+                    div(
+                        class = "white-box",
+                        style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                        uiOutput("livetracker_servicelevel")
+                    ),
+                    
+                    # Box 3 (letzte ohne margin-bottom)
+                    div(
+                        class = "white-box",
+                        style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                        uiOutput("livetracker_bottleneck")
                     )
                 )
-                
             )
-        ),
+            
+        )
+        ,
         
         # Neue Zeile mit zwei gleich großen Boxen
         fluidRow(
@@ -373,7 +346,7 @@ workflows_ui <- fluidPage(
                     tagList(
                         div(
                             style = "display: flex; align-items: center;",
-                            span("Lead Time und Liegezeit nach Vorgang [Tag pro Auftrag]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            span("Lead Times/Liegezeiten nach Vorgang [Tag pro Auftrag]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                             tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
                         ),
                         br(),
@@ -409,11 +382,11 @@ workflows_ui <- fluidPage(
                     tagList(
                         div(
                             style = "display: flex; align-items: center;",
-                            span("Lead Time Abweichung nach Häufigkeit", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                             tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
                         ),
                         br(),
-                        span("Inhalt für die linke Box…")  # z.B. plotOutput(), DTOutput(), uiOutput()
+                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
                     )
                 )
             ),
@@ -424,15 +397,15 @@ workflows_ui <- fluidPage(
                     tagList(
                         div(
                             style = "display: flex; align-items: center;",
-                            span("Box rechts", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                             tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
                         ),
                         br(),
-                        span("Inhalt für die rechte Box…")
+                        DT::DTOutput("abweichungstabelle")
                     )
                 )
             )
-        )
+        ),
         
         fluidRow(
             column(
@@ -717,7 +690,7 @@ workflows_ui <- fluidPage(
                     )
                 })
                 
-                output$anzahl_auftraege <- renderUI({
+                output$livetracker_auftraege <- renderUI({
                     req(input$selected_workflow)
                     
                     anzahl <- auftraege_lt_unit %>%
@@ -725,8 +698,21 @@ workflows_ui <- fluidPage(
                         summarise(n = n_distinct(auftragsnummer)) %>%
                         pull(n)
                     
-                    span(style = "font-weight: bold; font-size: 14x;", anzahl)
+                    tags$div(
+                        style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
+                        tags$span(
+                            style = "font-weight: 600; font-size: 22px; color: #202124;",
+                            anzahl
+                        ),
+                        tags$span(
+                            style = "font-size: 14px; color: #5f6368;",
+                            "# Aufträge"
+                        )
+                    )
                 })
+                
+                
+                
                 
                 output$livetracker_servicelevel <- renderUI({
                     req(input$selected_workflow)
@@ -735,7 +721,13 @@ workflows_ui <- fluidPage(
                         filter(vorgangsfolge == input$selected_workflow)
                     
                     if (nrow(filtered) == 0) {
-                        return(span(style = "font-weight: bold; font-size: 14px;", "–"))
+                        return(
+                            div(
+                                style = "display: flex; flex-direction: column;",
+                                span(style = "font-weight: 600; font-size: 24px; color: #9e9e9e;", "–"),
+                                span("Servicelevel", style = "color: #5f6368; font-size: 14px;")
+                            )
+                        )
                     }
                     
                     sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
@@ -743,8 +735,56 @@ workflows_ui <- fluidPage(
                     
                     sl_percent <- paste0(round(sl * 100), "%")
                     
-                    span(style = "font-weight: bold; font-size: 14px;", sl_percent)
+                    farbe <- if (sl < 0.7) {
+                        "#ea4335"  # Rot
+                    } else if (sl < 0.95) {
+                        "#fbbc04"  # Orange
+                    } else {
+                        "#34a853"  # Grün
+                    }
+                    
+                    div(
+                        style = "display: flex; flex-direction: column;",
+                        span(style = paste0("font-weight: 600; font-size: 24px; color: ", farbe, ";"), sl_percent),
+                        span("# Servicelevel", style = "color: #5f6368; font-size: 14px;")
+                    )
                 })
+                
+                
+                output$livetracker_bottleneck <- renderUI({
+                    req(input$selected_workflow)
+                    
+                    bottleneck_info <- vorgaenge_sorted %>%
+                        filter(vorgangsfolge == input$selected_workflow & abweichung > 0) %>%
+                        group_by(Vorgangsnummer) %>%
+                        summarise(median_abweichung = median(abweichung, na.rm = TRUE), .groups = "drop") %>%
+                        arrange(desc(median_abweichung)) %>%
+                        slice(1)
+                    
+                    if (nrow(bottleneck_info) == 0) {
+                        wert <- "–"
+                    } else {
+                        wert <- paste0(bottleneck_info$Vorgangsnummer, " | ", round(bottleneck_info$median_abweichung, 1), " Tage")
+                    }
+                    
+                    tags$div(
+                        style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
+                        tags$span(
+                            style = "font-weight: 600; font-size: 22px; color: #202124;",
+                            wert
+                        ),
+                        tags$span(
+                            style = "font-size: 14px; color: #5f6368;",
+                            "Bottleneck"
+                        )
+                    )
+                })
+                
+                
+                
+                
+                
+                
                 
                 modus <- function(x) {
                     ux <- unique(x[!is.na(x)])
@@ -860,6 +900,98 @@ workflows_ui <- fluidPage(
                     
                     ggplotly(p, tooltip = c("x", "y"))
                 })
+                
+                plot_abweichung_histogram <- function(df, selected_workflow) {
+                    df_filtered <- df %>%
+                        filter(vorgangsfolge == selected_workflow & !is.na(abweichung))
+                    
+                    if (nrow(df_filtered) == 0) return(NULL)
+                    
+                    # Dynamische Grenzen anhand 1% und 99% Quantil
+                    x_min <- quantile(df_filtered$abweichung, 0.025)
+                    x_max <- quantile(df_filtered$abweichung, 0.975)
+                    
+                    p <- ggplot(df_filtered, aes(x = abweichung)) +
+                        geom_histogram(binwidth = 1, fill = "#002366", color = "white", boundary = 0) +
+                        labs(
+                            x = "Abweichung (Ist - Soll) [Tage]",
+                            y = "Häufigkeit"
+                        ) +
+                        scale_x_continuous(limits = c(x_min, x_max)) +
+                        theme_minimal(base_family = "Inter") +
+                        theme(
+                            plot.title = element_text(size = 14, face = "bold"),
+                            axis.title = element_text(size = 12),
+                            axis.text = element_text(size = 11)
+                        )
+                    
+                    ggplotly(p)
+                }
+                
+                output$abweichung_hist_plot <- renderPlotly({
+                    req(input$selected_workflow)
+                    plot_abweichung_histogram(vorgaenge_sorted, input$selected_workflow)
+                })
+                
+                abweichung_tabelle <- reactive({
+                    req(input$selected_workflow)
+                    
+                    df <- auftraege_lt_unit %>%
+                        filter(vorgangsfolge == input$selected_workflow) %>%
+                        filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
+                        mutate(
+                            abw_rel = (lt_ist_order - lt_soll_order) / lt_soll_order,
+                            kategorie = case_when(
+                                abw_rel >= 1       ~ "≥ 100 % über Soll",
+                                abw_rel >= 0.5     ~ "50–99 % über Soll",
+                                abw_rel >= 0.25    ~ "25–49 % über Soll",
+                                abw_rel >= 0       ~ "0–24 % über Soll",
+                                abw_rel < 0        ~ "Unter Soll"
+                            )
+                        ) %>%
+                        group_by(kategorie) %>%
+                        summarise(Anzahl = n(), .groups = "drop") %>%
+                        mutate(
+                            Kategorie = factor(kategorie, levels = c(
+                                "≥ 100 % über Soll",
+                                "50–99 % über Soll",
+                                "25–49 % über Soll",
+                                "0–24 % über Soll",
+                                "Unter Soll"
+                            )),
+                            Anteil_raw = round(100 * Anzahl / sum(Anzahl))
+                        ) %>%
+                        arrange(Kategorie) %>%
+                        mutate(
+                            `Lead Time Abweichung` = paste0(
+                                "<div style='display: flex; align-items: center; gap: 8px;'>",
+                                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", Anteil_raw, "</span>",
+                                "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
+                                "<div style='width:", Anteil_raw, "%; background-color: #4285F4; height: 100%;'></div>",
+                                "</div>",
+                                "</div>"
+                            )
+                        ) %>%
+                        dplyr::select(Kategorie, `Lead Time Abweichung`)
+                })
+                
+                
+                
+                output$abweichungstabelle <- DT::renderDT({
+                    abweichung_tabelle()
+                }, 
+                options = list(
+                    dom = 't',
+                    paging = FALSE,
+                    ordering = FALSE,
+                    info = FALSE
+                ), 
+                escape = FALSE,
+                rownames = FALSE,
+                class = "hover"
+                )
+                
+                
                 
             }
             
