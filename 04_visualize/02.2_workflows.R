@@ -11,6 +11,24 @@ source("02_model/create_workflows_overview.R", local = TRUE)
 source("02_model/kpis_workflow_liegezeit.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 
+
+my_theme <- function() {
+    theme_minimal(base_family = "Inter") +
+        theme(
+            axis.title = element_text(size = 12, color = "#202124"),     # Dunkles Grau (fast Schwarz)
+            axis.text = element_text(size = 10, color = "#5f6368"),      # Mittelgrau
+            plot.caption = element_text(size = 9, color = "#9e9e9e", hjust = 1),  # Hellgrau, rechtsbündig
+            plot.title = element_blank(),                                # Kein Titel im Plot
+            legend.position = "none",                                    # Keine Legende
+            panel.grid.major = element_line(color = "#e0e0e0", size = 0.3), # Sehr feines Raster
+            panel.grid.minor = element_blank(),                          # Keine kleinen Rasterlinien
+            axis.line = element_blank(),                                 # Keine Achsenlinien
+            axis.ticks = element_blank(),                                # Keine Ticks
+            plot.background = element_rect(fill = "transparent", color = NA),
+            panel.background = element_rect(fill = "transparent", color = NA)
+        )
+}
+
 #UI-----------------------------------------------------------------------------
 workflows_ui <- fluidPage(
     
@@ -431,8 +449,7 @@ workflows_ui <- fluidPage(
                         plotly::plotlyOutput("workflow_plot", height = "240px")
                     )
                 )
-            )
-        ),
+            ),
         
         fluidRow(
             column(
@@ -470,11 +487,23 @@ workflows_ui <- fluidPage(
                         div(
                             style = "display: flex; align-items: center;",
                             span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "abw_rel_info", style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_rel_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
                         ),
                         br(),
                         DT::DTOutput("abweichungstabelle")
-                    )
+                    ),
+                    
+                    bsPopover(
+                        id = "abw_rel_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Julia",
+                        placement = "right",
+                        trigger = "click"
+                    ),
                 )
             )
         ),
@@ -488,18 +517,33 @@ workflows_ui <- fluidPage(
                         div(
                             style = "display: flex; align-items: center;",
                             span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "abw_zeitv_info", style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_zeit_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
                         ),
                         br(),
-                        plotly::plotlyOutput("abweichung_time_plot", height = "240px")
-                    )
+                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
+                    ),
+                    
+                    bsPopover(
+                        id = "abw_zeit_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Julia",
+                        placement = "right",
+                        trigger = "click"
+                    ),
                 )
             )
         )
 )
+)
         
             
             workflows_server <- function(input, output, session) {
+
+                
                 
                 observe({
                     workflows <- unique(vorgaenge_lt_unit$vorgangsfolge)
@@ -865,7 +909,6 @@ workflows_ui <- fluidPage(
                 output$leadtime_chart <- renderPlot({
                     req(input$selected_workflow)
                     
-                    # Aggregation
                     lt_agg <- vorgaenge_lt_unit %>%
                         filter(vorgangsfolge == input$selected_workflow) %>%
                         group_by(Vorgangsnummer) %>%
@@ -876,38 +919,26 @@ workflows_ui <- fluidPage(
                         ) |>
                         filter(!is.na(ist_lt), !is.na(soll_lt))
                     
-                    
-                    # Plot
                     ggplot(lt_agg, aes(x = factor(Vorgangsnummer))) +
-                        # Balken: halb so breit, etwas weniger transparent
-                        geom_col(aes(y = ist_lt), fill = "#002366", alpha = 0.6, width = 0.15) +
-                        
-                        # Linie: ebenfalls nur halb so breit (x-Spanne) und dünner
+                        geom_col(aes(y = ist_lt), fill = "#cccccc", width = 0.15) +
                         geom_segment(aes(
                             x = as.numeric(factor(Vorgangsnummer)) - 0.075,
                             xend = as.numeric(factor(Vorgangsnummer)) + 0.075,
                             y = soll_lt,
                             yend = soll_lt
-                        ), color = "darkred", linewidth = 0.6) +
-                        
-                        # Text: klein, leserlich
+                        ), color = "#6495ED", linewidth = 0.6) +
                         geom_text(aes(
                             y = soll_lt + max(ist_lt) * 0.05,
                             label = paste0(round(soll_lt, 2), " h")
                         ), color = "black", size = 4) +
-                        
-                        # Layout
                         labs(
                             x = "Vorgangsnummer",
                             y = "Lead Time per Unit [s]",
                             caption = "Balken = Median Ist-LT | Linie = Median Soll-LT"
                         ) +
-                        theme_minimal() +
-                        theme(
-                            plot.caption = element_text(hjust = 1, size = 8),
-                            axis.text = element_text(size = 10),
-                            axis.title = element_text(size = 11))
+                        my_theme()
                 })
+                
                 
                 # Liegezeiten
                 data_input <- reactive({
@@ -929,13 +960,12 @@ workflows_ui <- fluidPage(
                     df_plot <- aggregated_data()
                     
                     ggplot(df_plot, aes(x = Vorgangsnummer, y = median_istdauer)) +
-                        geom_col(fill = "#002366", width = 0.15) +
+                        geom_col(fill = "#cccccc", width = 0.15) +
                         labs(
                             x = "Vorgang / Liegezeit",
                             y = "Ist-LT [d]"
                         ) +
-                        theme_minimal() +
-                        theme(axis.text.x = element_text(hjust = 1))
+                        my_theme()
                 })
                 
                 est_plot_obj <- reactive({
@@ -955,21 +985,30 @@ workflows_ui <- fluidPage(
                     df <- all_data_finalized %>%
                         filter(vorgangsfolge == input$selected_workflow) %>%
                         arrange(starttermin_ist) %>%
-                        slice(seq(1, n(), by = 10))  # 👈 nur jeden 10. Wert behalten
+                        slice(seq(1, n(), by = 10))
                     
                     p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
-                        # geom_line(color = "#002366", size = 0.2) +
-                        # geom_point(color = "#002366", size = 0.3, alpha = 0.6) +
                         geom_smooth(
-                            method = "loess", se = FALSE, span = 0.2, color = "#002366", size = 0.7
+                            method = "loess", se = FALSE, span = 0.2, color = "#6495ED", size = 0.7
                         ) +
                         labs(
                             x = "Ist-Starttermin",
                             y = "Abweichung von Soll-LT [d]"
                         ) +
-                        theme_minimal()
+                        my_theme()  # 👈 hier deine Theme-Funktion
                     
-                    ggplotly(p, tooltip = c("x", "y"))
+                    ggplotly(p, tooltip = c("x", "y")) %>%
+                        layout(
+                            font = list(family = "Inter", size = 10, color = "#5f6368"),
+                            xaxis = list(
+                                titlefont = list(size = 10, color = "#202124"),
+                                tickfont = list(size = 10, color = "#5f6368")
+                            ),
+                            yaxis = list(
+                                titlefont = list(size = 10, color = "#202124"),
+                                tickfont = list(size = 10, color = "#5f6368")
+                            )
+                        )
                 })
                 
                 plot_abweichung_histogram <- function(df, selected_workflow) {
@@ -983,18 +1022,13 @@ workflows_ui <- fluidPage(
                     x_max <- quantile(df_filtered$abweichung, 0.975)
                     
                     p <- ggplot(df_filtered, aes(x = abweichung)) +
-                        geom_histogram(binwidth = 1, fill = "#002366", color = "white", boundary = 0) +
+                        geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
                         labs(
                             x = "Abweichung (Ist - Soll) [Tage]",
                             y = "Häufigkeit"
                         ) +
                         scale_x_continuous(limits = c(x_min, x_max)) +
-                        theme_minimal(base_family = "Inter") +
-                        theme(
-                            plot.title = element_text(size = 14, face = "bold"),
-                            axis.title = element_text(size = 12),
-                            axis.text = element_text(size = 11)
-                        )
+                        my_theme()  # 👈 Google-Stil hier anwenden
                     
                     ggplotly(p)
                 }
