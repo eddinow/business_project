@@ -4,6 +4,8 @@ library(shinyWidgets)
 library(shinydashboardPlus)
 library(DT)
 library(bsplus)
+library(shinyBS)
+
 
 source("02_model/create_workflows_overview.R", local = TRUE)
 source("02_model/kpis_workflow_liegezeit.R", local = TRUE)
@@ -235,12 +237,20 @@ workflows_ui <- fluidPage(
                             tags$summary(
                                 style = "font-weight: 600; font-size: 16px; color: #202124; margin-bottom: 12px; cursor: pointer;",
                                 span("Lead Time nach Workflows"),
-                                tags$span(icon("circle-question"), id = "workflows_info", 
-                                          style = "color: #5f6368; margin-left: 8px;") %>%
-                                    bs_embed_popover(title = "Workflows Übersicht", 
-                                                     content = "Beschreibung hier...",
-                                                     placement = "right", trigger = "focus")
+                                tags$span(
+                                    icon("circle-question"),
+                                    id = "workflows_table_info",
+                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                             ),
+                            
+                            bsPopover(
+                                id = "workflows_table_info",
+                                title = "Was wird hier gezeigt?",
+                                content = "Diese Tabelle zeigt die wichtigsten Kennzahlen aller Workflows. Bei einem Servicelevel unter 70% zeigt die Kontrollleuchte rot, bis 95% orange und über 95% grün.",
+                                placement = "right",
+                                trigger = "click"
+                            ),
+                            
                             div(
                                 style = "display: flex; justify-content: flex-end; align-items: baseline; margin-bottom: 12px;",
                                 div(style = "margin-right: 12px;",
@@ -274,8 +284,20 @@ workflows_ui <- fluidPage(
                                 div(
                                     style = "display: flex; align-items: center;",
                                     span("Quick View Verzögerungen", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                    tags$span(icon("circle-question"), style = "color: #5f6368; margin-left: 8px;")
+                                    tags$span(
+                                        icon("circle-question"),
+                                        id = "bottleneck_info",
+                                        style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                    )
                                 )
+                            ),
+                            
+                            bsPopover(
+                                id = "bottleneck_info",
+                                title = "Was wird hier gezeigt?",
+                                content = "Diese Tabelle zeigt, welche Werke, Linien und Planer besonders häufig Verzögerungen in der Bearbeitung verursachen.",
+                                placement = "right",
+                                trigger = "click"
                             ),
                             br(),
                             tabsetPanel(
@@ -330,8 +352,19 @@ workflows_ui <- fluidPage(
                         div(
                             style = "display: flex; align-items: center;",
                             span("Lead Time nach Vorgang [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"),
-                                      style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                            tags$span(
+                                icon("circle-question"),
+                                id = "lt_vorgang_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            ),
+                            
+                            bsPopover(
+                                id = "lt_vorgang_info",
+                                title = "Was wird hier gezeigt?",
+                                content = "Dieses Diagramm zeigt den Median der Ist-Lead Time und Soll-Lead Time aller Vorgangsnummern eines Workflows. Lead Times werden pro Mengeneinheit angegeben, um mengenunabhängig vergleichbar zu sein.",
+                                placement = "right",
+                                trigger = "click"
+                            ),
                         ),
                         br(),
                         # Hier kommt dein Plot rein
@@ -346,9 +379,23 @@ workflows_ui <- fluidPage(
                     tagList(
                         div(
                             style = "display: flex; align-items: center;",
-                            span("Lead Times/Liegezeiten nach Vorgang [Tag pro Auftrag]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
-                        ),
+                            span("Lead Time inkl. Liegezeit [Tag pro Auftrag]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "lz_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        )
+                    ),
+                    
+                    bsPopover(
+                        id = "lz_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Dieses Diagramm zeigt die Lead Times inklusive Liegezeiten auf Auftragsebene (Tage pro Auftrag).",
+                        placement = "right",
+                        trigger = "click"
+                    ),
+                    
                         br(),
                         plotOutput("balkenplot", height = "240px") 
                     )
@@ -365,8 +412,21 @@ workflows_ui <- fluidPage(
                         div(
                             style = "display: flex; align-items: center;",
                             span("Lead Time nach Sollmenge [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
-                        ),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "lt_sollmenge_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        )
+                    ),
+                    
+                    bsPopover(
+                        id = "lt_sollmenge_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                        placement = "right",
+                        trigger = "click"
+                    ),
                         br(),
                         plotly::plotlyOutput("workflow_plot", height = "240px")
                     )
@@ -383,13 +443,25 @@ workflows_ui <- fluidPage(
                         div(
                             style = "display: flex; align-items: center;",
                             span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_abs_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                        )
                         ),
                         br(),
                         plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
-                    )
-                )
-            ),
+                ),
+                
+                bsPopover(
+                    id = "abw_abs_info",
+                    title = "Was wird hier gezeigt?",
+                    content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                    placement = "right",
+                    trigger = "click"
+                ),
+            )
+        ),
             column(
                 width = 6,
                 div(
@@ -398,7 +470,7 @@ workflows_ui <- fluidPage(
                         div(
                             style = "display: flex; align-items: center;",
                             span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                            tags$span(icon("circle-question"), id = "abw_rel_info", style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
                         ),
                         br(),
                         DT::DTOutput("abweichungstabelle")
@@ -416,7 +488,7 @@ workflows_ui <- fluidPage(
                         div(
                             style = "display: flex; align-items: center;",
                             span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
+                            tags$span(icon("circle-question"), id = "abw_zeitv_info", style = "color: #5f6368; font-size: 14px; margin-left: 8px;")
                         ),
                         br(),
                         plotly::plotlyOutput("abweichung_time_plot", height = "240px")
@@ -424,9 +496,8 @@ workflows_ui <- fluidPage(
                 )
             )
         )
+)
         
-    )
-    )
             
             workflows_server <- function(input, output, session) {
                 
