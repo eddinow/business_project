@@ -8,6 +8,7 @@ library(stringr)
 library(purrr)
 library(plotly)
 library(ggplot2)
+library(htmlwidgets)  # für JS()
 
 # Quellen laden (erstellt u. a. 'planer_overview' und 'auftraege_lt_unit')
 source("02_model/create_planer_overview.R", local = TRUE)
@@ -45,14 +46,12 @@ planer_ui <- function(id) {
                 fluidRow(
                     box(
                         title = "Top Aufträge mit Verzögerung",
-                        width = 6, status = "primary", solidHeader = TRUE,
-                        height = "400px",
+                        width = 6, status = "primary", solidHeader = TRUE, height = "400px",
                         DTOutput(ns("delay_summary"))
                     ),
                     box(
                         title = "Top Aufträge mit frühzeitiger Fertigstellung",
-                        width = 6, status = "primary", solidHeader = TRUE,
-                        height = "400px",
+                        width = 6, status = "primary", solidHeader = TRUE, height = "400px",
                         DTOutput(ns("early_summary"))
                     )
                 )
@@ -145,7 +144,7 @@ planer_server <- function(id) {
                 '<span style="color:green">Pünktlichkeitsrate über Ø</span>'
             }
             
-            # 2) Ø Verzögerung
+            # 2) Ø Verzögerung (Tage)
             sel_del <- median(df_s$abweichung_unit[df_s$abweichung_unit > 0], na.rm = TRUE)
             sel_del <- ifelse(is.nan(sel_del), 0, sel_del)
             oth_del <- df_o %>%
@@ -166,14 +165,10 @@ planer_server <- function(id) {
             # 3) Ø Workflows/Auftrag
             sel_ops <- df_s %>%
                 mutate(ops = str_count(vorgangsfolge, "→") + 1) %>%
-                summarise(avg = mean(ops, na.rm = TRUE)) %>%
-                pull(avg)
-            sel_ops <- ifelse(is.nan(sel_ops), 0, sel_ops)
+                summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg) %>% { ifelse(is.nan(.), 0, .) }
             oth_ops <- df_o %>%
                 mutate(ops = str_count(vorgangsfolge, "→") + 1) %>%
-                summarise(avg = mean(ops, na.rm = TRUE)) %>%
-                pull(avg)
-            oth_ops <- ifelse(is.nan(oth_ops), 0, oth_ops)
+                summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg) %>% { ifelse(is.nan(.), 0, .) }
             dev_ops <- sel_ops - oth_ops
             interp_ops <- if (dev_ops < 0) {
                 'Weniger komplex als Ø'
@@ -196,33 +191,11 @@ planer_server <- function(id) {
             }
             
             df_table <- tibble::tibble(
-                KPI                               = c(
-                    "Pünktlichkeitsrate (%)",
-                    "Ø Verzögerung (Tage)",
-                    "Ø Workflows/Auftrag",
-                    "Anzahl Aufträge"
-                ),
-                !!sel                              := c(
-                    round(sel_pct, 1),
-                    round(sel_del, 1),
-                    round(sel_ops, 1),
-                    sel_n
-                ),
-                `Ø anderer Planer`                = c(
-                    round(oth_pct, 1),
-                    round(oth_del, 1),
-                    round(oth_ops, 1),
-                    round(oth_n, 1)
-                ),
-                `Abweichung vom Ø`                = c(
-                    round(dev_pct, 1),
-                    round(dev_del, 1),
-                    round(dev_ops, 1),
-                    round(dev_n, 1)
-                ),
-                Interpretation                    = c(
-                    interp_pct, interp_del, interp_ops, interp_n
-                )
+                KPI                = c("Pünktlichkeitsrate (%)","Ø Verzögerung (Tage)","Ø Workflows/Auftrag","Anzahl Aufträge"),
+                !!sel               := c(round(sel_pct,1),round(sel_del,1),round(sel_ops,1),sel_n),
+                `Ø anderer Planer`  = c(round(oth_pct,1),round(oth_del,1),round(oth_ops,1),round(oth_n,1)),
+                `Abweichung vom Ø`  = c(round(dev_pct,1),round(dev_del,1),round(dev_ops,1),round(dev_n,1)),
+                Interpretation      = c(interp_pct,interp_del,interp_ops,interp_n)
             )
             
             datatable(
@@ -242,48 +215,53 @@ planer_server <- function(id) {
         
         # Verzögerungs-Quartile-Tabelle --------------------------------------------
         output$delay_summary <- renderDT({
-            df <- df_planer() %>% filter(abweichung > 0)
+            df     <- df_planer() %>% filter(abweichung > 0)
             labels <- c(">10","5-10","3-4","1-2")
             counts <- c(
                 sum(df$abweichung > 10),
-                sum(df$abweichung >=5 & df$abweichung <=10),
-                sum(df$abweichung >=3 & df$abweichung <=4),
-                sum(df$abweichung >=1 & df$abweichung <=2)
+                sum(df$abweichung >= 5 & df$abweichung <= 10),
+                sum(df$abweichung >= 3 & df$abweichung <= 4),
+                sum(df$abweichung >= 1 & df$abweichung <= 2)
             )
-            total <- sum(counts)
-            pct <- round(counts/total*100,1)
+            pcts  <- round(counts / sum(counts) * 100, 1)
+            
             summary_df <- tibble(
                 `Verzögerungsbereich (Tage)` = labels,
                 `Anzahl Aufträge`             = counts,
-                pct_val                       = pct
-            ) %>%
-                mutate(
-                    `Anteil (%)` = paste0(
-                        pct_val, "%<br>",
-                        "<div style='background:#eee;width:100px;height:12px;'>",
-                        "<div style='background:#1f77b4;width:", pct_val, "%;height:12px;'></div></div>"
-                    ),
-                    Details = map_chr(labels, ~ as.character(
-                        actionButton(
-                            ns(paste0("abweichung_", make_id(.x))),
-                            label = NULL,
-                            icon = icon("search")
-                        )
-                    ))
-                ) %>%
-                select(-pct_val)
+                `Anteil (%)` = paste0(
+                    pcts, "%<br>",
+                    "<div style='background:#eee;width:100px;height:12px;'>",
+                    "<div style='background:#1f77b4;width:", pcts, "%;height:12px;'></div>",
+                    "</div>"
+                ),
+                Details = map_chr(labels, ~ as.character(
+                    actionButton(ns(paste0("abweichung_", make_id(.x))), label = NULL, icon = icon("search"))
+                ))
+            )
             
             datatable(
                 summary_df,
-                escape = FALSE,
-                rownames = FALSE,
-                options = list(dom = 't', paging = FALSE, ordering = FALSE, autoWidth = TRUE)
+                escape    = FALSE,
+                rownames  = FALSE,
+                selection = 'none',
+                options   = list(
+                    dom          = 't',
+                    paging       = FALSE,
+                    ordering     = FALSE,
+                    autoWidth    = TRUE,
+                    drawCallback = JS(
+                        "function(settings){",
+                        "  Shiny.unbindAll(this.api().table().node());",
+                        "  Shiny.bindAll(this.api().table().node());",
+                        "}"
+                    )
+                )
             )
-        })
+        }, server = FALSE)
         
         # Frühzeitige Fertigstellungs-Quartile --------------------------------------
         output$early_summary <- renderDT({
-            df <- df_planer() %>% filter(abweichung < 0)
+            df     <- df_planer() %>% filter(abweichung < 0)
             labels <- c(">10","5-10","3-4","1-2")
             counts <- c(
                 sum(df$abweichung < -10),
@@ -291,129 +269,159 @@ planer_server <- function(id) {
                 sum(df$abweichung <= -3 & df$abweichung >= -4),
                 sum(df$abweichung <= -1 & df$abweichung >= -2)
             )
-            total <- sum(counts)
-            pct <- round(counts/total*100,1)
+            pcts  <- round(counts / sum(counts) * 100, 1)
+            
             summary_df <- tibble(
                 `Frühzeitige Fertigstellung (Tage)` = labels,
-                `Anzahl Aufträge`                    = counts,
-                pct_val                              = pct
-            ) %>%
-                mutate(
-                    `Anteil (%)` = paste0(
-                        pct_val, "%<br>",
-                        "<div style='background:#eee;width:100px;height:12px;'>",
-                        "<div style='background:#1f77b4;width:", pct_val, "%;height:12px;'></div></div>"
-                    ),
-                    Details = map_chr(labels, ~ as.character(
-                        actionButton(
-                            ns(paste0("neg_dev_", make_id(.x))),
-                            label = NULL,
-                            icon = icon("search")
-                        )
-                    ))
-                ) %>%
-                select(-pct_val)
+                `Anzahl Aufträge`                   = counts,
+                `Anteil (%)` = paste0(
+                    pcts, "%<br>",
+                    "<div style='background:#eee;width:100px;height:12px;'>",
+                    "<div style='background:#1f77b4;width:", pcts, "%;height:12px;'></div>",
+                    "</div>"
+                ),
+                Details = map_chr(labels, ~ as.character(
+                    actionButton(ns(paste0("neg_dev_", make_id(.x))), label = NULL, icon = icon("search"))
+                ))
+            )
             
             datatable(
                 summary_df,
-                escape = FALSE,
-                rownames = FALSE,
-                options = list(dom = 't', paging = FALSE, ordering = FALSE, autoWidth = TRUE)
+                escape    = FALSE,
+                rownames  = FALSE,
+                selection = 'none',
+                options   = list(
+                    dom          = 't',
+                    paging       = FALSE,
+                    ordering     = FALSE,
+                    autoWidth    = TRUE,
+                    drawCallback = JS(
+                        "function(settings){",
+                        "  Shiny.unbindAll(this.api().table().node());",
+                        "  Shiny.bindAll(this.api().table().node());",
+                        "}"
+                    )
+                )
             )
-        })
+        }, server = FALSE)
         
-        # Detail-Modals Verzögerung -----------------------------------------------
+        # Detail-Modals Verzögerung >10, 5-10, 3-4, 1-2 -----------------------------
         observeEvent(input$abweichung_gt10, {
             df_d <- df_planer() %>%
                 filter(abweichung > 10) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                dplyr::select(
+                    Auftragsnummer = auftragsnummer,
+                    Material       = materialnummer,
+                    Abweichung     = abweichung
+                ) %>%
                 arrange(desc(Abweichung))
             showModal(modalDialog(
-                title = "Aufträge mit Verzögerung > 10 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                title  = "Aufträge mit Verzögerung > 10 Tage",
+                DTOutput(ns("modal_delay_gt10")),
+                size   = "l", footer = modalButton("Schließen")
             ))
+            output$modal_delay_gt10 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                          options = list(pageLength = 10, autoWidth = TRUE)))
         })
+        
         observeEvent(input$abweichung_5_10, {
             df_d <- df_planer() %>%
-                filter(abweichung >=5, abweichung <=10) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                filter(abweichung >= 5, abweichung <= 10) %>%
+                dplyr::select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
                 arrange(desc(Abweichung))
             showModal(modalDialog(
                 title = "Aufträge mit Verzögerung 5–10 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                DTOutput(ns("modal_delay_5_10")),
+                size  = "l", footer = modalButton("Schließen")
             ))
+            output$modal_delay_5_10 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                          options = list(pageLength = 10, autoWidth = TRUE)))
         })
+        
         observeEvent(input$abweichung_3_4, {
             df_d <- df_planer() %>%
-                filter(abweichung >=3, abweichung <=4) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                filter(abweichung >= 3, abweichung <= 4) %>%
+                dplyr::select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
                 arrange(desc(Abweichung))
             showModal(modalDialog(
                 title = "Aufträge mit Verzögerung 3–4 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                DTOutput(ns("modal_delay_3_4")),
+                size  = "l", footer = modalButton("Schließen")
             ))
+            output$modal_delay_3_4 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                         options = list(pageLength = 10, autoWidth = TRUE)))
         })
+        
         observeEvent(input$abweichung_1_2, {
             df_d <- df_planer() %>%
-                filter(abweichung >=1, abweichung <=2) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                filter(abweichung >= 1, abweichung <= 2) %>%
+                dplyr::select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
                 arrange(desc(Abweichung))
             showModal(modalDialog(
                 title = "Aufträge mit Verzögerung 1–2 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                DTOutput(ns("modal_delay_1_2")),
+                size  = "l", footer = modalButton("Schließen")
             ))
+            output$modal_delay_1_2 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                         options = list(pageLength = 10, autoWidth = TRUE)))
         })
         
-        # Detail-Modals Frühzeitig -----------------------------------------------
+        # Detail-Modals Frühzeitige Fertigstellung >10, 5-10, 3-4, 1-2 -------------
         observeEvent(input$neg_dev_gt10, {
             df_d <- df_planer() %>%
                 filter(abweichung < -10) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                dplyr::select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
                 arrange(Abweichung)
             showModal(modalDialog(
                 title = "Aufträge mit frühzeitiger Fertigstellung > 10 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                DTOutput(ns("modal_early_gt10")),
+                size  = "l", footer = modalButton("Schließen")
             ))
+            output$modal_early_gt10 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                          options = list(pageLength = 10, autoWidth = TRUE)))
         })
+        
         observeEvent(input$neg_dev_5_10, {
             df_d <- df_planer() %>%
                 filter(abweichung <= -5, abweichung >= -10) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                dplyr::select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
                 arrange(Abweichung)
             showModal(modalDialog(
                 title = "Aufträge mit frühzeitiger Fertigstellung 5–10 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                DTOutput(ns("modal_early_5_10")),
+                size  = "l", footer = modalButton("Schließen")
             ))
+            output$modal_early_5_10 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                          options = list(pageLength = 10, autoWidth = TRUE)))
         })
+        
         observeEvent(input$neg_dev_3_4, {
             df_d <- df_planer() %>%
                 filter(abweichung <= -3, abweichung >= -4) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                dplyr::select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
                 arrange(Abweichung)
             showModal(modalDialog(
                 title = "Aufträge mit frühzeitiger Fertigstellung 3–4 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                DTOutput(ns("modal_early_3_4")),
+                size  = "l", footer = modalButton("Schließen")
             ))
+            output$modal_early_3_4 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                         options = list(pageLength = 10, autoWidth = TRUE)))
         })
+        
         observeEvent(input$neg_dev_1_2, {
             df_d <- df_planer() %>%
                 filter(abweichung <= -1, abweichung >= -2) %>%
-                select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
+                dplyr::select(Auftragsnummer = auftragsnummer, Material = materialnummer, Abweichung = abweichung) %>%
                 arrange(Abweichung)
             showModal(modalDialog(
                 title = "Aufträge mit frühzeitiger Fertigstellung 1–2 Tage",
-                DT::datatable(df_d, options = list(pageLength = 10, autoWidth = TRUE)),
-                size = "l"
+                DTOutput(ns("modal_early_1_2")),
+                size  = "l", footer = modalButton("Schließen")
             ))
+            output$modal_early_1_2 <- renderDT(datatable(df_d, rownames = FALSE,
+                                                         options = list(pageLength = 10, autoWidth = TRUE)))
         })
         
     })
 }
-
