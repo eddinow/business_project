@@ -1,8 +1,3 @@
-# Initialize -------------------------------------------------------------------
-rm(list = ls())
-set.seed(1)
-setwd("~/Documents/R Projekte/R Tutorial")
-
 # Packages ---------------------------------------------------------------------
 library(shiny)
 library(shinydashboard)
@@ -37,6 +32,7 @@ start_ui <- fluidPage(
         display: flex;
         flex: 1;
         justify-content: center;
+        align-items: center;      /* vertical centering */
         gap: 32px;
         font-size: 14px;
         color: #5f6368;
@@ -44,7 +40,7 @@ start_ui <- fluidPage(
       .nav-tabs-custom a {
         text-decoration: none;
         color: #5f6368;
-        padding-bottom: 8px;
+        padding: 8px 0;            /* even vertical padding */
       }
       .nav-tabs-custom a.active {
         color: #1a73e8;
@@ -56,6 +52,7 @@ start_ui <- fluidPage(
         flex: 0 0 auto;
         gap: 20px;
         align-items: center;
+        margin-right: 1rem;        /* pull icons slightly left */
       }
       body {
         background-color: #f5f7fa;
@@ -195,7 +192,7 @@ start_ui <- fluidPage(
             )
         ),
         
-        # Linien Box ---------------------------------------------------------------
+        # Production Lines Box ----------------------------------------------------
         fluidRow(
             column(12,
                    div(class = "white-box",
@@ -207,8 +204,8 @@ start_ui <- fluidPage(
                                    tags$span(icon("circle-question"), id = "linien_info",
                                              style = "color: #5f6368; margin-left: 8px;") %>%
                                        bs_embed_popover(
-                                           title   = "Workflows Übersicht",
-                                           content = "Sie können für einzelne Fertigungslinien die Median-Lead Times pro gefertigtem Stück sehen. Durch diese Rate kann die Lead Time Performance trotz unterschiedlicher Durchlaufvolumina der Workflows verglichen werden. Der Servicelevel gibt den Anteil an Aufträgen an, die zu früh oder rechtzeitig fertig wurden.",
+                                           title   = "Linien Übersicht",
+                                           content = "Sie können für einzelne Fertigungslinien die Median-Lead Times pro gefertigtem Stück sehen. Durch diese Rate kann die Lead Time Performance trotz unterschiedlicher Durchlaufvolumina verglichen werden.",
                                            placement = "right", trigger = "focus"
                                        )
                                ),
@@ -230,7 +227,7 @@ start_ui <- fluidPage(
             )
         ),
         
-        # Werke Box ---------------------------------------------------------------
+        # Plants Box ---------------------------------------------------------------
         fluidRow(
             column(12,
                    div(class = "white-box",
@@ -243,7 +240,7 @@ start_ui <- fluidPage(
                                              style = "color: #5f6368; margin-left: 8px;") %>%
                                        bs_embed_popover(
                                            title   = "Werke Übersicht",
-                                           content = "Sie können für einzelne Werke die Median-Lead Times pro gefertigtem Stück sehen. Durch diese Rate kann die Lead Time Performance trotz unterschiedlicher Durchlaufvolumina der Workflows verglichen werden. Der Servicelevel gibt den Anteil an Aufträgen an, die zu früh oder rechtzeitig fertig wurden.",
+                                           content = "Sie können für einzelne Werke die Median-Lead Times pro gefertigtem Stück sehen.",
                                            placement = "right", trigger = "focus"
                                        )
                                ),
@@ -272,114 +269,96 @@ start_server <- function(input, output, session) {
     
     # KPI: Service Level ---------------------------------------------------------
     output$overall_servicelevel <- renderUI({
-        sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
+        sl_pct <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
             sum(!is.na(auftraege_lt_unit$abweichung_unit))
-        sl_percent <- round(sl * 100)
-        farbe <- if (sl_percent < 70) {
-            "#ea4335"
-        } else if (sl_percent < 95) {
-            "#fbbc04"
-        } else {
-            "#34a853"
-        }
-        div(
-            class = "white-box",
-            div(style = "display: flex; flex-direction: column; align-items: flex-start;",
-                span(style = paste0("font-weight: 600; font-size: 32px; color: ", farbe, ";"),
-                     paste0(sl_percent, "%")),
-                span(style = "color: #5f6368; font-size: 16px;",
-                     "Servicelevel")
+        sl_val <- round(sl_pct * 100)
+        color <- if (sl_val < 70) "#ea4335" else if (sl_val < 95) "#fbbc04" else "#34a853"
+        div(class = "white-box",
+            div(style = "display: flex; flex-direction: column;",
+                span(style = paste0("font-weight:600;font-size:32px;color:",color,";"),
+                     paste0(sl_val, "%")),
+                span(style = "font-size:16px;color:#5f6368;", "Service Level")
             )
         )
     })
     
-    # KPI: Soll-LT/ME ------------------------------------------------------------
+    # KPI: Planned LT per Unit --------------------------------------------------
     output$soll_lt <- renderUI({
-        soll <- median(auftraege_lt_unit$lt_soll_order, na.rm = TRUE)
-        div(
-            class = "white-box",
-            div(style = "display: flex; flex-direction: column; align-items: flex-start;",
-                span(style = "font-weight: 600; font-size: 32px; color: #202124;",
-                     paste0(round(soll, 2), " s")),
-                span(style = "color: #5f6368; font-size: 16px;",
-                     "Soll-LT/ME")
+        val <- median(auftraege_lt_unit$lt_soll_order, na.rm = TRUE)
+        div(class = "white-box",
+            div(style = "display: flex; flex-direction: column;",
+                span(style = "font-weight:600;font-size:32px;color:#202124;",
+                     paste0(round(val,2), " s")),
+                span(style = "font-size:16px;color:#5f6368;", "Planned LT/Unit")
             )
         )
     })
     
-    # KPI: Delay/ME ---------------------------------------------------------------
+    # KPI: Delay per Unit --------------------------------------------------------
     output$overall_delay <- renderUI({
-        delay <- median(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE)
-        div(
-            class = "white-box",
-            div(style = "display: flex; flex-direction: column; align-items: flex-start;",
-                span(style = "font-weight: 600; font-size: 32px; color: #202124;",
-                     paste0(round(delay, 2), " s")),
-                span(style = "color: #5f6368; font-size: 16px;",
-                     "Delay/ME")
+        val <- median(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE)
+        div(class = "white-box",
+            div(style = "display: flex; flex-direction: column;",
+                span(style = "font-weight:600;font-size:32px;color:#202124;",
+                     paste0(round(val,2), " s")),
+                span(style = "font-size:16px;color:#5f6368;", "Delay/Unit")
             )
         )
     })
     
-    # KPI: Ist-LT/ME -------------------------------------------------------------
+    # KPI: Actual LT per Unit ---------------------------------------------------
     output$ist_lt <- renderUI({
-        ist <- median(auftraege_lt_unit$lt_ist_order, na.rm = TRUE)
-        div(
-            class = "white-box",
-            div(style = "display: flex; flex-direction: column; align-items: flex-start;",
-                span(style = "font-weight: 600; font-size: 32px; color: #202124;",
-                     paste0(round(ist, 2), " s")),
-                span(style = "color: #5f6368; font-size: 16px;",
-                     "Ist-LT/ME")
+        val <- median(auftraege_lt_unit$lt_ist_order, na.rm = TRUE)
+        div(class = "white-box",
+            div(style = "display: flex; flex-direction: column;",
+                span(style = "font-weight:600;font-size:32px;color:#202124;",
+                     paste0(round(val,2), " s")),
+                span(style = "font-size:16px;color:#5f6368;", "Actual LT/Unit")
             )
         )
     })
     
-    # Tabellen: renderDT & downloadHandler für Workflows, Linien, Werke -----------
-    render_table_and_download <- function(data, input_id, out_table, out_dl, prefix) {
-        output[[out_table]] <- renderDT({
+    # Helper: render & download for each overview table --------------------------
+    render_table_and_download <- function(data, sel_id, tbl_out, dl_out, prefix) {
+        output[[tbl_out]] <- renderDT({
             df <- data
-            df$servicelevel_numeric <- as.numeric(gsub("%", "", df$Servicelevel)) / 100
-            sel <- input[[input_id]]
-            if (sel == "Top") {
-                df <- df[order(-df$servicelevel_numeric), ]
+            df$servicelevel_numeric <- as.numeric(gsub('%','',df$Servicelevel))/100
+            if (input[[sel_id]]=='Top') {
+                df <- df[order(-df$servicelevel_numeric),]
             } else {
-                df <- df[order(df$servicelevel_numeric), ]
+                df <- df[order(df$servicelevel_numeric),]
             }
             df <- df |> dplyr::select(-servicelevel_numeric)
             datatable(
                 df,
-                escape = which(colnames(df) != "ampel"),
+                escape = which(colnames(df)!='ampel'),
                 options = list(
                     pageLength   = 10,
                     lengthChange = FALSE,
                     dom          = 'tip',
                     ordering     = FALSE,
                     columnDefs   = list(
-                        list(visible = FALSE, targets = 0),
-                        list(width   = '20px', targets = 1),
-                        list(orderData = 0, targets = 1),
-                        list(title     = '', targets = 1),
-                        list(className = 'dt-center', targets = 1)
+                        list(visible=FALSE, targets=0),
+                        list(width='20px',   targets=1),
+                        list(orderData=0,    targets=1),
+                        list(title='',       targets=1),
+                        list(className='dt-center', targets=1)
                     )
                 ),
-                rownames = FALSE,
-                class = 'hover',
-                width = '100%'
+                rownames=FALSE, class='hover', width='100%'
             )
         })
-        output[[out_dl]] <- downloadHandler(
-            filename = function() paste0(prefix, "_", Sys.Date(), ".csv"),
+        output[[dl_out]] <- downloadHandler(
+            filename = function() paste0(prefix,'_',Sys.Date(),'.csv'),
             content = function(file) {
                 df <- data
-                df$servicelevel_numeric <- as.numeric(gsub("%", "", df$Servicelevel)) / 100
-                sel <- input[[input_id]]
-                if (sel == "Top") {
-                    df <- df[order(-df$servicelevel_numeric), ]
+                df$servicelevel_numeric <- as.numeric(gsub('%','',df$Servicelevel))/100
+                if (input[[sel_id]]=='Top') {
+                    df <- df[order(-df$servicelevel_numeric),]
                 } else {
-                    df <- df[order(df$servicelevel_numeric), ]
+                    df <- df[order(df$servicelevel_numeric),]
                 }
-                write.csv(df, file, row.names = FALSE)
+                write.csv(df, file, row.names=FALSE)
             }
         )
     }
@@ -387,9 +366,9 @@ start_server <- function(input, output, session) {
     render_table_and_download(workflows_overview,  "sortierung_workflows",
                               "workflow_table",      "download_csv_workflows", "workflows")
     render_table_and_download(linien_overview,    "sortierung_linien",
-                              "linien_table",        "download_csv_linien", "linien")
+                              "linien_table",        "download_csv_linien",   "linien")
     render_table_and_download(werke_overview,     "sortierung_werke",
-                              "werke_table",         "download_csv_werke",  "werke")
+                              "werke_table",         "download_csv_werke",    "werke")
 }
 
 # Run App -----------------------------------------------------------------------
