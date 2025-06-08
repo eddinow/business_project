@@ -1,16 +1,24 @@
-# Start UI-Datei -------------------------------------------------------------
 library(shiny)
 library(shinydashboard)
 library(DT)
+library(writexl)
+library(dplyr)
 
+# --- Daten laden ---
 source("02_model/create_start_kpis.R", local = TRUE)
-source("04_visualize/02_planer.R", local = TRUE)
-source("04_visualize/02_workflows.R", local = TRUE)  
-source("04_visualize/02_fertigungslinien.R", local = TRUE)  
-source("04_visualize/02_material.R", local = TRUE) 
-source("04_visualize/02_werke.R", local = TRUE)  
+source("02_model/create_planer_overview.R", local = TRUE)
+source("02_model/create_workflows_overview.R", local = TRUE)
+source("02_model/create_material_overview.R", local = TRUE)
+source("02_model/create_werke_overview.R", local = TRUE)
+source("02_model/create_fertigungslinien_overview.R", local = TRUE)
 
-# UI -------------------------------------------------------------------------
+source("04_visualize/02_planer.R", local = TRUE)
+source("04_visualize/02_workflows.R", local = TRUE)
+source("04_visualize/02_fertigungslinien.R", local = TRUE)
+source("04_visualize/02_material.R", local = TRUE)
+source("04_visualize/02_werke.R", local = TRUE)
+
+# --- UI ---
 start_ui <- dashboardPage(
     dashboardHeader(title = "TrueTime"),
     dashboardSidebar(
@@ -24,37 +32,14 @@ start_ui <- dashboardPage(
         )
     ),
     dashboardBody(
-        tags$head(tags$style(HTML("...dein CSS bleibt unverändert..."))),
         tabItems(
             tabItem(tabName = "start",
                     h2("Behalte Deine Lead Times mit TrueTime im Auge.",
                        style = "font-size: 3vw; font-weight: bold;"),
-                    div(class = "spacer"),
-                    fluidRow(
-                        column(width = 6,
-                               div(class = "fancy-box",
-                                   div(class = "value", avg_lt),
-                                   div(class = "subtitle", "Current est. LT")
-                               )
-                        ),
-                        column(width = 6,
-                               div(class = "fancy-box",
-                                   div(class = "value", paste0(avg_sl, "%")),
-                                   div(class = "subtitle", "Servicelevel")
-                               )
-                        )
-                    ),
-                    h3("Kategorie wählen", class = "h3-fancy"),
-                    div(class = "button_grid",
-                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'workflows')", "Workflows"),
-                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'material')", "Material"),
-                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'linien')", "Fertigungslinien"),
-                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'werke')", "Werke"),
-                        div(class = "fancy-box", onclick = "Shiny.setInputValue('go_tab', 'planer')", "Planer")
-                    ),
                     br(), br(),
                     box(title = "Datenexport (CSV)", width = 12, status = "primary", solidHeader = TRUE,
-                        selectInput("export_kategorie", "Kategorie wählen:", choices = c("Werke", "Planer", "Fertigungslinien", "Workflows")),
+                        selectInput("export_kategorie", "Kategorie wählen:",
+                                    choices = c("Workflows", "Planer", "Fertigungslinien", "Werke", "Material")),
                         uiOutput("export_filter_1"),
                         uiOutput("export_filter_2"),
                         downloadButton("export_download", "Gefilterte Daten exportieren")
@@ -69,7 +54,7 @@ start_ui <- dashboardPage(
     )
 )
 
-# Server -----------------------------------------------------------------------
+# --- SERVER ---
 start_server <- function(input, output, session) {
     
     workflows_server("workflows")
@@ -82,54 +67,106 @@ start_server <- function(input, output, session) {
         updateTabItems(session, "main_tabs", input$go_tab)
     })
     
-    # Dynamische Filter
+    # 1. Hauptfilter
     output$export_filter_1 <- renderUI({
         req(input$export_kategorie)
-        switch(input$export_kategorie,
-               "Werke" = selectInput("export_wert1", "Werk:", choices = unique(werke_overview$werk)),
-               "Planer" = selectInput("export_wert1", "Planer:", choices = unique(planer_overview$planer)),
-               "Fertigungslinien" = selectInput("export_wert1", "Linie:", choices = unique(linien_overview$fertigungslinie)),
-               "Workflows" = selectInput("export_wert1", "Workflow:", choices = unique(workflows_overview$vorgangsfolge))
+        
+        auswahl <- switch(input$export_kategorie,
+                          "Workflows"         = unique(workflows_overview$Workflow),
+                          "Planer"            = unique(planer_overview$Planer),
+                          "Fertigungslinien"  = unique(linien_overview$fertigungslinie),
+                          "Werke"             = unique(werke_overview$werk),
+                          "Material"          = unique(materialnummer_overview$materialnummer),
+                          character(0)
         )
+        
+        selectInput("export_wert1",
+                    paste("Wert aus", input$export_kategorie),
+                    choices = sort(auswahl))
     })
     
+    # 2. Optionaler zweiter Filter
     output$export_filter_2 <- renderUI({
-        req(input$export_kategorie)
+        req(input$export_kategorie, input$export_wert1)
+        
         if (input$export_kategorie == "Fertigungslinien") {
-            req(input$export_wert1)
-            vorgaenge <- linien_overview %>%
+            vals <- linien_overview %>%
                 filter(fertigungslinie == input$export_wert1) %>%
-                pull(vorgangsfolge) %>%
-                unique()
-            selectInput("export_wert2", "Vorgangsfolge:", choices = vorgaenge)
+                pull(vorgangsfolge) %>% unique()
+            if (length(vals) > 1) {
+                selectInput("export_wert2", "Vorgangsfolge:", choices = sort(vals))
+            }
+            
+        } else if (input$export_kategorie == "Werke") {
+            vals <- werke_overview %>%
+                filter(werk == input$export_wert1) %>%
+                pull(vorgangsfolge) %>% unique()
+            if (length(vals) > 1) {
+                selectInput("export_wert2", "Vorgangsfolge:", choices = sort(vals))
+            }
+            
+        } else if (input$export_kategorie == "Material") {
+            vals <- materialnummer_overview %>%
+                filter(materialnummer == input$export_wert1) %>%
+                pull(ABC_Klasse) %>% unique()
+            if (length(vals) > 1) {
+                selectInput("export_wert2", "ABC-Klasse:", choices = sort(vals))
+            }
+            
         } else {
-            return(NULL)
+            return(NULL)  # Kein zweiter Filter für Workflows & Planer
         }
     })
     
+    # 3. Exportdaten
     export_data <- reactive({
         req(input$export_kategorie, input$export_wert1)
         
-        switch(input$export_kategorie,
-               "Werke" = werke_overview %>% filter(werk == input$export_wert1),
-               "Planer" = planer_overview %>% filter(planer == input$export_wert1),
-               "Fertigungslinien" = {
-                   df <- linien_overview %>% filter(fertigungslinie == input$export_wert1)
-                   if (!is.null(input$export_wert2)) df <- df %>% filter(vorgangsfolge == input$export_wert2)
-                   df
-               },
-               "Workflows" = workflows_overview %>% filter(vorgangsfolge == input$export_wert1)
+        df <- switch(input$export_kategorie,
+                     "Workflows"         = workflows_overview,
+                     "Planer"            = planer_overview,
+                     "Fertigungslinien"  = linien_overview,
+                     "Werke"             = werke_overview,
+                     "Material"          = materialnummer_overview,
+                     data.frame()
         )
+        
+        col_map <- list(
+            "Workflows"         = "Workflow",
+            "Planer"            = "Planer",
+            "Fertigungslinien"  = "fertigungslinie",
+            "Werke"             = "werk",
+            "Material"          = "materialnummer"
+        )
+        
+        spalte <- col_map[[input$export_kategorie]]
+        df <- df[df[[spalte]] == input$export_wert1, , drop = FALSE]
+        
+        # Zweiter Filter
+        if (input$export_kategorie %in% c("Fertigungslinien", "Werke", "Material") &&
+            !is.null(input$export_wert2)) {
+            
+            df <- switch(input$export_kategorie,
+                         "Fertigungslinien"  = df[df$vorgangsfolge == input$export_wert2, ],
+                         "Werke"             = df[df$vorgangsfolge == input$export_wert2, ],
+                         "Material"          = df[df$ABC_Klasse     == input$export_wert2, ],
+                         df
+            )
+        }
+        
+        df
     })
     
+    # 4. DownloadHandler
     output$export_download <- downloadHandler(
         filename = function() {
-            paste0("TrueTime_Export_", input$export_kategorie, "_", Sys.Date(), ".csv")
+            paste0("TrueTime_Export_", input$export_kategorie, "_", Sys.Date(), ".xlsx")
         },
         content = function(file) {
-            write.csv(export_data(), file, row.names = FALSE)
+            writexl::write_xlsx(export_data(), path = file)
         }
     )
 }
 
+# START
 shinyApp(start_ui, start_server)
