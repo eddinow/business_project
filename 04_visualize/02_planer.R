@@ -137,11 +137,11 @@ planer_server <- function(id) {
                 pull(rate) %>% mean(., na.rm = TRUE)
             dev_pct <- sel_pct - oth_pct
             interp_pct <- if (dev_pct < 0) {
-                '<span style="color:red">Pünktlichkeitsrate unter Ø</span>'
+                '<span style="color:red">Im Vergleich zum Durchschnitt der übrigen Planer liegt die Pünktlichkeitsrate des ausgewählten Planers unter dem Durchschnitt</span>'
             } else if (dev_pct == 0) {
-                'Pünktlichkeitsrate auf Ø'
+                'Die Terminzuverlässigkeit des ausgewählten Planers bewegt sich auf dem Niveau seiner Kollegen'
             } else {
-                '<span style="color:green">Pünktlichkeitsrate über Ø</span>'
+                '<span style="color:green">Im Vergleich zu den anderen Planern schließt der ausgewählte Planer seine Aufträge überdurchschnittlich pünktlich ab</span>'
             }
             
             # 2) Ø Verzögerung (Tage)
@@ -155,11 +155,11 @@ planer_server <- function(id) {
             oth_del <- ifelse(is.nan(oth_del), 0, oth_del)
             dev_del <- sel_del - oth_del
             interp_del <- if (dev_del < 0) {
-                '<span style="color:green">Verspätung unter Ø</span>'
+                '<span style="color:green">Die durchschnittliche Verspätung des ausgewählten Planers liegt unter dem Durchschnitt der übrigen Planer</span>'
             } else if (dev_del == 0) {
-                'Verspätung auf Ø'
+                'Die durchschnittliche Verzögerung des ausgewählten Planers bewegt sich auf dem Niveau seiner Kollegen'
             } else {
-                '<span style="color:red">Verspätung über Ø</span>'
+                '<span style="color:red">Der Planer weist im Vergleich zu seinen Kollegen eine überdurchschnittliche Verspätung auf</span>'
             }
             
             # 3) Ø Workflows/Auftrag
@@ -171,11 +171,11 @@ planer_server <- function(id) {
                 summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg) %>% { ifelse(is.nan(.), 0, .) }
             dev_ops <- sel_ops - oth_ops
             interp_ops <- if (dev_ops < 0) {
-                'Weniger komplex als Ø'
+                'Im Vergleich zum ausgewählten Planer bearbeiten die übrigen Planer im Schnitt aufwändigere Aufträge'
             } else if (dev_ops == 0) {
-                'Komplexität auf Ø'
+                'Die durchschnittliche Anzahl an Vorgängen pro Auftrag entspricht dem Wert der übrigen Planer'
             } else {
-                'Komplexer als Ø'
+                'Der ausgewählte Planer betreut im Durchschnitt komplexere Aufträge als die übrigen Planer'
             }
             
             # 4) Anzahl Aufträge
@@ -183,11 +183,11 @@ planer_server <- function(id) {
             oth_n <- df_o %>% group_by(planer) %>% summarise(n = n()) %>% pull(n) %>% mean(., na.rm = TRUE)
             dev_n <- sel_n - oth_n
             interp_n <- if (dev_n < 0) {
-                'Weniger Aufträge als Ø'
+                'Die Anzahl der bearbeiteten Aufträge liegt beim ausgewählten Planer unter dem Durchschnitt der anderen Planer'
             } else if (dev_n == 0) {
-                'Anzahl auf Ø'
+                'Die Anzahl der bearbeiteten Aufträge durch den ausgewählten Planer entspricht dem Durchschnitt der übrigen Planer'
             } else {
-                'Mehr Aufträge als Ø'
+                'Der ausgewählte Planer hat bislang mehr Aufträge abgeschlossen als der durchschnittliche Wert der übrigen Planer'
             }
             
             df_table <- tibble::tibble(
