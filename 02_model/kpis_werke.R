@@ -4,13 +4,14 @@ if (!exists("all_data_finalized")) {
 
 library(stringr)
 
-werke_overview <- all_data_finalized %>%
+werke_overview <- auftraege_lt_unit %>%
     filter(!is.na(werk), !is.na(vorgangsfolge)) %>%
     mutate(
-        ist_verspaetet = lead_time_ist > lead_time_soll,
-        termintreu = lead_time_ist <= lead_time_soll,
+        ist_verspaetet = lt_ist_order > lt_soll_order,
+        termintreu = lt_ist_order <= lt_soll_order,
         liefertreu = gelieferte_menge >= sollmenge,
-        servicelevel = termintreu & liefertreu
+        servicelevel = sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(auftraege_lt_unit$abweichung_unit))
     ) %>%
     group_by(werk, vorgangsfolge) %>%
     summarise(
@@ -20,7 +21,7 @@ werke_overview <- all_data_finalized %>%
         Average_Delay = round(mean(abweichung[abweichung > 0], na.rm = TRUE), 1),
         Termintreue_prozent = round(mean(termintreu, na.rm = TRUE) * 100, 1),
         Liefertreue_prozent = round(mean(liefertreu, na.rm = TRUE) * 100, 1),
-        Servicelevel_prozent = round(mean(servicelevel, na.rm = TRUE) * 100, 1),
+        Servicelevel_prozent = servicelevel,
         Durchschnitt_Liefermenge = round(mean(gelieferte_menge, na.rm = TRUE), 1),
         .groups = "drop"
     ) %>%
