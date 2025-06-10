@@ -541,7 +541,7 @@ workflows_ui <- fluidPage(
 )
         
             
-            workflows_server <- function(input, output, session) {
+workflows_server <- function(input, output, session) {
 
                 
                 
@@ -861,7 +861,7 @@ workflows_ui <- fluidPage(
                     div(
                         style = "display: flex; flex-direction: column;",
                         span(style = paste0("font-weight: 600; font-size: 24px; color: ", farbe, ";"), sl_percent),
-                        span("# Servicelevel", style = "color: #5f6368; font-size: 14px;")
+                        span("Servicelevel", style = "color: #5f6368; font-size: 14px;")
                     )
                 })
                 
@@ -982,7 +982,7 @@ workflows_ui <- fluidPage(
                 output$abweichung_time_plot <- renderPlotly({
                     req(input$selected_workflow)
                     
-                    df <- all_data_finalized %>%
+                    df <- auftraege_lt_unit %>%
                         filter(vorgangsfolge == input$selected_workflow) %>%
                         arrange(starttermin_ist) %>%
                         slice(seq(1, n(), by = 10))

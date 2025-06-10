@@ -140,4 +140,46 @@ mutate(
     ) %>%
     arrange(desc(`# Orders`))
 
+
+#Planer---------------------------------------------------------------
+
+planer_overview <- auftraege_lt_unit %>%
+    filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
+    group_by(planer) %>%
+    summarise(
+        `Soll-LT/Unit [s]` = round(median(lt_soll_order, na.rm = TRUE), 2),
+        `Ist-LT/Unit [s]`  = round(median(lt_ist_order, na.rm = TRUE), 2),
+        `Avg Delay/Unit [s]` = round(
+            pmax(`Ist-LT/Unit [s]` - `Soll-LT/Unit [s]`, 0), 4
+        ),
+        `# Orders` = n(),
+        servicelevel_numeric = sum(abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(abweichung_unit)),
+        .groups = "drop"
+    ) %>%
+    
+    # Visualize --------------------------------------------------------------------
+
+mutate(
+    `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
+    ampel_color = case_when(
+        servicelevel_numeric >= 0.95 ~ "green",
+        servicelevel_numeric >= 0.7  ~ "orange",
+        TRUE                         ~ "red"
+    ),
+    ampel = paste0(
+        "<div style='color: ", ampel_color, 
+        "; font-size: 20px; display: inline-block; text-align: center;'>&#9679;</div>"
+    )
+) %>%
+    rename(`Planer` = planer) %>%
+    dplyr::select(
+        ampel_color, ampel, Planer,
+        `Soll-LT/Unit [s]`, `Ist-LT/Unit [s]`, `Avg Delay/Unit [s]`,
+        `# Orders`, `Servicelevel`
+    ) %>%
+    arrange(desc(`# Orders`))
+
 # Communicate ------------------------------------------------------------------
+
+

@@ -76,7 +76,7 @@ start_server <- function(input, output, session) {
                           "Planer"            = unique(planer_overview$Planer),
                           "Fertigungslinien"  = unique(linien_overview$fertigungslinie),
                           "Werke"             = unique(werke_overview$werk),
-                          "Material"          = unique(materialnummer_overview$materialnummer),
+                          "Material"          = unique(materialnummer_overview$ABC_Klasse),  # ← zuerst ABC
                           character(0)
         )
         
@@ -85,7 +85,7 @@ start_server <- function(input, output, session) {
                     choices = sort(auswahl))
     })
     
-    # 2. Optionaler zweiter Filter
+    # 2. Zweiter Filter (Material umgedreht!)
     output$export_filter_2 <- renderUI({
         req(input$export_kategorie, input$export_wert1)
         
@@ -107,14 +107,14 @@ start_server <- function(input, output, session) {
             
         } else if (input$export_kategorie == "Material") {
             vals <- materialnummer_overview %>%
-                filter(materialnummer == input$export_wert1) %>%
-                pull(ABC_Klasse) %>% unique()
+                filter(ABC_Klasse == input$export_wert1) %>%
+                pull(materialnummer) %>% unique()  # ← jetzt nach ABC filtern → Materialnummer
             if (length(vals) > 1) {
-                selectInput("export_wert2", "ABC-Klasse:", choices = sort(vals))
+                selectInput("export_wert2", "Materialnummer:", choices = sort(vals))
             }
             
         } else {
-            return(NULL)  # Kein zweiter Filter für Workflows & Planer
+            return(NULL)
         }
     })
     
@@ -131,12 +131,13 @@ start_server <- function(input, output, session) {
                      data.frame()
         )
         
+        # neue Reihenfolge für Material!
         col_map <- list(
             "Workflows"         = "Workflow",
             "Planer"            = "Planer",
             "Fertigungslinien"  = "fertigungslinie",
             "Werke"             = "werk",
-            "Material"          = "materialnummer"
+            "Material"          = "ABC_Klasse"
         )
         
         spalte <- col_map[[input$export_kategorie]]
@@ -149,7 +150,7 @@ start_server <- function(input, output, session) {
             df <- switch(input$export_kategorie,
                          "Fertigungslinien"  = df[df$vorgangsfolge == input$export_wert2, ],
                          "Werke"             = df[df$vorgangsfolge == input$export_wert2, ],
-                         "Material"          = df[df$ABC_Klasse     == input$export_wert2, ],
+                         "Material"          = df[df$materialnummer == input$export_wert2, ],
                          df
             )
         }
