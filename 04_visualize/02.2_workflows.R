@@ -5,6 +5,7 @@ library(shinydashboardPlus)
 library(DT)
 library(bsplus)
 library(shinyBS)
+library(echarts4r)
 
 
 
@@ -318,11 +319,11 @@ workflows_ui <- fluidPage(
                     # Gemeinsamer Header mit Dropdown
                     div(
                         style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;",
-                        span("Quick View", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                        uiOutput("allocation_title"),
                         div(
                             style = "width: 200px;",
                             selectInput("dimension_selection", NULL,
-                                        choices = c("Werk", "Linie", "Planer"),
+                                        choices = c("Werk", "Linie", "Planer", "Material"),
                                         selected = "Werk")
                         )
                     ),
@@ -341,7 +342,7 @@ workflows_ui <- fluidPage(
                                 ),
                                 div(
                                     style = "display: flex; align-items: center; margin-bottom: 16px;",
-                                    span("Auftragsallokation", style = "font-weight: 500; font-size: 14px; color: #202124;"),
+                                    span("Verteilung der Aufträge", style = "font-weight: 500; font-size: 14px; color: #202124;"),
                                     tags$span(icon("circle-question"), id = "allocation_info",
                                               style = "color: #5f6368; margin-left: 8px; cursor: pointer;")
                                 ),
@@ -361,7 +362,7 @@ workflows_ui <- fluidPage(
                                 ),
                                 div(
                                     style = "display: flex; align-items: center; margin-bottom: 16px;",
-                                    span("Verzögerungen/Bottlenecks", style = "font-weight: 500; font-size: 14px; color: #202124;"),
+                                    span("Aktuelle Verzögerungen für Workflow", style = "font-weight: 500; font-size: 14px; color: #202124;"),
                                     tags$span(icon("circle-question"), id = "bottleneck_info",
                                               style = "color: #5f6368; margin-left: 8px; cursor: pointer;")
                                 ),
@@ -579,160 +580,19 @@ workflows_server <- function(input, output, session) {
         )
     })
     
-    
-                # Reaktive Datenquelle, basierend auf dem aktiven Tab
-                output$detail_table_werke <- renderDT({
-                    req(input$selected_workflow)
-                    
-                    df <- auftraege_lt_unit %>%
-                        filter(vorgangsfolge == input$selected_workflow) %>%
-                        mutate(
-                            delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
-                        ) %>%
-                        group_by(werk) %>%
-                        summarise(
-                            #`Soll-LT/ME [s]` = round(median(lt_soll_order, na.rm = TRUE), 2),
-                            #`Ist-LT/ME [s]`  = round(median(lt_ist_order, na.rm = TRUE), 2),
-                            `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
-                            .groups = "drop"
-                        ) %>%
-                        mutate(
-                            ampel_color = case_when(
-                                `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
-                                `Avg. Delay/Unit [s]` <= 2   ~ "orange",
-                                TRUE                         ~ "red"
-                            ),
-                            ampel = paste0(
-                                "<div style='color: ", ampel_color, 
-                                "; font-size: 20px; text-align: center;'>&#9679;</div>"
-                            )
-                        ) %>%
-                        dplyr::select(ampel_color, ampel, Werk = werk, `Avg. Delay/Unit [s]`)
-                    
-                    
-                    datatable(
-                        df,
-                        escape = FALSE,
-                        options = list(
-                            pageLength = 6,
-                            dom = 'tip',
-                            ordering = TRUE,
-                            pagingType = 'simple', 
-                            columnDefs = list(
-                                list(visible = FALSE, targets = 0),
-                                list(width = '25px', targets = 1),
-                                list(orderData = 0, targets = 1),
-                                list(title = "", targets = 1)
-                            )
-                        ),
-                        rownames = FALSE,
-                        class = "hover"
-                    )
-                })
-                
-                
-                # Fertigungslinien
-                output$detail_table_linien <- renderDT({
-                    req(input$selected_workflow)
-                    
-                    df <- auftraege_lt_unit %>%
-                        filter(vorgangsfolge == input$selected_workflow) %>%
-                        mutate(
-                            delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
-                        ) %>%
-                        group_by(fertigungslinie) %>%
-                        summarise(
-                            #`Soll-LT/ME [s]` = round(median(lt_soll_order, na.rm = TRUE), 2),
-                            #`Ist-LT/ME [s]`  = round(median(lt_ist_order, na.rm = TRUE), 2),
-                            `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
-                            .groups = "drop"
-                        ) %>%
-                        mutate(
-                            ampel_color = case_when(
-                                `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
-                                `Avg. Delay/Unit [s]` <= 2   ~ "orange",
-                                TRUE                         ~ "red"
-                            ),
-                            ampel = paste0(
-                                "<div style='color: ", ampel_color, 
-                                "; font-size: 20px; text-align: center;'>&#9679;</div>"
-                            )
-                        ) %>%
-                        dplyr::select(ampel_color, ampel, Linie = fertigungslinie, `Avg. Delay/Unit [s]`)
-                    
-                    
-                    datatable(
-                        df,
-                        escape = FALSE,
-                        options = list(
-                            pageLength = 6,
-                            dom = 'tip',
-                            ordering = TRUE,
-                            pagingType = 'simple', 
-                            columnDefs = list(
-                                list(visible = FALSE, targets = 0),
-                                list(width = '25px', targets = 1),
-                                list(orderData = 0, targets = 1),
-                                list(title = "", targets = 1)
-                            )
-                        ),
-                        rownames = FALSE,
-                        class = "hover"
-                    )
-                })
-                
-                # Planer
-                output$detail_table_planer <- renderDT({
-                    req(input$selected_workflow)
-                    
-                    df <- auftraege_lt_unit %>%
-                        filter(vorgangsfolge == input$selected_workflow) %>%
-                        mutate(
-                            delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)
-                        ) %>%
-                        group_by(planer) %>%
-                        summarise(
-                            `Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2),
-                            .groups = "drop"
-                        ) %>%
-                        mutate(
-                            ampel_color = case_when(
-                                `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
-                                `Avg. Delay/Unit [s]` <= 2   ~ "orange",
-                                TRUE                         ~ "red"
-                            ),
-                            ampel = paste0(
-                                "<div style='color: ", ampel_color, 
-                                "; font-size: 20px; text-align: center;'>&#9679;</div>"
-                            )
-                        ) %>%
-                        dplyr::select(ampel_color, ampel, Planer = planer, `Avg. Delay/Unit [s]`)
-                    
-                    datatable(
-                        df,
-                        escape = FALSE,
-                        options = list(
-                            pageLength = 6,
-                            dom = 'tip',
-                            ordering = TRUE,
-                            pagingType = 'simple', 
-                            columnDefs = list(
-                                list(visible = FALSE, targets = 0),
-                                list(width = '25px', targets = 1),
-                                list(orderData = 0, targets = 1),
-                                list(title = "", targets = 1)
-                            )
-                        ),
-                        rownames = FALSE,
-                        class = "hover"
-                    )
-                })
+    output$allocation_title <- renderUI({
+        req(input$selected_workflow)
+        span(
+            paste0("Zuordnung & Engpässe für Workflow ", input$selected_workflow),
+            style = "font-weight: 600; font-size: 18px; color: #202124;"
+        )
+    })
                 
                 output$delay_table_shared <- renderDT({
                     req(input$selected_workflow)
                     req(input$dimension_selection)
                     
-                    map <- list("Werk" = "werk", "Linie" = "fertigungslinie", "Planer" = "planer")
+                    map <- list("Werk" = "werk", "Linie" = "fertigungslinie", "Planer" = "planer", "Material" = "materialnummer")
                     col <- map[[input$dimension_selection]]
                     
                     df <- auftraege_lt_unit %>%
@@ -760,7 +620,7 @@ workflows_server <- function(input, output, session) {
                         df,
                         escape = FALSE,
                         options = list(
-                            pageLength = 3,
+                            pageLength = 6,
                             dom = 'tip',
                             ordering = TRUE,
                             columnDefs = list(
@@ -780,7 +640,7 @@ workflows_server <- function(input, output, session) {
                     req(input$dimension_selection)
                     
                     blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-                    column_map <- list("Werk" = "werk", "Linie" = "fertigungslinie", "Planer" = "planer")
+                    column_map <- list("Werk" = "werk", "Linie" = "fertigungslinie", "Planer" = "planer", "Material" = "materialnummer")
                     selected_col <- column_map[[input$dimension_selection]]
                     
                     df <- auftraege_lt_unit %>%
@@ -825,7 +685,7 @@ workflows_server <- function(input, output, session) {
                         echarts4r::e_charts(category) %>%
                         echarts4r::e_pie(count,
                                          radius = "65%",
-                                         label = list(formatter = "{b}: {d}%"),
+                                         label = list(formatter = "{b}: {d}%", fontSize = 10),
                                          itemStyle = list(
                                              color = htmlwidgets::JS(
                                                  sprintf("function(params) {
@@ -994,11 +854,6 @@ workflows_server <- function(input, output, session) {
                         )
                     )
                 })
-                
-                
-                
-                
-                
                 
                 
                 output$livetracker_bottleneck <- renderUI({
