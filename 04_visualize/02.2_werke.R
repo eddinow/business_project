@@ -6,6 +6,7 @@ library(DT)
 library(bsplus)
 library(shinyBS)
 library(echarts4r)
+library(plotly)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
 source("02_model/kpis_werke.R", local = TRUE)
@@ -335,7 +336,7 @@ werke_ui <- fluidPage(
                 width = 12,
                 div(
                     class = "white-box",
-                    style = "min-height: 500px;",  # ggf. anpassen
+                    style = "min-height: 500px;", 
                     
                     # Header
                     div(
@@ -363,10 +364,11 @@ werke_ui <- fluidPage(
                             width = 6,
                             div(
                                 class = "white-box",
+                                style = "min-height: 450px;",  # <--- NEU hinzugefügt
                                 tagList(
                                     div(
                                         style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                        span("Aktuelle Verzögerungen", style = "font-weight: 600; font-size: 14px; color: #202124;"),
+                                        span("Aktuelle Performance", style = "font-weight: 600; font-size: 14px; color: #202124;"),
                                         tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     DTOutput("delay_table_shared")
@@ -518,6 +520,7 @@ werke_ui <- fluidPage(
                 width = 6,
                 div(
                     class = "white-box",
+                    style = "min-height: 400px;",
                     tagList(
                         div(
                             style = "display: flex; align-items: center;",
@@ -604,10 +607,19 @@ werke_server <- function(input, output, session) {
     output$allocation_title <- renderUI({
         req(input$selected_werk, input$view_selection)
         span(
-            paste0("Detailansicht ", input$view_selection, " für Werk ", input$selected_werk),
+            paste0("Ansicht ", input$view_selection, " für Werk ", input$selected_werk),
             style = "font-weight: 600; font-size: 18px; color: #202124;"
         )
     })
+    
+    # Mapping zwischen UI-Label und Datenspalte
+    lt_map <- list(
+        "Workflow" = "vorgangsfolge",
+        "Werk"     = "werk",
+        "Linie"    = "fertigungslinie",
+        "Planer"   = "planer",
+        "Material" = "materialnummer"
+    )
     
     
     output$delay_table_shared <- renderDT({
@@ -621,11 +633,11 @@ werke_server <- function(input, output, session) {
             filter(werk == input$selected_werk) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
-            summarise(`Avg. Delay/Unit [s]` = round(median(delay_capped, na.rm = TRUE), 2), .groups = "drop") %>%
+            summarise(`Verzögerung/ME [s]` = round(median(delay_capped, na.rm = TRUE), 2), .groups = "drop") %>%
             mutate(
                 ampel_color = case_when(
-                    `Avg. Delay/Unit [s]` <= 0.5 ~ "green",
-                    `Avg. Delay/Unit [s]` <= 2   ~ "orange",
+                    `Verzögerung/ME [s]` <= 0.5 ~ "green",
+                    `Verzögerung/ME [s]` <= 2   ~ "orange",
                     TRUE                         ~ "red"
                 ),
                 ampel = paste0(
@@ -635,7 +647,7 @@ werke_server <- function(input, output, session) {
             dplyr::select(
                 ampel_color, ampel,
                 !!rlang::sym(input$view_selection) := value,
-                `Avg. Delay/Unit [s]`
+                `Verzögerung/ME [s]`
             )
         
         datatable(
@@ -879,19 +891,27 @@ werke_server <- function(input, output, session) {
     
     
     output$livetracker_bottleneck <- renderUI({
-        req(input$selected_werk)
+        req(input$selected_werk, input$view_selection)
+        
+        # Spaltenname aus vorhandenem Mapping lt_map
+        selected <- lt_map[[input$view_selection]]
+        label <- input$view_selection  # z. B. "Linie", "Planer" usw.
         
         bottleneck_info <- vorgaenge_sorted %>%
-            filter(werk == input$selected_werk & abweichung > 0) %>%
-            group_by(fertigungslinie) %>%
-            summarise(median_abweichung = median(abweichung, na.rm = TRUE), .groups = "drop") %>%
+            filter(werk == input$selected_werk, abweichung > 0) %>%
+            filter(!is.na(.data[[selected]])) %>%
+            group_by(group = .data[[selected]]) %>%
+            summarise(
+                median_abweichung = median(abweichung, na.rm = TRUE),
+                .groups = "drop"
+            ) %>%
             arrange(desc(median_abweichung)) %>%
             slice(1)
         
-        if (nrow(bottleneck_info) == 0) {
+        if (nrow(bottleneck_info) == 0 || is.na(bottleneck_info$group)) {
             wert <- "–"
         } else {
-            wert <- paste0(bottleneck_info$fertigungslinie, " | ", round(bottleneck_info$median_abweichung, 1), " Tage")
+            wert <- paste0(label, " ", bottleneck_info$group, " | ", round(bottleneck_info$median_abweichung, 1), " Tage")
         }
         
         tags$div(
@@ -902,19 +922,11 @@ werke_server <- function(input, output, session) {
             ),
             tags$span(
                 style = "font-size: 14px; color: #5f6368;",
-                "Bottleneck | Verzögerung"
+                paste("Bottleneck | Verzögerung absolut")
             )
         )
     })
     
-    # Mapping zwischen UI-Label und Datenspalte
-    lt_map <- list(
-        "Workflow" = "vorgangsfolge",
-        "Werk"     = "werk",
-        "Linie"    = "fertigungslinie",
-        "Planer"   = "planer",
-        "Material" = "materialnummer"
-    )
     
     modus <- function(x) {
         ux <- unique(x[!is.na(x)])
@@ -1021,25 +1033,58 @@ werke_server <- function(input, output, session) {
             )
     })
     
+    kpi_for_view_selection <- reactive({
+        req(input$selected_werk, input$view_selection)
+        
+        map <- list(
+            "Workflow" = "vorgangsfolge",
+            "Linie" = "fertigungslinie",
+            "Planer" = "planer",
+            "Material" = "materialnummer"
+        )
+        
+        selected_col <- map[[input$view_selection]]
+        
+        auftraege_lt_unit %>%
+            filter(
+                werk == input$selected_werk,
+                !is.na(.data[[selected_col]])
+            ) %>%
+            group_by(group = .data[[selected_col]]) %>%
+            summarise(
+                Termintreue = mean(abweichung_unit <= 0, na.rm = TRUE),
+                Liefertreue = mean(gelieferte_menge >= sollmenge, na.rm = TRUE),
+                .groups = "drop"
+            ) %>%
+            summarise(
+                Termintreue = round(mean(Termintreue, na.rm = TRUE) * 100),
+                Liefertreue = round(mean(Liefertreue, na.rm = TRUE) * 100)
+            )
+    })
+    
+    
     # Donut für Termintreue
     output$kpi_donut_termintreue <- renderEcharts4r({
-        value <- werke_kpi_level()$Termintreue
+        value <- kpi_for_view_selection()$Termintreue
         
         tibble::tibble(name = c("Erfüllt", "Leer"),
                        value = c(value, 100 - value)) %>%
             e_charts(name) %>%
-            e_pie(value, radius = c("75%", "90%"), label = list(show = FALSE)) %>%
-            e_color(c("#4285F4", "#e0e0e0")) %>%
+            e_pie(
+                value,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE)
+            ) %>%
             e_title(
                 text = paste0(value, "%"),
                 subtext = "Termintreue",
                 left = "center", top = "center",
                 textStyle = list(fontSize = 18, fontWeight = 600),
                 subtextStyle = list(fontSize = 12, color = "#5f6368")
-            )
+            ) %>%
+            e_legend(show = FALSE)
     })
     
-    # Donut für Liefertreue
     # Donut für Termintreue
     output$kpi_donut_termintreue <- renderEcharts4r({
         value <- werke_kpi_level()$Termintreue
