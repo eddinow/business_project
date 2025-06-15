@@ -283,8 +283,8 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         geom_ribbon(aes(ymin = p10, ymax = p90, fill = variante), alpha = 0.08) +
         geom_line(aes(y = median_lt, color = variante), linewidth = 0.3) +
         geom_point(aes(y = median_lt, color = variante), size = 0.4) +
-        scale_color_manual(values = c("Soll" = "#002366", "Ist" = "#CC0000")) +
-        scale_fill_manual(values = c("Soll" = "#002366", "Ist" = "#CC000088")) +
+        scale_color_manual(values = c("Soll" = "#002366", "Ist" = "#6495ED")) +
+        scale_fill_manual(values = c("Soll" = "#002366", "Ist" = "#6495ED")) +
         labs(
             #title = paste("Soll- und Ist-Lead Time", vorgangsfolge_id),
             x = "Sollmengen-Bereich",
