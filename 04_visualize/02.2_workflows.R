@@ -641,7 +641,7 @@ workflows_server <- function(input, output, session) {
             filter(vorgangsfolge == input$selected_workflow) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
-            summarise(`Verzögerung/ME [s]` = round(median(delay_capped, na.rm = TRUE), 2), .groups = "drop") %>%
+            summarise(`Verzögerung/ME [s]` = round(`Ist-LT [s/ME]` - `Soll-LT [s/ME]`, 2)) %>%
             mutate(
                 ampel_color = case_when(
                     `Verzögerung/ME [s]` <= 0.5 ~ "green",
