@@ -400,7 +400,94 @@ linien_ui <- fluidPage(
                     )
                 )
             )
-        )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_zeit_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
+                    ),
+                    
+                    bsPopover(
+                        id = "abw_zeit_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Julia",
+                        placement = "right",
+                        trigger = "click"
+                    ),
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 6,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_abs_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
+                    ),
+                    
+                    bsPopover(
+                        id = "abw_abs_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                        placement = "right",
+                        trigger = "click"
+                    ),
+                )
+            ),
+            column(
+                width = 6,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_rel_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        DT::DTOutput("abweichungstabelle")
+                    ),
+                    
+                    bsPopover(
+                        id = "abw_rel_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Julia",
+                        placement = "right",
+                        trigger = "click"
+                    ),
+                )
+            )
+        ),
     )
 )
 
@@ -526,7 +613,6 @@ linien_server <- function(input, output, session) {
         req(input$view_selection)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-       # column_map <- list("Workflow" = "vorgangsfolge", "Linie" = "fertigungslinie", "Planer" = "planer", "Material" = "materialnummer")
         selected_col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
@@ -542,7 +628,7 @@ linien_server <- function(input, output, session) {
         
         if (nrow(df_other) > 0) {
             other_total <- sum(df_other$count)
-            other_label <- "Weitere"
+            other_label <- "Restliche"
             other_tooltip <- paste(df_other$category, collapse = ", ")
             
             df_main <- dplyr::bind_rows(
@@ -556,12 +642,12 @@ linien_server <- function(input, output, session) {
         tooltip_formatter <- if (!is.null(other_tooltip)) {
             htmlwidgets::JS(sprintf(
                 "function(params) {
-        if(params.name === 'Weitere') {
-          return 'Weitere: %s';
-        } else {
-          return params.name + ': ' + params.value;
-        }
-      }", other_tooltip
+         if(params.name === 'Restliche') {
+           return 'Restliche: %s';
+         } else {
+           return params.name + ': ' + params.value;
+         }
+       }", other_tooltip
             ))
         } else {
             htmlwidgets::JS("function(params) { return params.name + ': ' + params.value; }")
@@ -569,21 +655,33 @@ linien_server <- function(input, output, session) {
         
         df_main %>%
             echarts4r::e_charts(category) %>%
-            echarts4r::e_pie(count,
-                             radius = "65%",
-                             label = list(formatter = "{b}: {d}%", fontSize = 10),
-                             itemStyle = list(
-                                 color = htmlwidgets::JS(
-                                     sprintf("function(params) {
-                           let colors = %s;
-                           return colors[params.dataIndex %% colors.length];
-                         }", jsonlite::toJSON(blau_palette, auto_unbox = TRUE))
-                                 )
-                             )
+            echarts4r::e_pie(
+                count,
+                radius = "65%",
+                label = list(
+                    show = TRUE,
+                    formatter = "{d}%", 
+                    fontSize = 10
+                ),
+                itemStyle = list(
+                    color = htmlwidgets::JS(
+                        sprintf("function(params) {
+            let colors = %s;
+            return colors[params.dataIndex %% colors.length];
+          }", jsonlite::toJSON(blau_palette, auto_unbox = TRUE))
+                    )
+                )
             ) %>%
             echarts4r::e_tooltip(formatter = tooltip_formatter) %>%
-            echarts4r::e_legend(show = FALSE)
+            echarts4r::e_legend(
+                show = TRUE,
+                orient = "horizontal",
+                bottom = 0,
+                textStyle = list(fontSize = 10)
+            )
     })
+    
+    
     
     
     output$livetracker_auftraege <- renderUI({
@@ -837,6 +935,123 @@ observeEvent(input$btn_q_10, {
     )
   })
 })
+
+output$abweichung_time_plot <- renderPlotly({
+    req(input$selected_fertigungslinie)
+    
+    df <- auftraege_lt_unit %>%
+        filter(fertigungslinie == input$selected_fertigungslinie) %>%
+        arrange(starttermin_ist) %>%
+        slice(seq(1, n(), by = 10))
+    
+    p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
+        geom_smooth(
+            method = "loess", se = FALSE, span = 0.2, color = "#6495ED", size = 0.7
+        ) +
+        labs(
+            x = "Ist-Starttermin",
+            y = "Abweichung von Soll-LT [d]"
+        ) +
+        my_theme()  # 👈 hier deine Theme-Funktion
+    
+    ggplotly(p, tooltip = c("x", "y")) %>%
+        layout(
+            font = list(family = "Inter", size = 10, color = "#5f6368"),
+            xaxis = list(
+                titlefont = list(size = 10, color = "#202124"),
+                tickfont = list(size = 10, color = "#5f6368")
+            ),
+            yaxis = list(
+                titlefont = list(size = 10, color = "#202124"),
+                tickfont = list(size = 10, color = "#5f6368")
+            )
+        )
+})
+
+plot_abweichung_histogram <- function(df, selected_fertigungslinie) {
+    df_filtered <- df %>%
+        filter(fertigungslinie == selected_fertigungslinie & !is.na(abweichung))
+    
+    if (nrow(df_filtered) == 0) return(NULL)
+    
+    # Dynamische Grenzen anhand 1% und 99% Quantil
+    x_min <- quantile(df_filtered$abweichung, 0.025)
+    x_max <- quantile(df_filtered$abweichung, 0.975)
+    
+    p <- ggplot(df_filtered, aes(x = abweichung)) +
+        geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
+        labs(
+            x = "Abweichung (Ist - Soll) [Tage]",
+            y = "Häufigkeit"
+        ) +
+        scale_x_continuous(limits = c(x_min, x_max)) +
+        my_theme()  # 👈 Google-Stil hier anwenden
+    
+    ggplotly(p)
+}
+
+output$abweichung_hist_plot <- renderPlotly({
+    req(input$selected_fertigungslinie)
+    plot_abweichung_histogram(vorgaenge_sorted, input$selected_fertigungslinie)
+})
+
+abweichung_tabelle <- reactive({
+    req(input$selected_fertigungslinie)
+    
+    df <- auftraege_lt_unit %>%
+        filter(fertigungslinie == input$selected_fertigungslinie) %>%
+        filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
+        mutate(
+            abw_rel = (lt_ist_order - lt_soll_order) / lt_soll_order,
+            kategorie = case_when(
+                abw_rel >= 1       ~ "≥ 100 % über Soll",
+                abw_rel >= 0.5     ~ "50–99 % über Soll",
+                abw_rel >= 0.25    ~ "25–49 % über Soll",
+                abw_rel >= 0       ~ "0–24 % über Soll",
+                abw_rel < 0        ~ "Unter Soll"
+            )
+        ) %>%
+        group_by(kategorie) %>%
+        summarise(Anzahl = n(), .groups = "drop") %>%
+        mutate(
+            Kategorie = factor(kategorie, levels = c(
+                "≥ 100 % über Soll",
+                "50–99 % über Soll",
+                "25–49 % über Soll",
+                "0–24 % über Soll",
+                "Unter Soll"
+            )),
+            Anteil_raw = round(100 * Anzahl / sum(Anzahl))
+        ) %>%
+        arrange(Kategorie) %>%
+        mutate(
+            `Lead Time Abweichung` = paste0(
+                "<div style='display: flex; align-items: center; gap: 8px;'>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", Anteil_raw, "</span>",
+                "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
+                "<div style='width:", Anteil_raw, "%; background-color: #4285F4; height: 100%;'></div>",
+                "</div>",
+                "</div>"
+            )
+        ) %>%
+        dplyr::select(Kategorie, `Lead Time Abweichung`)
+})
+
+
+
+output$abweichungstabelle <- DT::renderDT({
+    abweichung_tabelle()
+}, 
+options = list(
+    dom = 't',
+    paging = FALSE,
+    ordering = FALSE,
+    info = FALSE
+), 
+escape = FALSE,
+rownames = FALSE,
+class = "hover"
+)
     
     
 }

@@ -409,35 +409,6 @@ workflows_ui <- fluidPage(
         
         # Neue Zeile mit zwei gleich großen Boxen
         fluidRow(
-            # column(
-            #     width = 6,
-            #     div(
-            #         class = "white-box",
-            #         tagList(
-            #             # Boxüberschrift mit Icon
-            #             div(
-            #                 style = "display: flex; align-items: center;",
-            #                 span("Lead Time nach Vorgang [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-            #                 tags$span(
-            #                     icon("circle-question"),
-            #                     id = "lt_vorgang_info",
-            #                     style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-            #                 ),
-            #                 
-            #                 bsPopover(
-            #                     id = "lt_vorgang_info",
-            #                     title = "Was wird hier gezeigt?",
-            #                     content = "Dieses Diagramm zeigt den Median der Ist-Lead Time und Soll-Lead Time aller Vorgangsnummern eines Workflows. Lead Times werden pro Mengeneinheit angegeben, um mengenunabhängig vergleichbar zu sein.",
-            #                     placement = "right",
-            #                     trigger = "click"
-            #                 ),
-            #             ),
-            #             br(),
-            #             # Hier kommt dein Plot rein
-            #             plotOutput("leadtime_chart", height = "240px")
-            #         )
-            #     )
-            # ),
             column(
                 width = 6,
                 div(
