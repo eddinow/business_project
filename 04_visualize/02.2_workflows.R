@@ -284,7 +284,7 @@ workflows_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Arbeitsschritte", "Linie", "Planer", "Material"),
+                            choices = c("Arbeitsschritte", "Material"),
                             selected = "Arbeitsschritte",
                             width = "100%"
                         )
@@ -336,92 +336,68 @@ workflows_ui <- fluidPage(
                 width = 12,
                 div(
                     class = "white-box",
-                    style = "min-height: 455px;",
-                    
-                    # Gemeinsamer Header mit Dropdown
-                    div(
-                        style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;",
-                        uiOutput("allocation_title")
-                    ),
-                    
-                    # Inhalte: links Tabelle, rechts Pie
-                    fluidRow(
-                        column(
-                            width = 12,
-                            div(
-                                class = "white-box",
-                                style = "background-color: rgba(255, 255, 255, 0.3);",
-                                tagList(
-                                    
-                                    div(
-                                        style = "padding: 40px 0 15px 0;",
-                                        uiOutput("allocation_title")
-                                    ),
-                                    
-                                    
-                                    
-                                    fluidRow(
-                                        column(
-                                            width = 6,
-                                            div(
-                                                class = "white-box",
-                                                tagList(
-                                                    div(
-                                                        style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                                        span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                                        tags$span(icon("circle-question"), id = "allocation_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                                    ),
-                                                    echarts4rOutput("allocation_pie_shared", height = "300px")
-                                                )
-                                            )
+                    style = "background-color: rgba(255, 255, 255, 0.3); min-height: 455px; padding: 40px 40px 20px 40px;",
+                    tagList(
+                        
+                        # Header mit Titel
+                        div(
+                            style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;",
+                            uiOutput("allocation_title")
+                        ),
+                        
+                        # Erste Zeile: Pie + Tabelle
+                        fluidRow(
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "allocation_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
-                                        column(
-                                            width = 6,
-                                            div(
-                                                class = "white-box",
-                                                style = "min-height: 450px;",  # <--- NEU hinzugefügt
-                                                tagList(
-                                                    div(
-                                                        style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                                        span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                                        tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                                    ),
-                                                    DTOutput("delay_table_shared")
-                                                )
-                                            )
-                                        )
-                                    ),
-                                    
-                                    # Zweite Zeile: Lead Time + Mengen – ebenfalls in eigenen Boxen
-                                    fluidRow(
-                                        column(
-                                            width = 6,
-                                            div(
-                                                class = "white-box",
-                                                tagList(
-                                                    div(
-                                                        style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                                        span("Ist- und Soll-Lead Time [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                                        tags$span(icon("circle-question"), id = "lt_kat_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                                    ),
-                                                    tags$span(
-                                                        icon("circle-question"),
-                                                        id = "lt_kat_info",
-                                                        style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                                                    ),
-                                                    bsPopover(
-                                                        id = "lt_kat_info",
-                                                        title = "Was wird hier gezeigt?",
-                                                        content = "Dieses Diagramm zeigt Median-Ist- und Soll-Lead Times je nach gewählter Kategorie.",
-                                                        placement = "right",
-                                                        trigger = "click"
-                                                    ),
-                                                    br(),
-                                                    plotOutput("leadtime_chart", height = "240px")
-                                                )
-                                            )
+                                        echarts4rOutput("allocation_pie_shared", height = "300px")
+                                    )
+                                )
+                            ),
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    style = "min-height: 450px;",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
-
+                                        DTOutput("delay_table_shared")
+                                    )
+                                )
+                            )
+                        ),
+                        
+                        # Zweite Zeile: Lead Time Chart
+                        fluidRow(
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Ist- und Soll-Lead Time [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "lt_kat_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        bsPopover(
+                                            id = "lt_kat_info",
+                                            title = "Was wird hier gezeigt?",
+                                            content = "Dieses Diagramm zeigt Median-Ist- und Soll-Lead Times je nach gewählter Kategorie.",
+                                            placement = "right",
+                                            trigger = "click"
+                                        ),
+                                        plotOutput("leadtime_chart", height = "240px")
                                     )
                                 )
                             )
@@ -433,35 +409,35 @@ workflows_ui <- fluidPage(
         
         # Neue Zeile mit zwei gleich großen Boxen
         fluidRow(
-            column(
-                width = 6,
-                div(
-                    class = "white-box",
-                    tagList(
-                        # Boxüberschrift mit Icon
-                        div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time nach Vorgang [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "lt_vorgang_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                            ),
-                            
-                            bsPopover(
-                                id = "lt_vorgang_info",
-                                title = "Was wird hier gezeigt?",
-                                content = "Dieses Diagramm zeigt den Median der Ist-Lead Time und Soll-Lead Time aller Vorgangsnummern eines Workflows. Lead Times werden pro Mengeneinheit angegeben, um mengenunabhängig vergleichbar zu sein.",
-                                placement = "right",
-                                trigger = "click"
-                            ),
-                        ),
-                        br(),
-                        # Hier kommt dein Plot rein
-                        plotOutput("leadtime_chart", height = "240px")
-                    )
-                )
-            ),
+            # column(
+            #     width = 6,
+            #     div(
+            #         class = "white-box",
+            #         tagList(
+            #             # Boxüberschrift mit Icon
+            #             div(
+            #                 style = "display: flex; align-items: center;",
+            #                 span("Lead Time nach Vorgang [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+            #                 tags$span(
+            #                     icon("circle-question"),
+            #                     id = "lt_vorgang_info",
+            #                     style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+            #                 ),
+            #                 
+            #                 bsPopover(
+            #                     id = "lt_vorgang_info",
+            #                     title = "Was wird hier gezeigt?",
+            #                     content = "Dieses Diagramm zeigt den Median der Ist-Lead Time und Soll-Lead Time aller Vorgangsnummern eines Workflows. Lead Times werden pro Mengeneinheit angegeben, um mengenunabhängig vergleichbar zu sein.",
+            #                     placement = "right",
+            #                     trigger = "click"
+            #                 ),
+            #             ),
+            #             br(),
+            #             # Hier kommt dein Plot rein
+            #             plotOutput("leadtime_chart", height = "240px")
+            #         )
+            #     )
+            # ),
             column(
                 width = 6,
                 div(
@@ -657,9 +633,9 @@ workflows_server <- function(input, output, session) {
     
     output$delay_table_shared <- renderDT({
         req(input$selected_workflow)
-        req(input$dimension_selection)
+        req(input$view_selection)
 
-        col <- lt_map[[input$dimension_selection]]
+        col <- lt_map[[input$view_selection]]
         
         df <- vorgaenge_lt_unit %>%
             filter(vorgangsfolge == input$selected_workflow) %>%
@@ -678,7 +654,7 @@ workflows_server <- function(input, output, session) {
             ) %>%
             dplyr::select(
                 ampel_color, ampel,
-                !!rlang::sym(input$dimension_selection) := value,
+                !!rlang::sym(input$view_selection) := value,
                 `Verzögerung/ME [s]`
             )
         
@@ -703,11 +679,11 @@ workflows_server <- function(input, output, session) {
     
     output$allocation_pie_shared <- renderEcharts4r({
         req(input$selected_workflow)
-        req(input$dimension_selection)
+        req(input$view_selection)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
         column_map <- list("Werk" = "werk", "Linie" = "fertigungslinie", "Planer" = "planer", "Material" = "materialnummer")
-        selected_col <- column_map[[input$dimension_selection]]
+        selected_col <- column_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
             dplyr::filter(vorgangsfolge == input$selected_workflow) %>%

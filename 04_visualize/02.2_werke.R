@@ -619,7 +619,10 @@ werke_ui <- fluidPage(
     
         output$lt_title <- renderUI({
             req(input$selected_werk)
-            h4(paste("Lead Time- und Performanceübersicht Werk", input$selected_werk))
+            h4(
+                paste("Lead Time- und Performanceübersicht Werk", input$selected_werk), 
+                style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+                )
         })
         
         # Mapping zwischen UI-Label und Datenspalte
@@ -636,7 +639,6 @@ werke_ui <- fluidPage(
             req(input$selected_werk)
             req(input$view_selection)
             
-            #map <- list("Workflow" = "vorgangsfolge", "Linie" = "fertigungslinie", "Planer" = "planer", "Material" = "materialnummer")
             col <- lt_map[[input$view_selection]]
             
             df <- auftraege_lt_unit %>%
@@ -743,84 +745,7 @@ werke_ui <- fluidPage(
                 echarts4r::e_legend(show = FALSE)
         })
         
-        
-        output$allocation_pie <- echarts4r::renderEcharts4r({
-            req(input$selected_werk)
-            req(input$allocation_dimension)
-            
-            # Eigene Farbtöne in Blauskala
-            blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-            
-            # Spaltenmapping
-            column_map <- list(
-                "Workflow" = "vorgangsfolge",
-                "Linie" = "fertigungslinie",
-                "Planer" = "planer"
-            )
-            
-            selected_col <- column_map[[input$allocation_dimension]]
-            
-            df <- auftraege_lt_unit %>%
-                dplyr::filter(werk == input$selected_werk) %>%
-                dplyr::filter(!is.na(.data[[selected_col]])) %>%
-                dplyr::group_by(category = .data[[selected_col]]) %>%
-                dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
-                dplyr::mutate(share = count / sum(count)) %>%
-                dplyr::arrange(desc(share))
-            
-            # Unterteilung nach Anteil
-            df_main <- df %>% dplyr::filter(share >= 0.05)
-            df_other <- df %>% dplyr::filter(share < 0.05)
-            
-            if (nrow(df_other) > 0) {
-                other_total <- sum(df_other$count)
-                other_label <- "Weitere"
-                other_tooltip <- paste(df_other$category, collapse = ", ")
-                
-                df_main <- dplyr::bind_rows(
-                    df_main,
-                    tibble::tibble(category = other_label, count = other_total, share = other_total / sum(df$count))
-                )
-            } else {
-                other_tooltip <- NULL
-            }
-            
-            # Tooltip dynamisch mit JS-Funktion
-            tooltip_formatter <- if (!is.null(other_tooltip)) {
-                htmlwidgets::JS(sprintf(
-                    "function(params) {
-        if(params.name === 'Weitere') {
-          return 'Weitere: %s';
-        } else {
-          return params.name + ': ' + params.value;
-        }
-      }", other_tooltip
-                ))
-            } else {
-                htmlwidgets::JS("function(params) { return params.name + ': ' + params.value; }")
-            }
-            
-            df_main %>%
-                echarts4r::e_charts(category) %>%
-                echarts4r::e_pie(count,
-                                 radius = "65%",
-                                 label = list(formatter = "{b}: {d}%"),
-                                 itemStyle = list(
-                                     color = htmlwidgets::JS(
-                                         sprintf("function(params) {
-                         let colors = %s;
-                         return colors[params.dataIndex %% colors.length];
-                       }", jsonlite::toJSON(blau_palette, auto_unbox = TRUE))
-                                     )
-                                 )
-                ) %>%
-                echarts4r::e_tooltip(formatter = tooltip_formatter)
-            echarts4r::e_legend(show = FALSE)
-        })
-        
-        
-        
-        
+    
         output$livetracker_auftraege <- renderUI({
             req(input$selected_werk)
             

@@ -74,6 +74,7 @@ vorgaenge_plot <- vorgaenge_sorted %>%
         Ende = `Istende Vorgang`
     )
 
+
 workflow_plot_data <- bind_rows(vorgaenge_plot, liegezeiten_plot) %>%
     arrange(Auftragsnummer, Start) %>%
     group_by(Auftragsnummer) %>%
