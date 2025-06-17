@@ -39,7 +39,7 @@ my_theme <- function(base_family = "Inter") {
 
 
 #UI-----------------------------------------------------------------------------
-werke_ui <- fluidPage(
+planer_ui <- fluidPage(
     
     # HEAD-Bereich mit Styles
     tags$head(
@@ -219,7 +219,7 @@ werke_ui <- fluidPage(
                 div(class = "nav-tabs-custom",
                     a(id = "nav_material", href = "#", "Material"),
                     a(id = "nav_workflows", href = "#", class = "active", "Workflows"),
-                    a(id = "nav_linien", href = "#", "werkn"),
+                    a(id = "nav_linien", href = "#", "Linien"),
                     a(id = "nav_werke", href = "#", "Werke")
                 )
             ),
@@ -244,7 +244,7 @@ werke_ui <- fluidPage(
                 icon("industry", class = NULL, style = "font-size: 20px; color: #5f6368;"),
                 span(
                     style = "font-size: 20px; font-weight: 600; color: #202124;",
-                    "werke"
+                    "Planer"
                 )
             ),
             
@@ -257,12 +257,12 @@ werke_ui <- fluidPage(
                     style = "display: flex; align-items: center; gap: 8px;",
                     span(
                         style = "font-size: 14px; color: #202124; font-weight: 500;",
-                        "1. werk auswählen:"
+                        "1. Planer auswählen:"
                     ),
                     div(
                         style = "width: 180px;",
                         selectizeInput(
-                            inputId = "selected_werk",
+                            inputId = "selected_planer",
                             label = NULL,
                             choices = NULL,
                             selected = "",
@@ -284,7 +284,7 @@ werke_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Workflow", "Linie", "Planer", "Material"),
+                            choices = c("Workflow", "Linie", "Werk", "Material"),
                             selected = "Linie",
                             width = "100%"
                         )
@@ -301,7 +301,7 @@ werke_ui <- fluidPage(
         
         div(
             style = "padding: 48px 0 12px 0;",  # Abstand oben und unten
-            uiOutput("werk_title")
+            uiOutput("planer_title")
         ),
         
         #KPI Boxen
@@ -328,6 +328,37 @@ werke_ui <- fluidPage(
                     class = "white-box",
                     style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
                     uiOutput("livetracker_bottleneck")
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Performance-Übersicht", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "performance_vgl_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        uiOutput("performance_vgl")
+                        
+                    ),
+                    
+                    bsPopover(
+                        id = "performance_vgl_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Eddi",
+                        placement = "right",
+                        trigger = "click"
+                    ),
                 )
             )
         ),
@@ -494,44 +525,106 @@ werke_ui <- fluidPage(
 
 
 #Server-------------------------------------------------------------------------
-werke_server <- function(input, output, session) {
+planer_server <- function(input, output, session) {
     
     observe({
-        werk <- unique(auftraege_lt_unit$werk)
+        planer <- unique(auftraege_lt_unit$planer)
         
         updateSelectizeInput(
             session,
-            inputId = "selected_werk",
-            choices = c("Werk auswählen" = "", werk),
-            selected = "1001", 
+            inputId = "selected_planer",
+            choices = c("Planer auswählen" = "", planer),
+            selected = "FST1", 
             server = TRUE
         )
     })
     
-    output$werk_title <- renderUI({
-        req(input$selected_werk)
+    output$planer_title <- renderUI({
+        req(input$selected_planer)
         
         tags$div(
             style = "margin-top: 32px; margin-bottom: 32px;",
             tags$h2(
-                paste("Details | Werk", input$selected_werk),
+                paste("Details | Planer", input$selected_planer),
                 style = "font-size: 25px; font-weight: 600; color: #202124; margin: 0;"
             )
         )
     })
     
+    output$performance_vgl <- renderUI({
+        sel  <- input$selected_planer
+        df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        df_o <- auftraege_lt_unit %>% filter(planer != sel)
+        
+        # KPI-Werte berechnen (vereinfacht hier)
+        kpis <- tibble::tibble(
+            label = c("Pünktlichkeitsrate", "Ø Verzögerung (Tage)", "Ø Workflows/Auftrag", "Anzahl Aufträge"),
+            value = c(
+                mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100,
+                median(df_s$abweichung_unit[df_s$abweichung_unit > 0], na.rm = TRUE),
+                df_s %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
+                nrow(df_s)
+            ),
+            avg = c(
+                df_o %>% group_by(planer) %>% summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>% pull(rate) %>% mean(na.rm = TRUE) * 100,
+                df_o %>% filter(abweichung_unit > 0) %>% group_by(planer) %>% summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>% pull(avg) %>% mean(na.rm = TRUE),
+                df_o %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
+                df_o %>% group_by(planer) %>% summarise(n = n()) %>% pull(n) %>% mean(na.rm = TRUE)
+            )
+        )
+        
+        # Hilfsfunktion für ein KPI-Feld
+        kpi_box <- function(value, avg, label) {
+            diff <- value - avg
+            icon <- if (round(diff, 1) > 0) {
+                "<span style='color:green;font-size:24px'>&uarr;</span>"
+            } else if (round(diff, 1) < 0) {
+                "<span style='color:red;font-size:24px'>&darr;</span>"
+            } else {
+                "<span style='color:black;font-size:24px'>&rarr;</span>"
+            }
+            
+            div(style = "
+        background:white;
+        border:1px solid #e0e0e0;
+        border-radius:10px;
+        padding:15px;
+        margin:5px;
+        text-align:center;
+        width: 23%;
+        box-shadow: 0px 2px 5px rgba(0,0,0,0.05);
+        ",
+                HTML(icon),
+                div(style = "font-size:20px;font-weight:bold;margin-top:5px;", sprintf("%.1f", value)),
+                div(style = "font-size:13px;color:#555;margin-top:2px;", label)
+            )
+        }
+        
+        # Vier Boxen nebeneinander anzeigen
+        fluidRow(
+            lapply(1:4, function(i) {
+                column(
+                    width = 3,
+                    kpi_box(kpis$value[i], kpis$avg[i], kpis$label[i])
+                )
+            })
+        )
+    })
+    
+    
+    
     output$allocation_title <- renderUI({
-        req(input$selected_werk, input$view_selection)
+        req(input$selected_planer, input$view_selection)
         h4(
-            paste0("Ansicht ", input$view_selection, " für Werk ", input$selected_werk),
+            paste0("Ansicht ", input$view_selection, " für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
     output$lt_title <- renderUI({
-        req(input$selected_werk)
+        req(input$selected_planer)
         h4(
-            paste("Lead Time- und Performanceübersicht werk", input$selected_werk), 
+            paste("Lead Time- und Performanceübersicht Planer", input$selected_planer), 
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
@@ -553,13 +646,13 @@ werke_server <- function(input, output, session) {
     
     
     output$delay_table_shared <- renderDT({
-        req(input$selected_werk)
+        req(input$selected_planer)
         req(input$view_selection)
         
         col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk) %>%
+            filter(planer == input$selected_planer) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
             summarise(
@@ -609,14 +702,14 @@ werke_server <- function(input, output, session) {
     
     
     output$allocation_pie_shared <- renderEcharts4r({
-        req(input$selected_werk)
+        req(input$selected_planer)
         req(input$view_selection)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
         selected_col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
-            dplyr::filter(werk == input$selected_werk) %>%
+            dplyr::filter(planer == input$selected_planer) %>%
             dplyr::filter(!is.na(.data[[selected_col]])) %>%
             dplyr::group_by(category = .data[[selected_col]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
@@ -685,10 +778,10 @@ werke_server <- function(input, output, session) {
     
     
     output$livetracker_auftraege <- renderUI({
-        req(input$selected_werk)
+        req(input$selected_planer)
         
         anzahl <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk) %>%
+            filter(planer == input$selected_planer) %>%
             summarise(n = n_distinct(auftragsnummer)) %>%
             pull(n)
         
@@ -713,10 +806,10 @@ werke_server <- function(input, output, session) {
     
     
     output$livetracker_servicelevel <- renderUI({
-        req(input$selected_werk)
+        req(input$selected_planer)
         
         filtered <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk)
+            filter(planer == input$selected_planer)
         
         if (nrow(filtered) == 0) {
             return(
@@ -764,14 +857,14 @@ werke_server <- function(input, output, session) {
     
     
     output$livetracker_bottleneck <- renderUI({
-        req(input$selected_werk, input$view_selection)
+        req(input$selected_planer, input$view_selection)
         
         # Spaltenname aus vorhandenem Mapping lt_map
         selected <- lt_map[[input$view_selection]]
         label <- input$view_selection  
         
         bottleneck_info <- vorgaenge_sorted %>%
-            filter(werk == input$selected_werk, abweichung > 0) %>%
+            filter(planer == input$selected_planer, abweichung > 0) %>%
             filter(!is.na(.data[[selected]])) %>%
             group_by(group = .data[[selected]]) %>%
             summarise(
@@ -801,12 +894,12 @@ werke_server <- function(input, output, session) {
     })
     
     output$top_delay_orders <- renderDT({
-        req(input$selected_werk)
+        req(input$selected_planer)
         req(input$view_selection)
         
         df <- auftraege_lt_unit %>%
             filter(
-                werk == input$selected_werk,
+                planer == input$selected_planer,
                 !is.na(abweichung_unit)
             ) %>%
             arrange(desc(abweichung_unit)) %>%
@@ -840,14 +933,14 @@ werke_server <- function(input, output, session) {
     
     ### 1. Neue Tabelle mit Verzögerungsbereichen erzeugen
     output$delay_quartile_summary <- renderDT({
-        req(input$selected_werk)
+        req(input$selected_planer)
         req(input$view_selection)
         
         selected_col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
             filter(
-                werk == input$selected_werk,
+                planer == input$selected_planer,
                 abweichung_unit > 0,
                 !is.na(abweichung_unit),
                 !is.na(.data[[selected_col]])
@@ -905,11 +998,11 @@ werke_server <- function(input, output, session) {
         ))
         
         output$modal_q10 <- renderDT({
-            req(input$selected_werk)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
                 filter(
-                    werk == input$selected_werk,
+                    planer == input$selected_planer,
                     abweichung_unit > 10
                 ) %>%
                 transmute(
@@ -937,10 +1030,10 @@ werke_server <- function(input, output, session) {
     })
     
     output$abweichung_time_plot <- renderPlotly({
-        req(input$selected_werk)
+        req(input$selected_planer)
         
         df <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk) %>%
+            filter(planer == input$selected_planer) %>%
             arrange(starttermin_ist) %>%
             slice(seq(1, n(), by = 10))
         
@@ -968,9 +1061,9 @@ werke_server <- function(input, output, session) {
             )
     })
     
-    plot_abweichung_histogram <- function(df, selected_werk) {
+    plot_abweichung_histogram <- function(df, selected_planer) {
         df_filtered <- df %>%
-            filter(werk == selected_werk & !is.na(abweichung))
+            filter(planer == selected_planer & !is.na(abweichung))
         
         if (nrow(df_filtered) == 0) return(NULL)
         
@@ -991,15 +1084,15 @@ werke_server <- function(input, output, session) {
     }
     
     output$abweichung_hist_plot <- renderPlotly({
-        req(input$selected_werk)
-        plot_abweichung_histogram(vorgaenge_sorted, input$selected_werk)
+        req(input$selected_planer)
+        plot_abweichung_histogram(vorgaenge_sorted, input$selected_planer)
     })
     
     abweichung_tabelle <- reactive({
-        req(input$selected_werk)
+        req(input$selected_planer)
         
         df <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk) %>%
+            filter(planer == input$selected_planer) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
             mutate(
                 abw_rel = (lt_ist_order - lt_soll_order) / lt_soll_order,
@@ -1054,4 +1147,4 @@ werke_server <- function(input, output, session) {
     
 }
 
-shinyApp(werke_ui, werke_server)
+shinyApp(planer_ui, planer_server)

@@ -484,10 +484,10 @@ linien_ui <- fluidPage(
                         content = "Julia",
                         placement = "right",
                         trigger = "click"
-                    ),
+                    )
                 )
             )
-        ),
+        )
     )
 )
 
