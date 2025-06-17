@@ -337,6 +337,7 @@ planer_ui <- fluidPage(
                 width = 12,
                 div(
                     class = "white-box",
+                    style = "background-color: rgba(255, 255, 255, 0.3);",
                     tagList(
                         div(
                             style = "display: flex; align-items: center;",
@@ -348,66 +349,31 @@ planer_ui <- fluidPage(
                             )
                         ),
                         br(),
-                        uiOutput("performance_vgl")
                         
-                    ),
-                    
-                    bsPopover(
-                        id = "performance_vgl_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Eddi",
-                        placement = "right",
-                        trigger = "click"
-                    ),
-                )
-            )
-        ),
-        
-        fluidRow(
-            column(
-                width = 12,
-                div(
-                    class = "white-box",
-                    style = "background-color: rgba(255, 255, 255, 0.3);",
-                    tagList(
-                        
-                        div(
-                            style = "padding: 40px 0 15px 0;",
-                            uiOutput("allocation_title")
-                        ),
-                        
-                        
-                        
-                        fluidRow(
-                            column(
-                                width = 12,
-                                div(
-                                    class = "white-box",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                        ),
-                                        DTOutput("delay_table_shared")
-                                    )
-                                )
-                            )
-                        ),
-                        
-                        # Zweite Zeile: Lead Time + Mengen – ebenfalls in eigenen Boxen
                         fluidRow(
                             column(
                                 width = 6,
                                 div(
                                     class = "white-box",
-                                    tagList(
+                                    style = "padding: 20px; border-radius: 12px; background: white;",
+                                    div(
+                                        style = "display: flex; justify-content: space-between; align-items: center;",
+                                        tags$strong("Performance-Übersicht"),
+                                        tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    br(),
+                                    div(
+                                        style = "display: flex; justify-content: space-between;",
                                         div(
-                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "allocation_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            style = "text-align: center; width: 49%;",
+                                            echarts4rOutput("donut_termintreue", height = "180px"),
+                                            div("Termintreue", style = "margin-top: 4px; font-size: 13px; color: #555;")
                                         ),
-                                        echarts4rOutput("allocation_pie_shared", height = "300px")
+                                        div(
+                                            style = "text-align: center; width: 49%;",
+                                            echarts4rOutput("donut_liefertreue", height = "180px"),
+                                            div("Liefertreue", style = "margin-top: 4px; font-size: 13px; color: #555;")
+                                        )
                                     )
                                 )
                             ),
@@ -416,105 +382,188 @@ planer_ui <- fluidPage(
                                 width = 6,
                                 div(
                                     class = "white-box",
-                                    style = "min-height: 455px",
-                                    tagList(
+                                    style = "padding: 20px; border-radius: 12px; background: white;",
+                                    div(
+                                        style = "display: flex; justify-content: space-between; align-items: center;",
+                                        tags$strong("Performance-Übersicht"),
+                                        tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    br(),
+                                    div(
+                                        style = "display: flex; justify-content: space-between;",
                                         div(
-                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                        ),
-                                        DTOutput("delay_quartile_summary")
+                                            plotlyOutput("geschwindigkeit_gauge", height = "260px")
+                                        )
+                                    )
+                                )
+                            )
+                            
+                        ),
+                        
+                        bsPopover(
+                            id = "performance_vgl_info",
+                            title = "Was wird hier gezeigt?",
+                            content = "Eddi",
+                            placement = "right",
+                            trigger = "click"
+                        ),
+                    )
+                )
+            ),
+            
+            fluidRow(
+                column(
+                    width = 12,
+                    div(
+                        class = "white-box",
+                        style = "background-color: rgba(255, 255, 255, 0.3);",
+                        tagList(
+                            
+                            div(
+                                style = "padding: 40px 0 15px 0;",
+                                uiOutput("allocation_title")
+                            ),
+                            
+                            
+                            
+                            fluidRow(
+                                column(
+                                    width = 12,
+                                    div(
+                                        class = "white-box",
+                                        tagList(
+                                            div(
+                                                style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                                span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                                tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            ),
+                                            DTOutput("delay_table_shared")
+                                        )
+                                    )
+                                )
+                            ),
+                            
+                            # Zweite Zeile: Lead Time + Mengen – ebenfalls in eigenen Boxen
+                            fluidRow(
+                                column(
+                                    width = 6,
+                                    div(
+                                        class = "white-box",
+                                        tagList(
+                                            div(
+                                                style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                                span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                                tags$span(icon("circle-question"), id = "allocation_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            ),
+                                            echarts4rOutput("allocation_pie_shared", height = "300px")
+                                        )
+                                    )
+                                ),
+                                
+                                column(
+                                    width = 6,
+                                    div(
+                                        class = "white-box",
+                                        style = "min-height: 455px",
+                                        tagList(
+                                            div(
+                                                style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                                span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                                tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            ),
+                                            DTOutput("delay_quartile_summary")
+                                        )
                                     )
                                 )
                             )
                         )
                     )
                 )
-            )
-        ),
-        
-        fluidRow(
-            column(
-                width = 12,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "abw_zeit_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                            )
+            ),
+            
+            fluidRow(
+                column(
+                    width = 12,
+                    div(
+                        class = "white-box",
+                        tagList(
+                            div(
+                                style = "display: flex; align-items: center;",
+                                span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                tags$span(
+                                    icon("circle-question"),
+                                    id = "abw_zeit_info",
+                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                )
+                            ),
+                            br(),
+                            plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
                         ),
-                        br(),
-                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
-                    ),
-                    
-                    bsPopover(
-                        id = "abw_zeit_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Julia",
-                        placement = "right",
-                        trigger = "click"
-                    ),
-                )
-            )
-        ),
-        
-        fluidRow(
-            column(
-                width = 6,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "abw_abs_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                            )
+                        
+                        bsPopover(
+                            id = "abw_zeit_info",
+                            title = "Was wird hier gezeigt?",
+                            content = "Julia",
+                            placement = "right",
+                            trigger = "click"
                         ),
-                        br(),
-                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
-                    ),
-                    
-                    bsPopover(
-                        id = "abw_abs_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
-                        placement = "right",
-                        trigger = "click"
-                    ),
+                    )
                 )
             ),
-            column(
-                width = 6,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "abw_rel_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                            )
+            
+            fluidRow(
+                column(
+                    width = 6,
+                    div(
+                        class = "white-box",
+                        tagList(
+                            div(
+                                style = "display: flex; align-items: center;",
+                                span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                tags$span(
+                                    icon("circle-question"),
+                                    id = "abw_abs_info",
+                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                )
+                            ),
+                            br(),
+                            plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
                         ),
-                        br(),
-                        DT::DTOutput("abweichungstabelle")
-                    ),
-                    
-                    bsPopover(
-                        id = "abw_rel_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Julia",
-                        placement = "right",
-                        trigger = "click"
+                        
+                        bsPopover(
+                            id = "abw_abs_info",
+                            title = "Was wird hier gezeigt?",
+                            content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                            placement = "right",
+                            trigger = "click"
+                        ),
+                    )
+                ),
+                column(
+                    width = 6,
+                    div(
+                        class = "white-box",
+                        tagList(
+                            div(
+                                style = "display: flex; align-items: center;",
+                                span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                tags$span(
+                                    icon("circle-question"),
+                                    id = "abw_rel_info",
+                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                )
+                            ),
+                            br(),
+                            DT::DTOutput("abweichungstabelle")
+                        ),
+                        
+                        bsPopover(
+                            id = "abw_rel_info",
+                            title = "Was wird hier gezeigt?",
+                            content = "Julia",
+                            placement = "right",
+                            trigger = "click"
+                        )
                     )
                 )
             )
@@ -550,6 +599,161 @@ planer_server <- function(input, output, session) {
             )
         )
     })
+    
+    output$donut_termintreue <- renderEcharts4r({
+        sel <- input$selected_planer
+        df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        
+        value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
+        
+        df <- tibble::tibble(
+            category = c("Termintreu", "Verspätet"),
+            count = c(value, 100 - value)
+        )
+        
+        farben <- c("#cfcfcf", "#f0f0f0")  # dein Grau + hellgrau
+        
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+             let colors = %s;
+             return colors[params.dataIndex %% colors.length];
+           }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
+                )
+            ) %>%
+            e_title(
+                text = paste0(value, "%"),
+                left = "center",
+                top = "center",
+                textStyle = list(fontSize = 20, fontWeight = "bold")
+            ) %>%
+            e_tooltip(show = FALSE) %>%
+            e_legend(show = FALSE)
+    })
+    
+    output$donut_liefertreue <- renderEcharts4r({
+        sel <- input$selected_planer
+        df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        
+        value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
+        
+        df <- tibble::tibble(
+            category = c("Liefertreu", "Unvollständig"),
+            count = c(value, 100 - value)
+        )
+        
+        farben <- c("#87BFFF", "#f0f0f0")  # dein Blau + hellgrau
+        
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+             let colors = %s;
+             return colors[params.dataIndex %% colors.length];
+           }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
+                )
+            ) %>%
+            e_title(
+                text = paste0(value, "%"),
+                left = "center",
+                top = "center",
+                textStyle = list(fontSize = 20, fontWeight = "bold")
+            ) %>%
+            e_tooltip(show = FALSE) %>%
+            e_legend(show = FALSE)
+    })
+    
+    output$geschwindigkeit_gauge <- renderPlotly({
+        req(input$selected_planer)
+        
+        df_sel <- auftraege_lt_unit %>%
+            filter(planer == input$selected_planer, !is.na(lt_ist_order))
+        df_all <- auftraege_lt_unit %>%
+            filter(!is.na(lt_ist_order))
+        
+        geschw_sel <- round(mean(df_sel$lt_ist_order, na.rm = TRUE), 1)
+        geschw_all <- round(mean(df_all$lt_ist_order, na.rm = TRUE), 1)
+        
+        rel_diff <- (geschw_all - geschw_sel) / geschw_all * 100
+        
+        kategorie <- case_when(
+            rel_diff <= -10 ~ "Langsam",
+            rel_diff <= 10  ~ "Moderat",
+            rel_diff <= 50  ~ "Schnell",
+            TRUE            ~ "Superschnell"
+        )
+        
+        farbe <- case_when(
+            kategorie == "Langsam"       ~ "#E57373",
+            kategorie == "Moderat"       ~ "#FDD835",
+            kategorie == "Schnell"       ~ "#4DB6AC",
+            kategorie == "Superschnell"  ~ "#81C784"
+        )
+        
+        vergleich_text <- paste0("Ø ", geschw_all, " s/ME")
+        
+        plot_ly(
+            type = "indicator",
+            mode = "gauge+number+delta",
+            value = geschw_sel,
+            number = list(
+                suffix = " s/ME",
+                font = list(size = 24, color = "#202124")
+            ),
+            delta = list(
+                reference = geschw_all,
+                increasing = list(color = "#EA4335"),
+                decreasing = list(color = "#34A853"),
+                font = list(size = 14)
+            ),
+            domain = list(x = c(0, 1), y = c(0, 1)),
+            gauge = list(
+                shape = "semi",
+                axis = list(range = list(NULL, geschw_sel * 1.4), visible = FALSE),
+                bar = list(color = farbe, thickness = 0.45),
+                bgcolor = "transparent",
+                borderwidth = 0,
+                steps = list(
+                    list(range = c(0, geschw_all), color = "#f2f2f2"),
+                    list(range = c(geschw_all, geschw_sel * 1.4), color = "#eeeeee")
+                )
+            )
+        ) %>%
+            layout(
+                margin = list(l = 0, r = 0, t = 0, b = 0),
+                annotations = list(
+                    list(
+                        text = kategorie,
+                        x = 0.5, y = 0,
+                        showarrow = FALSE,
+                        font = list(size = 13, color = "#5f6368")
+                    )
+                )
+            )
+    })
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     output$performance_vgl <- renderUI({
         sel  <- input$selected_planer
