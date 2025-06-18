@@ -337,43 +337,182 @@ planer_ui <- fluidPage(
                 width = 12,
                 div(
                     class = "white-box",
+                    style = "padding: 40px 32px; background-color: white;",
+                    tagList(
+                        
+                        # Box-Überschrift
+                        div(
+                            style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
+                            tags$strong("Performance-Übersicht", 
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), id = "geschw_info", 
+                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                        ),
+                        
+                        # Alle 4 Donuts nebeneinander
+                        div(
+                            style = "display: flex; justify-content: space-between;",
+                            
+                            # Donut 1 – Termintreue
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_termintreue", height = "160px"),
+                                div(
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("termintreue_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                       "Termintreue",
+                                        tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    bsPopover(
+                                        id = "termintreue_info",
+                                        title = "Termintreue",
+                                        content = "Eddi Anteil der Aufträge, die pünktlich zum gewünschten Liefertermin fertig wurden.",
+                                        placement = "top",
+                                        trigger = "hover"
+                                    )
+                                )
+                            ),
+                            
+                            # Donut 2 – Liefertreue
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_liefertreue", height = "160px"),
+                                div(
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("liefertreue_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                        "Liefertreue",
+                                        tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "liefertreue_info",
+                                        title = "Liefertreue",
+                                        content = "Asli Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
+                                        placement = "top",
+                                        trigger = "hover"
+                                    )
+                                )
+                            ),
+                            
+                            # Donut 3 – Geschwindigkeit pro ME
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_geschwindigkeit_me", height = "160px"),
+                                div(
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("geschwindigkeit_me_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                        "Geschwindigkeit pro ME",
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_me_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "geschwindigkeit_me_info",
+                                        title = "Geschwindigkeit/ME [s]",
+                                        content = "Julia",
+                                        placement = "top",
+                                        trigger = "hover"
+                                    )
+                                )
+                            ),
+                            
+                            # Donut 4 – Geschwindigkeit pro Auftrag
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_geschwindigkeit_auftrag", height = "160px"),
+                                div(
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("geschwindigkeit_auftrag_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                        "Geschwindigkeit pro Auftrag",
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "geschwindigkeit_auftrag_info",
+                                        title = "Geschwindigkeit/Auftrag [Tage]",
+                                        content = "Julia",
+                                        placement = "top",
+                                        trigger = "hover"
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        ),
+        
+        
+        bsPopover(
+            id = "performance_vgl_info",
+            title = "Was wird hier gezeigt?",
+            content = "Eddi",
+            placement = "right",
+            trigger = "click"
+        ),
+        
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
                     style = "background-color: rgba(255, 255, 255, 0.3);",
                     tagList(
+                        
                         div(
-                            style = "display: flex; align-items: center;",
-                            span("Performance-Übersicht", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "performance_vgl_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            style = "padding: 40px 0 15px 0;",
+                            uiOutput("allocation_title")
+                        ),
+                        
+                        
+                        
+                        fluidRow(
+                            column(
+                                width = 12,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        DTOutput("delay_table_shared")
+                                    )
+                                )
                             )
                         ),
-                        br(),
                         
+                        # Zweite Zeile: Lead Time + Mengen – ebenfalls in eigenen Boxen
                         fluidRow(
                             column(
                                 width = 6,
                                 div(
                                     class = "white-box",
-                                    style = "padding: 20px; border-radius: 12px; background: white;",
-                                    div(
-                                        style = "display: flex; justify-content: space-between; align-items: center;",
-                                        tags$strong("Performance-Übersicht"),
-                                        tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                    ),
-                                    br(),
-                                    div(
-                                        style = "display: flex; justify-content: space-between;",
+                                    tagList(
                                         div(
-                                            style = "text-align: center; width: 49%;",
-                                            echarts4rOutput("donut_termintreue", height = "180px"),
-                                            div("Termintreue", style = "margin-top: 4px; font-size: 13px; color: #555;")
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "auftrverteilung_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
-                                        div(
-                                            style = "text-align: center; width: 49%;",
-                                            echarts4rOutput("donut_liefertreue", height = "180px"),
-                                            div("Liefertreue", style = "margin-top: 4px; font-size: 13px; color: #555;")
-                                        )
+                                        
+                                        bsPopover(
+                                            id = "auftrverteilung_info",
+                                            title = "Verteilung der Aufträge",
+                                            content = "Asli",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        ),
+                                        
+                                        echarts4rOutput("allocation_pie_shared", height = "300px")
                                     )
                                 )
                             ),
@@ -382,97 +521,22 @@ planer_ui <- fluidPage(
                                 width = 6,
                                 div(
                                     class = "white-box",
-                                    style = "padding: 20px; border-radius: 12px; background: white;",
-                                    div(
-                                        style = "display: flex; justify-content: space-between; align-items: center;",
-                                        tags$strong("Performance-Übersicht"),
-                                        tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                    ),
-                                    br(),
-                                    div(
-                                        style = "display: flex; justify-content: space-between;",
+                                    style = "min-height: 455px",
+                                    tagList(
                                         div(
-                                            plotlyOutput("geschwindigkeit_gauge", height = "260px")
-                                        )
-                                    )
-                                )
-                            )
-                            
-                        ),
-                        
-                        bsPopover(
-                            id = "performance_vgl_info",
-                            title = "Was wird hier gezeigt?",
-                            content = "Eddi",
-                            placement = "right",
-                            trigger = "click"
-                        ),
-                    )
-                )
-            ),
-            
-            fluidRow(
-                column(
-                    width = 12,
-                    div(
-                        class = "white-box",
-                        style = "background-color: rgba(255, 255, 255, 0.3);",
-                        tagList(
-                            
-                            div(
-                                style = "padding: 40px 0 15px 0;",
-                                uiOutput("allocation_title")
-                            ),
-                            
-                            
-                            
-                            fluidRow(
-                                column(
-                                    width = 12,
-                                    div(
-                                        class = "white-box",
-                                        tagList(
-                                            div(
-                                                style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                                span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                                tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                            ),
-                                            DTOutput("delay_table_shared")
-                                        )
-                                    )
-                                )
-                            ),
-                            
-                            # Zweite Zeile: Lead Time + Mengen – ebenfalls in eigenen Boxen
-                            fluidRow(
-                                column(
-                                    width = 6,
-                                    div(
-                                        class = "white-box",
-                                        tagList(
-                                            div(
-                                                style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                                span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                                tags$span(icon("circle-question"), id = "allocation_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                            ),
-                                            echarts4rOutput("allocation_pie_shared", height = "300px")
-                                        )
-                                    )
-                                ),
-                                
-                                column(
-                                    width = 6,
-                                    div(
-                                        class = "white-box",
-                                        style = "min-height: 455px",
-                                        tagList(
-                                            div(
-                                                style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                                span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                                tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                            ),
-                                            DTOutput("delay_quartile_summary")
-                                        )
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        
+                                        bsPopover(
+                                            id = "topdelay_info",
+                                            title = "Top 200 Aufträge mit höchster Abweichung",
+                                            content = "Eddi",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        ),
+                                        DTOutput("delay_quartile_summary")
                                     )
                                 )
                             )
@@ -571,8 +635,6 @@ planer_ui <- fluidPage(
     )
 )
 
-
-
 #Server-------------------------------------------------------------------------
 planer_server <- function(input, output, session) {
     
@@ -603,15 +665,37 @@ planer_server <- function(input, output, session) {
     output$donut_termintreue <- renderEcharts4r({
         sel <- input$selected_planer
         df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        df_o <- auftraege_lt_unit %>% filter(planer != sel)
         
         value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
+        avg   <- round(df_o %>%
+                           group_by(planer) %>%
+                           summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
+                           pull(rate) %>%
+                           mean(na.rm = TRUE) * 100, 1)
+        
+        # 👑 oder ⚠️
+        symbol <- if (value > avg) {
+            "👑"
+        } else if (value < avg) {
+            "⚠️"
+        } else {
+            ""
+        }
         
         df <- tibble::tibble(
             category = c("Termintreu", "Verspätet"),
             count = c(value, 100 - value)
         )
         
-        farben <- c("#cfcfcf", "#f0f0f0")  # dein Grau + hellgrau
+        farbe <- if (symbol == "⚠️") {
+            "#E57373"  # rot
+        } else if (symbol == "👑") {
+            "#81C784"  # grün
+        } else {
+            "#cfcfcf"  # grau
+        }
+        farben <- c(farbe, "#f0f0f0")
         
         df %>%
             e_charts(category) %>%
@@ -622,14 +706,14 @@ planer_server <- function(input, output, session) {
                 itemStyle = list(
                     color = htmlwidgets::JS(sprintf(
                         "function(params) {
-             let colors = %s;
-             return colors[params.dataIndex %% colors.length];
-           }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
-                text = paste0(value, "%"),
+                text = paste0(symbol, " ", value, "%"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
@@ -638,18 +722,136 @@ planer_server <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
+    
     output$donut_liefertreue <- renderEcharts4r({
         sel <- input$selected_planer
         df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        df_o <- auftraege_lt_unit %>% filter(planer != sel)
         
         value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
+        avg   <- round(mean(df_o$gelieferte_menge >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
+        
+        # Entscheidungssymbol & Farbe
+        symbol <- if (value > avg) {
+            "👑"
+        } else if (value < avg) {
+            "⚠️"
+        } else {
+            ""
+        }
+        
+        tooltip_text <- if (value > avg) {
+            paste0("Overperformance, durchschn. Liefertreue derzeit ", avg, "%")
+        } else if (value < avg) {
+            paste0("Underperformance, durchschn. Liefertreue derzeit ", avg, "%")
+        } else {
+            ""
+        }
+        
+        farbe <- if (symbol == "⚠️") {
+            "#E57373"
+        } else if (symbol == "👑") {
+            "#81C784"
+        } else {
+            "#cfcfcf"
+        }
+        
+        farben <- c(farbe, "#f0f0f0")
         
         df <- tibble::tibble(
             category = c("Liefertreu", "Unvollständig"),
             count = c(value, 100 - value)
         )
         
-        farben <- c("#87BFFF", "#f0f0f0")  # dein Blau + hellgrau
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
+                )
+            ) %>%
+            e_title(
+                text = sprintf(
+                    "{a|%s} {b|%s%%}", symbol, value
+                ),
+                left = "center",
+                top = "center",
+                textStyle = list(
+                    rich = list(
+                        a = list(
+                            fontSize = 20,
+                            fontWeight = "bold",
+                            color = "#202124",
+                            backgroundColor = "#ffffff",
+                            borderRadius = 5,
+                            padding = 1,
+                            fontFamily = "Segoe UI",
+                            width = 20,
+                            height = 20
+                        ),
+                        b = list(
+                            fontSize = 20,
+                            fontWeight = "bold",
+                            color = "#202124"
+                        )
+                    )
+                ),
+                tooltip = list(
+                    show = TRUE,
+                    formatter = tooltip_text
+                )
+            ) %>%
+            e_tooltip(trigger = "item") %>%
+            e_legend(show = FALSE)
+    })
+    
+    
+    
+    output$donut_geschwindigkeit_me <- renderEcharts4r({
+        req(input$selected_planer)
+        
+        df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lt_ist_order))
+        df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
+        
+        geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
+        geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
+        
+        rel_diff <- geschw_all - geschw_sel
+        
+        symbol <- if (rel_diff > 0) {
+            "👑"
+        } else if (rel_diff < 0) {
+            "⚠️"
+        } else {
+            ""
+        }
+        
+        farbe <- if (rel_diff > 0) {
+            "#81C784"  # grün
+        } else if (rel_diff < 0) {
+            "#E57373"  # rot
+        } else {
+            "#cfcfcf"  # grau
+        }
+        
+        # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
+        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        prozent <- max(min(prozent, 100), 0)
+        
+        df <- tibble::tibble(
+            category = c("Aktueller Wert", "Rest"),
+            count = c(prozent, 100 - prozent)
+        )
+        
+        farben <- c(farbe, "#f0f0f0")
         
         df %>%
             e_charts(category) %>%
@@ -660,14 +862,14 @@ planer_server <- function(input, output, session) {
                 itemStyle = list(
                     color = htmlwidgets::JS(sprintf(
                         "function(params) {
-             let colors = %s;
-             return colors[params.dataIndex %% colors.length];
-           }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
-                text = paste0(value, "%"),
+                text = paste0(symbol, " ", geschw_sel, " min"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
@@ -676,83 +878,68 @@ planer_server <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
-    output$geschwindigkeit_gauge <- renderPlotly({
+    
+    output$donut_geschwindigkeit_auftrag <- renderEcharts4r({
         req(input$selected_planer)
         
-        df_sel <- auftraege_lt_unit %>%
-            filter(planer == input$selected_planer, !is.na(lt_ist_order))
-        df_all <- auftraege_lt_unit %>%
-            filter(!is.na(lt_ist_order))
+        df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lead_time_ist))
+        df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        geschw_sel <- round(mean(df_sel$lt_ist_order, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lt_ist_order, na.rm = TRUE), 1)
+        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
         
-        rel_diff <- (geschw_all - geschw_sel) / geschw_all * 100
+        rel_diff <- geschw_all - geschw_sel
         
-        kategorie <- case_when(
-            rel_diff <= -10 ~ "Langsam",
-            rel_diff <= 10  ~ "Moderat",
-            rel_diff <= 50  ~ "Schnell",
-            TRUE            ~ "Superschnell"
+        symbol <- if (rel_diff > 0) {
+            "👑"
+        } else if (rel_diff < 0) {
+            "⚠️"
+        } else {
+            ""
+        }
+        
+        farbe <- if (rel_diff > 0) {
+            "#81C784"
+        } else if (rel_diff < 0) {
+            "#E57373"
+        } else {
+            "#cfcfcf"
+        }
+        
+        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        prozent <- max(min(prozent, 100), 0)
+        
+        df <- tibble::tibble(
+            category = c("Aktueller Wert", "Rest"),
+            count = c(prozent, 100 - prozent)
         )
         
-        farbe <- case_when(
-            kategorie == "Langsam"       ~ "#E57373",
-            kategorie == "Moderat"       ~ "#FDD835",
-            kategorie == "Schnell"       ~ "#4DB6AC",
-            kategorie == "Superschnell"  ~ "#81C784"
-        )
+        farben <- c(farbe, "#f0f0f0")
         
-        vergleich_text <- paste0("Ø ", geschw_all, " s/ME")
-        
-        plot_ly(
-            type = "indicator",
-            mode = "gauge+number+delta",
-            value = geschw_sel,
-            number = list(
-                suffix = " s/ME",
-                font = list(size = 24, color = "#202124")
-            ),
-            delta = list(
-                reference = geschw_all,
-                increasing = list(color = "#EA4335"),
-                decreasing = list(color = "#34A853"),
-                font = list(size = 14)
-            ),
-            domain = list(x = c(0, 1), y = c(0, 1)),
-            gauge = list(
-                shape = "semi",
-                axis = list(range = list(NULL, geschw_sel * 1.4), visible = FALSE),
-                bar = list(color = farbe, thickness = 0.45),
-                bgcolor = "transparent",
-                borderwidth = 0,
-                steps = list(
-                    list(range = c(0, geschw_all), color = "#f2f2f2"),
-                    list(range = c(geschw_all, geschw_sel * 1.4), color = "#eeeeee")
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
                 )
-            )
-        ) %>%
-            layout(
-                margin = list(l = 0, r = 0, t = 0, b = 0),
-                annotations = list(
-                    list(
-                        text = kategorie,
-                        x = 0.5, y = 0,
-                        showarrow = FALSE,
-                        font = list(size = 13, color = "#5f6368")
-                    )
-                )
-            )
+            ) %>%
+            e_title(
+                text = paste0(symbol, " ", geschw_sel, " T"),
+                left = "center",
+                top = "center",
+                textStyle = list(fontSize = 20, fontWeight = "bold")
+            ) %>%
+            e_tooltip(show = FALSE) %>%
+            e_legend(show = FALSE)
     })
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     
     output$performance_vgl <- renderUI({
@@ -821,6 +1008,13 @@ planer_server <- function(input, output, session) {
         req(input$selected_planer, input$view_selection)
         h4(
             paste0("Ansicht ", input$view_selection, " für Planer ", input$selected_planer),
+            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+        )
+    })
+    
+    output$performance_titel <- renderUI({
+        h4(
+            paste0("Ansicht Performance für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
