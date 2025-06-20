@@ -6,12 +6,12 @@ library(DT)
 library(bsplus)
 library(shinyBS)
 library(echarts4r)
-
-
+library(plotly)
+library(ggbreak)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
-source("02_model/kpis_workflow_liegezeit.R", local = TRUE)
-source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
+source("02_model/kpis_werke.R", local = TRUE)
+source("01_transform/create_lt_unit.R", local = TRUE)
 
 
 my_theme <- function(base_family = "Inter") {
@@ -39,7 +39,7 @@ my_theme <- function(base_family = "Inter") {
 
 
 #UI-----------------------------------------------------------------------------
-workflows_ui <- fluidPage(
+workflow_ui <- fluidPage(
     
     # HEAD-Bereich mit Styles
     tags$head(
@@ -219,7 +219,7 @@ workflows_ui <- fluidPage(
                 div(class = "nav-tabs-custom",
                     a(id = "nav_material", href = "#", "Material"),
                     a(id = "nav_workflows", href = "#", class = "active", "Workflows"),
-                    a(id = "nav_linien", href = "#", "Fertigungslinien"),
+                    a(id = "nav_linien", href = "#", "Linien"),
                     a(id = "nav_werke", href = "#", "Werke")
                 )
             ),
@@ -235,24 +235,24 @@ workflows_ui <- fluidPage(
         # Sub-Header direkt darunter (ohne Lücke)
         div(
             style = "background-color: #f1f3f4; padding: 18px 32px; height: 72px;
-           display: flex; align-items: center; justify-content: space-between;
-           border-top: 1px solid #e0e0e0;",
+         display: flex; align-items: center; justify-content: space-between;
+         border-top: 1px solid #e0e0e0;",
             
             # Linke Seite: Icon + Titel
             div(
                 style = "display: flex; align-items: center; gap: 12px;",
-                icon("sitemap", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+                icon("industry", class = NULL, style = "font-size: 20px; color: #5f6368;"),
                 span(
                     style = "font-size: 20px; font-weight: 600; color: #202124;",
                     "Workflows"
                 )
             ),
             
-            # Rechte Seite: Label + Dropdown (perfekt ausgerichtet)
+            # Rechte Seite: Linien-Auswahl + zweite Ansichtsauswahl
             div(
                 style = "display: flex; align-items: center; gap: 24px;",
                 
-                # Workflow auswählen
+                # Linie auswählen
                 div(
                     style = "display: flex; align-items: center; gap: 8px;",
                     span(
@@ -265,7 +265,7 @@ workflows_ui <- fluidPage(
                             inputId = "selected_workflow",
                             label = NULL,
                             choices = NULL,
-                            selected = "",
+                            selected = "1",
                             options = list(placeholder = ""),
                             width = "100%"
                         )
@@ -284,14 +284,15 @@ workflows_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Arbeitsschritte", "Material"),
-                            selected = "Arbeitsschritte",
+                            choices = c("Linie", "Planer", "Werk", "Material"),
+                            selected = "Werk",
                             width = "100%"
                         )
                     )
                 )
             )
         )
+        
     ),
     
     
@@ -336,68 +337,109 @@ workflows_ui <- fluidPage(
                 width = 12,
                 div(
                     class = "white-box",
-                    style = "background-color: rgba(255, 255, 255, 0.3); min-height: 455px; padding: 40px 40px 20px 40px;",
+                    style = "padding: 40px 32px; background-color: white;",
                     tagList(
                         
-                        # Header mit Titel
+                        # Box-Überschrift
                         div(
-                            style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;",
-                            uiOutput("allocation_title")
+                            style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
+                            tags$strong("Performance-Übersicht", 
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), id = "geschw_info", 
+                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                         ),
                         
-                        # Erste Zeile: Pie + Tabelle
-                        fluidRow(
-                            column(
-                                width = 6,
+                        # Alle 4 Donuts nebeneinander
+                        div(
+                            style = "display: flex; justify-content: space-between;",
+                            
+                            # Donut 1 – Termintreue
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_termintreue", height = "160px"),
                                 div(
-                                    class = "white-box",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "allocation_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                        ),
-                                        echarts4rOutput("allocation_pie_shared", height = "300px")
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("termintreue_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                        "Termintreue",
+                                        tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    bsPopover(
+                                        id = "termintreue_info",
+                                        title = "Termintreue",
+                                        content = "Eddi Anteil der Aufträge, die pünktlich zum gewünschten Liefertermin fertig wurden.",
+                                        placement = "top",
+                                        trigger = "hover"
                                     )
                                 )
                             ),
-                            column(
-                                width = 6,
+                            
+                            # Donut 2 – Liefertreue
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_liefertreue", height = "160px"),
                                 div(
-                                    class = "white-box",
-                                    style = "min-height: 450px;",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                        ),
-                                        DTOutput("delay_table_shared")
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("liefertreue_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                        "Liefertreue",
+                                        tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "liefertreue_info",
+                                        title = "Liefertreue",
+                                        content = "Asli Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
+                                        placement = "top",
+                                        trigger = "hover"
                                     )
                                 )
-                            )
-                        ),
-                        
-                        # Zweite Zeile: Lead Time Chart
-                        fluidRow(
-                            column(
-                                width = 6,
+                            ),
+                            
+                            # Donut 3 – Geschwindigkeit pro ME
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_geschwindigkeit_me", height = "160px"),
                                 div(
-                                    class = "white-box",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Ist- und Soll-Lead Time [Sek. pro ME]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "lt_kat_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                        ),
-                                        bsPopover(
-                                            id = "lt_kat_info",
-                                            title = "Was wird hier gezeigt?",
-                                            content = "Dieses Diagramm zeigt Median-Ist- und Soll-Lead Times je nach gewählter Kategorie.",
-                                            placement = "right",
-                                            trigger = "click"
-                                        ),
-                                        plotOutput("leadtime_chart", height = "240px")
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("geschwindigkeit_me_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                        "Geschwindigkeit pro ME",
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_me_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "geschwindigkeit_me_info",
+                                        title = "Geschwindigkeit/ME [s]",
+                                        content = "Julia",
+                                        placement = "top",
+                                        trigger = "hover"
+                                    )
+                                )
+                            ),
+                            
+                            # Donut 4 – Geschwindigkeit pro Auftrag
+                            div(
+                                style = "text-align: center; width: 24%;",
+                                echarts4rOutput("donut_geschwindigkeit_auftrag", height = "160px"),
+                                div(
+                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                    uiOutput("geschwindigkeit_auftrag_icon"),
+                                    span(
+                                        style = "display: flex; align-items: center; gap: 6px;",
+                                        "Geschwindigkeit pro Auftrag",
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "geschwindigkeit_auftrag_info",
+                                        title = "Geschwindigkeit/Auftrag [Tage]",
+                                        content = "Julia",
+                                        placement = "top",
+                                        trigger = "hover"
                                     )
                                 )
                             )
@@ -407,34 +449,107 @@ workflows_ui <- fluidPage(
             )
         ),
         
-        # Neue Zeile mit zwei gleich großen Boxen
+        
+        bsPopover(
+            id = "performance_vgl_info",
+            title = "Was wird hier gezeigt?",
+            content = "Eddi",
+            placement = "right",
+            trigger = "hover"
+        ),
+        
+        
         fluidRow(
             column(
-                width = 6,
+                width = 12,
                 div(
                     class = "white-box",
+                    style = "background-color: rgba(255, 255, 255, 0.3);",
                     tagList(
+                        
                         div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time inkl. Liegezeit [Tag pro Auftrag]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "lz_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            style = "padding: 40px 0 15px 0;",
+                            uiOutput("allocation_title")
+                        ),
+                        
+                        
+                        
+                        fluidRow(
+                            column(
+                                width = 12,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "performance_table_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        DTOutput("delay_table_shared"),
+                                        
+                                        bsPopover(
+                                            id = "performance_table_info",
+                                            title = "Aktuelle Performance",
+                                            content = "Julia",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        ),
+                                    )
+                                )
+                            )
+                        ),
+                        
+                        # Zweite Zeile: Lead Time + Mengen – ebenfalls in eigenen Boxen
+                        fluidRow(
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "auftrverteilung_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        
+                                        bsPopover(
+                                            id = "auftrverteilung_info",
+                                            title = "Verteilung der Aufträge",
+                                            content = "Asli",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        ),
+                                        
+                                        echarts4rOutput("allocation_pie_shared", height = "300px")
+                                    )
+                                )
+                            ),
+                            
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    style = "min-height: 455px",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
+                                            span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        
+                                        bsPopover(
+                                            id = "topdelay_info",
+                                            title = "Top 200 Aufträge mit höchster Abweichung",
+                                            content = "Eddi",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        ),
+                                        DTOutput("delay_quartile_summary")
+                                    )
+                                )
                             )
                         )
-                    ),
-                    
-                    bsPopover(
-                        id = "lz_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Dieses Diagramm zeigt die Lead Times inklusive Liegezeiten auf Auftragsebene (Tage pro Auftrag).",
-                        placement = "right",
-                        trigger = "click"
-                    ),
-                    
-                    br(),
-                    plotOutput("balkenplot", height = "240px") 
+                    )
                 )
             )
         ),
@@ -444,143 +559,123 @@ workflows_ui <- fluidPage(
                 width = 12,
                 div(
                     class = "white-box",
+                    style = "background-color: rgba(255, 255, 255, 0.3);",
                     tagList(
+                        
                         div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time nach Sollmenge [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "lt_sollmenge_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            style = "padding: 40px 0 15px 0;",
+                            uiOutput("abweichung_title")
+                        ),
+                        
+                        fluidRow(
+                            column(
+                                width = 12,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center;",
+                                            span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(
+                                                icon("circle-question"),
+                                                id = "abw_zeit_info",
+                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                            )
+                                        ),
+                                        br(),
+                                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "abw_zeit_info",
+                                        title = "Was wird hier gezeigt?",
+                                        content = "Julia",
+                                        placement = "right",
+                                        trigger = "hover"
+                                    ),
+                                )
+                            )
+                        ),
+                        
+                        fluidRow(
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center;",
+                                            span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(
+                                                icon("circle-question"),
+                                                id = "abw_abs_info",
+                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                            )
+                                        ),
+                                        br(),
+                                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "abw_abs_info",
+                                        title = "Was wird hier gezeigt?",
+                                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                                        placement = "right",
+                                        trigger = "hover"
+                                    ),
+                                )
+                            ),
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    style = "min-height: 410px",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center;",
+                                            span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(
+                                                icon("circle-question"),
+                                                id = "abw_rel_info",
+                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                            )
+                                        ),
+                                        br(),
+                                        DT::DTOutput("abweichungstabelle")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "abw_rel_info",
+                                        title = "Was wird hier gezeigt?",
+                                        content = "Julia",
+                                        placement = "right",
+                                        trigger = "hover"
+                                    )
+                                )
                             )
                         )
-                    ),
-                    
-                    bsPopover(
-                        id = "lt_sollmenge_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
-                        placement = "right",
-                        trigger = "click"
-                    ),
-                    br(),
-                    plotly::plotlyOutput("workflow_plot", height = "240px")
-                )
-            )
-        ),
-        
-        fluidRow(
-            column(
-                width = 6,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "abw_abs_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                            )
-                        ),
-                        br(),
-                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
-                    ),
-                    
-                    bsPopover(
-                        id = "abw_abs_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
-                        placement = "right",
-                        trigger = "click"
-                    ),
-                )
-            ),
-            column(
-                width = 6,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "abw_rel_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                            )
-                        ),
-                        br(),
-                        DT::DTOutput("abweichungstabelle")
-                    ),
-                    
-                    bsPopover(
-                        id = "abw_rel_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Julia",
-                        placement = "right",
-                        trigger = "click"
-                    ),
-                )
-            )
-        ),
-        
-        fluidRow(
-            column(
-                width = 12,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; align-items: center;",
-                            span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(
-                                icon("circle-question"),
-                                id = "abw_zeit_info",
-                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                            )
-                        ),
-                        br(),
-                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
-                    ),
-                    
-                    bsPopover(
-                        id = "abw_zeit_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Julia",
-                        placement = "right",
-                        trigger = "click"
-                    ),
+                    )
                 )
             )
         )
     )
-)      
+)
 
-workflows_server <- function(input, output, session) {
+
+#Server-------------------------------------------------------------------------
+workflow_server <- function(input, output, session) {
     
     observe({
-        workflows <- unique(vorgaenge_lt_unit$vorgangsfolge)
+        workflow <- unique(auftraege_lt_unit$vorgangsfolge)
         
         updateSelectizeInput(
             session,
             inputId = "selected_workflow",
-            choices = c("Workflow auswählen" = "", workflows),
-            selected = "0010",  # <- default value, bleibt so
+            choices = c("Workflow auswählen" = "", workflow),
+            selected = "0010", 
             server = TRUE
         )
     })
-    
-    lt_map <- list(
-        "Workflow" = "vorgangsfolge",
-        "Werk"     = "werk",
-        "Linie"    = "fertigungslinie",
-        "Planer"   = "planer",
-        "Material" = "materialnummer",
-        "Arbeitsschritte" = "Vorgangsnummer"
-    )
-    
     
     output$workflow_title <- renderUI({
         req(input$selected_workflow)
@@ -589,34 +684,421 @@ workflows_server <- function(input, output, session) {
             style = "margin-top: 32px; margin-bottom: 32px;",
             tags$h2(
                 paste("Details | Workflow", input$selected_workflow),
-                style = "font-size: 20px; font-weight: 600; color: #202124; margin: 0;"
+                style = "font-size: 25px; font-weight: 600; color: #202124; margin: 0;"
             )
         )
     })
     
-    output$allocation_title <- renderUI({
+    output$donut_termintreue <- renderEcharts4r({
+        sel <- input$selected_workflow
+        df_s <- auftraege_lt_unit %>% filter(vorgangsfolge == sel)
+        df_o <- auftraege_lt_unit %>% filter(vorgangsfolge != sel)
+        
+        value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
+        avg   <- round(df_o %>%
+                           group_by(vorgangsfolge) %>%
+                           summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
+                           pull(rate) %>%
+                           mean(na.rm = TRUE) * 100, 1)
+        
+        # 👑 oder ⚠️
+        symbol <- if (value > avg) {
+            "👑"
+        } else if (value < avg) {
+            "⚠️"
+        } else {
+            ""
+        }
+        
+        df <- tibble::tibble(
+            category = c("Termintreu", "Verspätet"),
+            count = c(value, 100 - value)
+        )
+        
+        farbe <- if (symbol == "⚠️") {
+            "#E57373"  # rot
+        } else if (symbol == "👑") {
+            "#81C784"  # grün
+        } else {
+            "#cfcfcf"  # grau
+        }
+        farben <- c(farbe, "#f0f0f0")
+        
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
+                )
+            ) %>%
+            e_title(
+                text = paste0(symbol, " ", value, "%"),
+                left = "center",
+                top = "center",
+                textStyle = list(fontSize = 20, fontWeight = "bold")
+            ) %>%
+            e_tooltip(show = FALSE) %>%
+            e_legend(show = FALSE)
+    })
+    
+    
+    output$donut_liefertreue <- renderEcharts4r({
+        sel <- input$selected_workflow
+        df_s <- auftraege_lt_unit %>% filter(vorgangsfolge == sel)
+        df_o <- auftraege_lt_unit %>% filter(vorgangsfolge != sel)
+        
+        value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
+        avg   <- round(mean(df_o$gelieferte_menge >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
+        
+        # Entscheidungssymbol & Farbe
+        symbol <- if (value > avg) {
+            "👑"
+        } else if (value < avg) {
+            "⚠️"
+        } else {
+            ""
+        }
+        
+        tooltip_text <- if (value > avg) {
+            paste0("Overperformance, durchschn. Liefertreue derzeit ", avg, "%")
+        } else if (value < avg) {
+            paste0("Underperformance, durchschn. Liefertreue derzeit ", avg, "%")
+        } else {
+            ""
+        }
+        
+        farbe <- if (symbol == "⚠️") {
+            "#E57373"
+        } else if (symbol == "👑") {
+            "#81C784"
+        } else {
+            "#cfcfcf"
+        }
+        
+        farben <- c(farbe, "#f0f0f0")
+        
+        df <- tibble::tibble(
+            category = c("Liefertreu", "Unvollständig"),
+            count = c(value, 100 - value)
+        )
+        
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
+                )
+            ) %>%
+            e_title(
+                text = sprintf(
+                    "{a|%s} {b|%s%%}", symbol, value
+                ),
+                left = "center",
+                top = "center",
+                textStyle = list(
+                    rich = list(
+                        a = list(
+                            fontSize = 20,
+                            fontWeight = "bold",
+                            color = "#202124",
+                            backgroundColor = "#ffffff",
+                            borderRadius = 5,
+                            padding = 1,
+                            fontFamily = "Segoe UI",
+                            width = 20,
+                            height = 20
+                        ),
+                        b = list(
+                            fontSize = 20,
+                            fontWeight = "bold",
+                            color = "#202124"
+                        )
+                    )
+                ),
+                tooltip = list(
+                    show = TRUE,
+                    formatter = tooltip_text
+                )
+            ) %>%
+            e_tooltip(trigger = "item") %>%
+            e_legend(show = FALSE)
+    })
+    
+    
+    
+    output$donut_geschwindigkeit_me <- renderEcharts4r({
         req(input$selected_workflow)
-        span(
-            paste0("Zuordnung & Engpässe für Workflow ", input$selected_workflow),
-            style = "font-weight: 600; font-size: 18px; color: #202124;"
+        
+        df_sel <- auftraege_lt_unit %>% filter(vorgangsfolge == input$selected_workflow, !is.na(lt_ist_order))
+        df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
+        
+        geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
+        geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
+        
+        rel_diff <- geschw_all - geschw_sel
+        
+        symbol <- if (rel_diff > 0) {
+            "👑"
+        } else if (rel_diff < 0) {
+            "⚠️"
+        } else {
+            ""
+        }
+        
+        farbe <- if (rel_diff > 0) {
+            "#81C784"  # grün
+        } else if (rel_diff < 0) {
+            "#E57373"  # rot
+        } else {
+            "#cfcfcf"  # grau
+        }
+        
+        # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
+        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        prozent <- max(min(prozent, 100), 0)
+        
+        df <- tibble::tibble(
+            category = c("Aktueller Wert", "Rest"),
+            count = c(prozent, 100 - prozent)
+        )
+        
+        farben <- c(farbe, "#f0f0f0")
+        
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
+                )
+            ) %>%
+            e_title(
+                text = paste0(symbol, " ", geschw_sel, " min"),
+                left = "center",
+                top = "center",
+                textStyle = list(fontSize = 20, fontWeight = "bold")
+            ) %>%
+            e_tooltip(show = FALSE) %>%
+            e_legend(show = FALSE)
+    })
+    
+    
+    output$donut_geschwindigkeit_auftrag <- renderEcharts4r({
+        req(input$selected_workflow)
+        
+        df_sel <- auftraege_lt_unit %>% filter(vorgangsfolge == input$selected_workflow, !is.na(lead_time_ist))
+        df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
+        
+        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
+        
+        rel_diff <- geschw_all - geschw_sel
+        
+        symbol <- if (rel_diff > 0) {
+            "👑"
+        } else if (rel_diff < 0) {
+            "⚠️"
+        } else {
+            ""
+        }
+        
+        farbe <- if (rel_diff > 0) {
+            "#81C784"
+        } else if (rel_diff < 0) {
+            "#E57373"
+        } else {
+            "#cfcfcf"
+        }
+        
+        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        prozent <- max(min(prozent, 100), 0)
+        
+        df <- tibble::tibble(
+            category = c("Aktueller Wert", "Rest"),
+            count = c(prozent, 100 - prozent)
+        )
+        
+        farben <- c(farbe, "#f0f0f0")
+        
+        df %>%
+            e_charts(category) %>%
+            e_pie(
+                count,
+                radius = c("75%", "90%"),
+                label = list(show = FALSE),
+                itemStyle = list(
+                    color = htmlwidgets::JS(sprintf(
+                        "function(params) {
+                        let colors = %s;
+                        return colors[params.dataIndex %% colors.length];
+                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    ))
+                )
+            ) %>%
+            e_title(
+                text = paste0(symbol, " ", geschw_sel, " T"),
+                left = "center",
+                top = "center",
+                textStyle = list(fontSize = 20, fontWeight = "bold")
+            ) %>%
+            e_tooltip(show = FALSE) %>%
+            e_legend(show = FALSE)
+    })
+    
+    
+    output$performance_vgl <- renderUI({
+        sel  <- input$selected_workflow
+        df_s <- auftraege_lt_unit %>% filter(vorgangsfolge == sel)
+        df_o <- auftraege_lt_unit %>% filter(vorgangsfolge != sel)
+        
+        # KPI-Werte berechnen (vereinfacht hier)
+        kpis <- tibble::tibble(
+            label = c("Pünktlichkeitsrate", "Ø Verzögerung (Tage)", "Ø Workflows/Auftrag", "Anzahl Aufträge"),
+            value = c(
+                mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100,
+                median(df_s$abweichung_unit[df_s$abweichung_unit > 0], na.rm = TRUE),
+                df_s %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
+                nrow(df_s)
+            ),
+            avg = c(
+                df_o %>% group_by(workflow) %>% summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>% pull(rate) %>% mean(na.rm = TRUE) * 100,
+                df_o %>% filter(abweichung_unit > 0) %>% group_by(workflow) %>% summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>% pull(avg) %>% mean(na.rm = TRUE),
+                df_o %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
+                df_o %>% group_by(workflow) %>% summarise(n = n()) %>% pull(n) %>% mean(na.rm = TRUE)
+            )
+        )
+        
+        # Hilfsfunktion für ein KPI-Feld
+        kpi_box <- function(value, avg, label) {
+            diff <- value - avg
+            icon <- if (round(diff, 1) > 0) {
+                "<span style='color:green;font-size:24px'>&uarr;</span>"
+            } else if (round(diff, 1) < 0) {
+                "<span style='color:red;font-size:24px'>&darr;</span>"
+            } else {
+                "<span style='color:black;font-size:24px'>&rarr;</span>"
+            }
+            
+            div(style = "
+        background:white;
+        border:1px solid #e0e0e0;
+        border-radius:10px;
+        padding:15px;
+        margin:5px;
+        text-align:center;
+        width: 23%;
+        box-shadow: 0px 2px 5px rgba(0,0,0,0.05);
+        ",
+                HTML(icon),
+                div(style = "font-size:20px;font-weight:bold;margin-top:5px;", sprintf("%.1f", value)),
+                div(style = "font-size:13px;color:#555;margin-top:2px;", label)
+            )
+        }
+        
+        # Vier Boxen nebeneinander anzeigen
+        fluidRow(
+            lapply(1:4, function(i) {
+                column(
+                    width = 3,
+                    kpi_box(kpis$value[i], kpis$avg[i], kpis$label[i])
+                )
+            })
         )
     })
+    
+    
+    
+    output$allocation_title <- renderUI({
+        req(input$selected_workflow, input$view_selection)
+        h4(
+            paste0("Ansicht ", input$view_selection, " für Workflow ", input$selected_workflow),
+            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+        )
+    })
+    
+    output$abweichung_title <- renderUI({
+        req(input$selected_workflow, input$view_selection)
+        h4(
+            paste0("Ansicht Lead Time Abweichung für Workflow ", input$selected_workflow),
+            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+        )
+    })
+    
+    output$performance_titel <- renderUI({
+        h4(
+            paste0("Ansicht Performance für Workflow ", input$selected_workflow),
+            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+        )
+    })
+    
+    output$lt_title <- renderUI({
+        req(input$selected_workflow)
+        h4(
+            paste("Lead Time- und Performanceübersicht Workflow", input$selected_workflow), 
+            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+        )
+    })
+    
+    # Mapping zwischen UI-Label und Datenspalte
+    lt_map <- list(
+        "Workflow" = "vorgangsfolge",
+        "Werk"     = "werk",
+        "Linie"    = "fertigungslinie",
+        "Planer"   = "planer",
+        "Material" = "materialnummer"
+    )
+    
+    #Formel zur Berechnung des Modus
+    modus <- function(x) {
+        ux <- unique(x[!is.na(x)])
+        ux[which.max(tabulate(match(x, ux)))]
+    }
+    
     
     output$delay_table_shared <- renderDT({
         req(input$selected_workflow)
         req(input$view_selection)
-
+        
         col <- lt_map[[input$view_selection]]
         
-        df <- vorgaenge_lt_unit %>%
+        df <- auftraege_lt_unit %>%
             filter(vorgangsfolge == input$selected_workflow) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
-            summarise(`Verzögerung/ME [s]` = round(`Ist-LT [s/ME]` - `Soll-LT [s/ME]`, 2)) %>%
+            summarise(
+                `Ist-LT [s/ME]` = round(median(lt_ist_order, na.rm = TRUE), 2),
+                `Soll-LT [s/ME]` = round(as.numeric(modus(lt_soll_order)), 2),
+                `Verzögerung [s/ME]` = round(pmax(`Ist-LT [s/ME]` - `Soll-LT [s/ME]`, 0), 2),
+                `# Aufträge` = n(),
+                .groups = "drop"
+            ) %>%
             mutate(
                 ampel_color = case_when(
-                    `Verzögerung/ME [s]` <= 0.5 ~ "green",
-                    `Verzögerung/ME [s]` <= 2   ~ "orange",
+                    `Verzögerung [s/ME]` <= 0.5 ~ "green",
+                    `Verzögerung [s/ME]` <= 2   ~ "orange",
                     TRUE                         ~ "red"
                 ),
                 ampel = paste0(
@@ -626,7 +1108,10 @@ workflows_server <- function(input, output, session) {
             dplyr::select(
                 ampel_color, ampel,
                 !!rlang::sym(input$view_selection) := value,
-                `Verzögerung/ME [s]`
+                `Verzögerung [s/ME]`,
+                `Ist-LT [s/ME]`,
+                `Soll-LT [s/ME]`,
+                `# Aufträge`
             )
         
         datatable(
@@ -648,13 +1133,13 @@ workflows_server <- function(input, output, session) {
         )
     })
     
+    
     output$allocation_pie_shared <- renderEcharts4r({
         req(input$selected_workflow)
         req(input$view_selection)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-        column_map <- list("Werk" = "werk", "Linie" = "fertigungslinie", "Planer" = "planer", "Material" = "materialnummer")
-        selected_col <- column_map[[input$view_selection]]
+        selected_col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
             dplyr::filter(vorgangsfolge == input$selected_workflow) %>%
@@ -669,7 +1154,7 @@ workflows_server <- function(input, output, session) {
         
         if (nrow(df_other) > 0) {
             other_total <- sum(df_other$count)
-            other_label <- "Weitere"
+            other_label <- "Restliche"
             other_tooltip <- paste(df_other$category, collapse = ", ")
             
             df_main <- dplyr::bind_rows(
@@ -683,12 +1168,12 @@ workflows_server <- function(input, output, session) {
         tooltip_formatter <- if (!is.null(other_tooltip)) {
             htmlwidgets::JS(sprintf(
                 "function(params) {
-        if(params.name === 'Weitere') {
-          return 'Weitere: %s';
-        } else {
-          return params.name + ': ' + params.value;
-        }
-      }", other_tooltip
+         if(params.name === 'Restliche') {
+           return 'Restliche: %s';
+         } else {
+           return params.name + ': ' + params.value;
+         }
+       }", other_tooltip
             ))
         } else {
             htmlwidgets::JS("function(params) { return params.name + ': ' + params.value; }")
@@ -696,95 +1181,30 @@ workflows_server <- function(input, output, session) {
         
         df_main %>%
             echarts4r::e_charts(category) %>%
-            echarts4r::e_pie(count,
-                             radius = "65%",
-                             label = list(formatter = "{b}: {d}%", fontSize = 10),
-                             itemStyle = list(
-                                 color = htmlwidgets::JS(
-                                     sprintf("function(params) {
-                           let colors = %s;
-                           return colors[params.dataIndex %% colors.length];
-                         }", jsonlite::toJSON(blau_palette, auto_unbox = TRUE))
-                                 )
-                             )
+            echarts4r::e_pie(
+                count,
+                radius = "65%",
+                label = list(
+                    show = TRUE,
+                    formatter = "{d}%", 
+                    fontSize = 10
+                ),
+                itemStyle = list(
+                    color = htmlwidgets::JS(
+                        sprintf("function(params) {
+            let colors = %s;
+            return colors[params.dataIndex %% colors.length];
+          }", jsonlite::toJSON(blau_palette, auto_unbox = TRUE))
+                    )
+                )
             ) %>%
             echarts4r::e_tooltip(formatter = tooltip_formatter) %>%
-            echarts4r::e_legend(show = FALSE)
-    })
-    
-    
-    output$allocation_pie <- echarts4r::renderEcharts4r({
-        req(input$selected_workflow)
-        req(input$allocation_dimension)
-        
-        # Eigene Farbtöne in Blauskala
-        blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-        
-        # Spaltenmapping
-        column_map <- list(
-            "Werk" = "werk",
-            "Linie" = "fertigungslinie",
-            "Planer" = "planer"
-        )
-        
-        selected_col <- column_map[[input$allocation_dimension]]
-        
-        df <- auftraege_lt_unit %>%
-            dplyr::filter(vorgangsfolge == input$selected_workflow) %>%
-            dplyr::filter(!is.na(.data[[selected_col]])) %>%
-            dplyr::group_by(category = .data[[selected_col]]) %>%
-            dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
-            dplyr::mutate(share = count / sum(count)) %>%
-            dplyr::arrange(desc(share))
-        
-        # Unterteilung nach Anteil
-        df_main <- df %>% dplyr::filter(share >= 0.05)
-        df_other <- df %>% dplyr::filter(share < 0.05)
-        
-        if (nrow(df_other) > 0) {
-            other_total <- sum(df_other$count)
-            other_label <- "Weitere"
-            other_tooltip <- paste(df_other$category, collapse = ", ")
-            
-            df_main <- dplyr::bind_rows(
-                df_main,
-                tibble::tibble(category = other_label, count = other_total, share = other_total / sum(df$count))
+            echarts4r::e_legend(
+                show = TRUE,
+                orient = "horizontal",
+                bottom = 0,
+                textStyle = list(fontSize = 10)
             )
-        } else {
-            other_tooltip <- NULL
-        }
-        
-        # Tooltip dynamisch mit JS-Funktion
-        tooltip_formatter <- if (!is.null(other_tooltip)) {
-            htmlwidgets::JS(sprintf(
-                "function(params) {
-        if(params.name === 'Weitere') {
-          return 'Weitere: %s';
-        } else {
-          return params.name + ': ' + params.value;
-        }
-      }", other_tooltip
-            ))
-        } else {
-            htmlwidgets::JS("function(params) { return params.name + ': ' + params.value; }")
-        }
-        
-        df_main %>%
-            echarts4r::e_charts(category) %>%
-            echarts4r::e_pie(count,
-                             radius = "65%",
-                             label = list(formatter = "{b}: {d}%"),
-                             itemStyle = list(
-                                 color = htmlwidgets::JS(
-                                     sprintf("function(params) {
-                         let colors = %s;
-                         return colors[params.dataIndex %% colors.length];
-                       }", jsonlite::toJSON(blau_palette, auto_unbox = TRUE))
-                                 )
-                             )
-            ) %>%
-            echarts4r::e_tooltip(formatter = tooltip_formatter)
-        echarts4r::e_legend(show = FALSE)
     })
     
     
@@ -868,6 +1288,7 @@ workflows_server <- function(input, output, session) {
         )
     })
     
+    
     output$livetracker_bottleneck <- renderUI({
         req(input$selected_workflow, input$view_selection)
         
@@ -905,161 +1326,140 @@ workflows_server <- function(input, output, session) {
         )
     })
     
-    
-    
-    output$allocation_title <- renderUI({
-        req(input$selected_workflow, input$view_selection)
-        h4(
-            paste0("Ansicht ", input$view_selection, " für Workflow ", input$selected_workflow),
-            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+    output$top_delay_orders <- renderDT({
+        req(input$selected_workflow)
+        req(input$view_selection)
+        
+        df <- auftraege_lt_unit %>%
+            filter(
+                vorgangsfolge == input$selected_workflow,
+                !is.na(abweichung_unit)
+            ) %>%
+            arrange(desc(abweichung_unit)) %>%
+            slice_head(n = 200) %>%
+            transmute(
+                `Auftragsnummer`     = auftragsnummer,
+                `Werk`               = werk,
+                `Materialnummer`     = materialnummer,
+                `Sollmenge`          = sollmenge,
+                `Istmenge`           = gelieferte_menge,
+                `ME`                 = me,
+                `Fertigungslinie`    = fertigungslinie,
+                `Planer`             = planer,
+                `Workflow`           = vorgangsfolge,
+                `Soll-LT [s/ME]`     = round(lt_soll_order, 2),
+                `Ist-LT [s/ME]`      = round(lt_ist_order, 2),
+                `Abweichung [s/ME]`  = round(abweichung_unit, 2)
+            )
+        
+        datatable(
+            df,
+            options = list(
+                pageLength = 10,
+                dom = 'tip',
+                ordering = TRUE
+            ),
+            rownames = FALSE,
+            class = "hover"
         )
     })
     
-    output$allocation_pie_shared <- renderEcharts4r({
-        req(input$selected_workflow)
-        req(input$view_selection)
-        
-        blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-        selected_col <- lt_map[[input$view_selection]]
-        
-        df <- vorgaenge_lt_unit %>%
-            dplyr::filter(vorgangsfolge == input$selected_workflow) %>%
-            dplyr::filter(!is.na(.data[[selected_col]])) %>%
-            dplyr::group_by(category = .data[[selected_col]]) %>%
-            dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
-            dplyr::mutate(share = count / sum(count)) %>%
-            dplyr::arrange(desc(share))
-        
-        df_main <- df %>% dplyr::filter(share >= 0.05)
-        df_other <- df %>% dplyr::filter(share < 0.05)
-        
-        if (nrow(df_other) > 0) {
-            other_total <- sum(df_other$count)
-            other_label <- "Weitere"
-            other_tooltip <- paste(df_other$category, collapse = ", ")
-            
-            df_main <- dplyr::bind_rows(
-                df_main,
-                tibble::tibble(category = other_label, count = other_total, share = other_total / sum(df$count))
-            )
-        } else {
-            other_tooltip <- NULL
-        }
-        
-        tooltip_formatter <- if (!is.null(other_tooltip)) {
-            htmlwidgets::JS(sprintf(
-                "function(params) {
-        if(params.name === 'Weitere') {
-          return 'Weitere: %s';
-        } else {
-          return params.name + ': ' + params.value;
-        }
-      }", other_tooltip
-            ))
-        } else {
-            htmlwidgets::JS("function(params) { return params.name + ': ' + params.value; }")
-        }
-        
-        df_main %>%
-            echarts4r::e_charts(category) %>%
-            echarts4r::e_pie(count,
-                             radius = "65%",
-                             label = list(formatter = "{b}: {d}%", fontSize = 10),
-                             itemStyle = list(
-                                 color = htmlwidgets::JS(
-                                     sprintf("function(params) {
-                           let colors = %s;
-                           return colors[params.dataIndex %% colors.length];
-                         }", jsonlite::toJSON(blau_palette, auto_unbox = TRUE))
-                                 )
-                             )
-            ) %>%
-            echarts4r::e_tooltip(formatter = tooltip_formatter) %>%
-            echarts4r::e_legend(show = FALSE)
-    })
-    
-    modus <- function(x) {
-        ux <- unique(x[!is.na(x)])
-        ux[which.max(tabulate(match(x, ux)))]
-    }
-    
-    output$leadtime_chart <- renderPlot({
+    ### 1. Neue Tabelle mit Verzögerungsbereichen erzeugen
+    output$delay_quartile_summary <- renderDT({
         req(input$selected_workflow)
         req(input$view_selection)
         
         selected_col <- lt_map[[input$view_selection]]
         
-        lt_agg <- vorgaenge_lt_unit %>%
+        df <- auftraege_lt_unit %>%
             filter(
-                vorgangsfolge == input$selected_workflow,  # <- ganz wichtig!
+                vorgangsfolge == input$selected_workflow,
+                abweichung_unit > 0,
+                !is.na(abweichung_unit),
                 !is.na(.data[[selected_col]])
-            ) %>%
-            group_by(group = .data[[selected_col]]) %>%
-            summarise(
-                ist_lt = median(lt_ist_order, na.rm = TRUE),
-                soll_lt = as.numeric(modus(lt_soll_order)),
-                .groups = "drop"
-            ) %>%
-            filter(!is.na(ist_lt), !is.na(soll_lt))
+            )
         
-        ggplot(lt_agg, aes(x = factor(group))) +
-            geom_col(aes(y = ist_lt), fill = "#cccccc", width = 0.15) +
-            geom_segment(aes(
-                x = as.numeric(factor(group)) - 0.075,
-                xend = as.numeric(factor(group)) + 0.075,
-                y = soll_lt,
-                yend = soll_lt
-            ), color = "#6495ED", linewidth = 0.6) +
-            geom_text(aes(
-                y = soll_lt + max(ist_lt) * 0.05,
-                label = paste0(round(soll_lt, 2), " h")
-            ), color = "black", size = 4) +
-            labs(
-                x = input$view_selection,
-                y = "Lead Time per Unit [s]",
-                caption = paste("Balken = Median Ist-LT | Linie = Median Soll-LT | Werk:", input$selected_workflow)
-            ) +
-            my_theme()
-    })
-    
-    
-    # Liegezeiten
-    data_input <- reactive({
-        ausgabe_df %>% 
-            filter(!is.na(vorgangsfolge))
-    })
-    
-    aggregated_data <- reactive({
-        req(input$selected_workflow)
+        labels <- c(" >10", "5-10", "3-4", "<3")
+        counts <- c(
+            sum(df$abweichung_unit > 10),
+            sum(df$abweichung_unit > 5 & df$abweichung_unit <= 10),
+            sum(df$abweichung_unit > 3 & df$abweichung_unit <= 4),
+            sum(df$abweichung_unit > 1 & df$abweichung_unit <= 2)
+        )
+        pcts <- round(counts / sum(counts) * 100, 1)
         
-        data_input() %>%
-            filter(vorgangsfolge == input$selected_workflow) %>%
-            group_by(Vorgangsnummer) %>%
-            summarise(median_istdauer = median(istdauer, na.rm = TRUE)) %>%
-            ungroup()
-    })
-    
-    output$balkenplot <- renderPlot({
-        df_plot <- aggregated_data()
+        summary_df <- tibble(
+            `Verzögerung [T]` = labels,
+            `Anteil [%]` = paste0(
+                "<div style='display: flex; align-items: center; gap: 8px;'>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",
+                "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
+                "<div style='width:", pcts, "%; background-color: #4285F4; height: 100%;'></div>",
+                "</div>",
+                "</div>"
+            ),
+            Details = purrr::map_chr(labels, ~ as.character(
+                actionButton(paste0("btn_q_", gsub("[^0-9]", "", .x)), label = NULL, icon = icon("search"))
+            ))
+        )
         
-        ggplot(df_plot, aes(x = Vorgangsnummer, y = median_istdauer)) +
-            geom_col(fill = "#cccccc", width = 0.15) +
-            labs(
-                x = "Vorgang / Liegezeit",
-                y = "Ist-LT [d]"
-            ) +
-            my_theme()
+        datatable(
+            summary_df,
+            escape = FALSE,
+            rownames = FALSE,
+            selection = 'none',
+            options = list(
+                dom = 't',
+                paging = FALSE,
+                ordering = FALSE,
+                drawCallback = JS(
+                    "function(settings){",
+                    "  Shiny.unbindAll(this.api().table().node());",
+                    "  Shiny.bindAll(this.api().table().node());",
+                    "}"
+                )
+            )
+        )
     })
     
-    est_plot_obj <- reactive({
-        req(input$selected_workflow)
-        create_est_lt_combined(auftraege_lt_unit, input$selected_workflow, session = session)
-    })
-    
-    output$workflow_plot <- plotly::renderPlotly({
-        result <- est_plot_obj()
-        req(result)
-        plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color"))
+    ### 2. Modal + Tabelle bei Buttonclick anzeigen
+    observeEvent(input$btn_q_10, {
+        showModal(modalDialog(
+            title = "Top-Aufträge mit Verzögerung > 10 Tage",
+            DTOutput("modal_q10"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_q10 <- renderDT({
+            req(input$selected_workflow)
+            
+            df <- auftraege_lt_unit %>%
+                filter(
+                    vorgangsfolge == input$selected_workflow,
+                    abweichung_unit > 10
+                ) %>%
+                transmute(
+                    `Auftragsnummer`     = auftragsnummer,
+                    `Werk`               = werk,
+                    `Materialnummer`     = materialnummer,
+                    `Sollmenge`          = sollmenge,
+                    `Istmenge`           = gelieferte_menge,
+                    `ME`                 = me,
+                    `Fertigungslinie`    = fertigungslinie,
+                    `Planer`             = planer,
+                    `Workflow`           = vorgangsfolge,
+                    `Soll-LT [s/ME]`     = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`      = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]`  = round(abweichung_unit, 2)
+                )
+            
+            datatable(
+                df,
+                options = list(pageLength = 10, dom = 'lfrtip'),
+                rownames = FALSE,
+                class = "cell-border hover nowrap"
+            )
+        })
     })
     
     output$abweichung_time_plot <- renderPlotly({
@@ -1163,8 +1563,6 @@ workflows_server <- function(input, output, session) {
             dplyr::select(Kategorie, `Lead Time Abweichung`)
     })
     
-    
-    
     output$abweichungstabelle <- DT::renderDT({
         abweichung_tabelle()
     }, 
@@ -1180,7 +1578,6 @@ workflows_server <- function(input, output, session) {
     )
     
     
-    
 }
 
-shinyApp(workflows_ui, workflows_server)
+shinyApp(workflow_ui, workflow_server)

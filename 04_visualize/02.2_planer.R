@@ -265,7 +265,7 @@ planer_ui <- fluidPage(
                             inputId = "selected_planer",
                             label = NULL,
                             choices = NULL,
-                            selected = "",
+                            selected = "FST1",
                             options = list(placeholder = ""),
                             width = "100%"
                         )
@@ -362,7 +362,7 @@ planer_ui <- fluidPage(
                                     uiOutput("termintreue_icon"),
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
-                                       "Termintreue",
+                                        "Termintreue",
                                         tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     bsPopover(
@@ -455,7 +455,7 @@ planer_ui <- fluidPage(
             title = "Was wird hier gezeigt?",
             content = "Eddi",
             placement = "right",
-            trigger = "click"
+            trigger = "hover"
         ),
         
         
@@ -483,9 +483,17 @@ planer_ui <- fluidPage(
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
                                             span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "bottleneck_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "performance_table_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
-                                        DTOutput("delay_table_shared")
+                                        DTOutput("delay_table_shared"),
+                                        
+                                        bsPopover(
+                                            id = "performance_table_info",
+                                            title = "Aktuelle Performance",
+                                            content = "Julia",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        ),
                                     )
                                 )
                             )
@@ -543,90 +551,108 @@ planer_ui <- fluidPage(
                         )
                     )
                 )
-            ),
-            
-            fluidRow(
-                column(
-                    width = 12,
-                    div(
-                        class = "white-box",
-                        tagList(
-                            div(
-                                style = "display: flex; align-items: center;",
-                                span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                tags$span(
-                                    icon("circle-question"),
-                                    id = "abw_zeit_info",
-                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                                )
-                            ),
-                            br(),
-                            plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    style = "background-color: rgba(255, 255, 255, 0.3);",
+                    tagList(
+                        
+                        div(
+                            style = "padding: 40px 0 15px 0;",
+                            uiOutput("abweichung_title")
                         ),
                         
-                        bsPopover(
-                            id = "abw_zeit_info",
-                            title = "Was wird hier gezeigt?",
-                            content = "Julia",
-                            placement = "right",
-                            trigger = "click"
-                        ),
-                    )
-                )
-            ),
-            
-            fluidRow(
-                column(
-                    width = 6,
-                    div(
-                        class = "white-box",
-                        tagList(
-                            div(
-                                style = "display: flex; align-items: center;",
-                                span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                tags$span(
-                                    icon("circle-question"),
-                                    id = "abw_abs_info",
-                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                        fluidRow(
+                            column(
+                                width = 12,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center;",
+                                            span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(
+                                                icon("circle-question"),
+                                                id = "abw_zeit_info",
+                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                            )
+                                        ),
+                                        br(),
+                                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "abw_zeit_info",
+                                        title = "Was wird hier gezeigt?",
+                                        content = "Julia",
+                                        placement = "right",
+                                        trigger = "hover"
+                                    ),
                                 )
-                            ),
-                            br(),
-                            plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
+                            )
                         ),
                         
-                        bsPopover(
-                            id = "abw_abs_info",
-                            title = "Was wird hier gezeigt?",
-                            content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
-                            placement = "right",
-                            trigger = "click"
-                        ),
-                    )
-                ),
-                column(
-                    width = 6,
-                    div(
-                        class = "white-box",
-                        tagList(
-                            div(
-                                style = "display: flex; align-items: center;",
-                                span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                tags$span(
-                                    icon("circle-question"),
-                                    id = "abw_rel_info",
-                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                        fluidRow(
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center;",
+                                            span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(
+                                                icon("circle-question"),
+                                                id = "abw_abs_info",
+                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                            )
+                                        ),
+                                        br(),
+                                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "abw_abs_info",
+                                        title = "Was wird hier gezeigt?",
+                                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                                        placement = "right",
+                                        trigger = "hover"
+                                    ),
                                 )
                             ),
-                            br(),
-                            DT::DTOutput("abweichungstabelle")
-                        ),
-                        
-                        bsPopover(
-                            id = "abw_rel_info",
-                            title = "Was wird hier gezeigt?",
-                            content = "Julia",
-                            placement = "right",
-                            trigger = "click"
+                            column(
+                                width = 6,
+                                div(
+                                    class = "white-box",
+                                    style = "min-height: 410px",
+                                    tagList(
+                                        div(
+                                            style = "display: flex; align-items: center;",
+                                            span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            tags$span(
+                                                icon("circle-question"),
+                                                id = "abw_rel_info",
+                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                            )
+                                        ),
+                                        br(),
+                                        DT::DTOutput("abweichungstabelle")
+                                    ),
+                                    
+                                    bsPopover(
+                                        id = "abw_rel_info",
+                                        title = "Was wird hier gezeigt?",
+                                        content = "Julia",
+                                        placement = "right",
+                                        trigger = "hover"
+                                    )
+                                )
+                            )
                         )
                     )
                 )
@@ -634,6 +660,7 @@ planer_ui <- fluidPage(
         )
     )
 )
+
 
 #Server-------------------------------------------------------------------------
 planer_server <- function(input, output, session) {
@@ -1008,6 +1035,14 @@ planer_server <- function(input, output, session) {
         req(input$selected_planer, input$view_selection)
         h4(
             paste0("Ansicht ", input$view_selection, " für Planer ", input$selected_planer),
+            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
+        )
+    })
+    
+    output$abweichung_title <- renderUI({
+        req(input$selected_planer, input$view_selection)
+        h4(
+            paste0("Ansicht Lead Time Abweichung für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
