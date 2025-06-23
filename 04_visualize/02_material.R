@@ -65,13 +65,13 @@ material_server <- function(id) {
         classify_outliers <- function(df) {
             df %>%
                 mutate(
-                    flag_sl    = Anteil_pünktlich < 0.90,
+                    flag_sl    = Anteil_pünktlich < 0.50,
                     flag_delay = Ø_Abweichung > 60,
                     flag_lt    = Ø_LT_pro_Unit > 120,
                     Alert      = flag_sl | flag_delay | flag_lt,
                     Priority   = (flag_sl * 3) + (flag_delay * 2) + flag_lt,
                     Alert_Grund = paste(
-                        ifelse(flag_sl,    "Servicelevel < 90 %",  ""),
+                        ifelse(flag_sl,    "Servicelevel < 50 %",  ""),
                         ifelse(flag_delay, "Ø-Abweichung > 60 s",  ""),
                         ifelse(flag_lt,    "Ø-LT > 120 s",        ""),
                         sep = "; "
