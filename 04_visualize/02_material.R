@@ -63,23 +63,23 @@ material_server <- function(id) {
         
         # Hilfsfunktion zur Ausreißer-Klassifikation
         classify_outliers <- function(df) {
-            df %>% 
+            df %>%
                 mutate(
-                    flag_sl   = Anteil_pünktlich < 0.90,
+                    flag_sl    = Anteil_pünktlich < 0.90,
                     flag_delay = Ø_Abweichung > 60,
                     flag_lt    = Ø_LT_pro_Unit > 120,
-                    Alert = flag_sl | flag_delay | flag_lt,
-                    Priority = (flag_sl * 3) + (flag_delay * 2) + flag_lt,
+                    Alert      = flag_sl | flag_delay | flag_lt,
+                    Priority   = (flag_sl * 3) + (flag_delay * 2) + flag_lt,
                     Alert_Grund = paste(
-                        ifelse(flag_sl, "Servicelevel < 90 %", ""),
-                        ifelse(flag_delay, "Ø-Abweichung > 60 s", ""),
-                        ifelse(flag_lt, "Ø-LT > 120 s", ""),
+                        ifelse(flag_sl,    "Servicelevel < 90 %",  ""),
+                        ifelse(flag_delay, "Ø-Abweichung > 60 s",  ""),
+                        ifelse(flag_lt,    "Ø-LT > 120 s",        ""),
                         sep = "; "
                     ) %>% gsub("(^; |; $)", "", .) %>% gsub("; ;", ";", .)
                 )
         }
         
-        # Infoboxen
+        #────────────────────── Infoboxen ────────────────────────────
         output$material_servicelevel <- renderInfoBox({
             sl_percent <- mean(materialnummer_overview$Anteil_pünktlich, na.rm = TRUE) * 100
             color <- if (sl_percent < 70) "red" else if (sl_percent < 95) "orange" else "green"
@@ -102,22 +102,32 @@ material_server <- function(id) {
                     icon = icon("clock"), color = "light-blue", fill = TRUE)
         })
         
-        # ABC-Summary Tabelle
+        #────────────────── ABC-Summary Tabelle ──────────────────────
         output$abc_table <- renderDT({
             abc_summary %>%
                 mutate(Servicelevel = paste0(formatC(Anteil_pünktlich * 100, format = "f", digits = 2, decimal.mark = ","), "%")) %>%
-                select(`ABC-Klasse` = ABC_Klasse,
-                       Materialanzahl = Anzahl_Materialien,
-                       `Gesamtanzahl Aufträge` = Gesamt_Anzahl,
-                       Gesamtmenge, Gesamtsollmenge,
-                       `Ø Abweichung [s]` = Ø_Abweichung,
-                       `Ø LT/Unit [s]`  = Ø_LT_pro_Unit,
-                       Servicelevel) %>%
+                dplyr::select(
+                    ABC_Klasse,
+                    Anzahl_Materialien,
+                    Gesamt_Anzahl,
+                    Gesamtmenge,
+                    Gesamtsollmenge,
+                    Ø_Abweichung,
+                    Ø_LT_pro_Unit,
+                    Servicelevel
+                ) %>%
+                dplyr::rename(
+                    `ABC-Klasse`            = ABC_Klasse,
+                    Materialanzahl          = Anzahl_Materialien,
+                    `Gesamtanzahl Aufträge` = Gesamt_Anzahl,
+                    `Ø Abweichung [s]`      = Ø_Abweichung,
+                    `Ø LT/Unit [s]`         = Ø_LT_pro_Unit
+                ) %>%
                 mutate(across(where(is.numeric), ~formatC(.x, format = "f", big.mark = ".", decimal.mark = ",", digits = 2))) %>%
                 datatable(options = list(pageLength = 5, scrollX = TRUE), rownames = FALSE, class = "stripe hover cell-border")
         })
         
-        # Reaktive Tabelle mit Outlier-Annotation
+        #──────────── Reaktive Tabelle mit Outlier-Flags ─────────────
         annotated_materials <- reactive({
             req(input$abc_select)
             materialnummer_overview %>%
@@ -125,7 +135,7 @@ material_server <- function(id) {
                 classify_outliers()
         })
         
-        # Dynamischer Alert bei Ausreißern
+        #──────────── Dynamischer Alert ──────────────────────────────
         observeEvent(annotated_materials(), {
             out <- annotated_materials()
             if (any(out$Alert)) {
@@ -138,18 +148,18 @@ material_server <- function(id) {
             }
         }, ignoreNULL = FALSE)
         
-        # Detailtabelle mit Sortierung nach Priorität
+        #──────────── Detailtabelle ─────────────────────────────────
         output$abc_class_table <- renderDT({
             annotated_materials() %>%
                 arrange(desc(Alert), desc(Priority)) %>%
                 transmute(
-                    Materialnummer = materialnummer,
-                    `# Aufträge` = formatC(Anzahl, format = "f", big.mark = ".", digits = 0),
-                    `Gelieferte Menge` = formatC(Gesamtmenge, format = "f", big.mark = ".", digits = 0),
-                    Sollmenge = formatC(Sollmenge, format = "f", big.mark = ".", digits = 0),
-                    `Ø Abweichung [s]` = formatC(Ø_Abweichung, format = "f", big.mark = ".", decimal.mark = ",", digits = 2),
-                    `Ø LT/Unit [s]`    = formatC(Ø_LT_pro_Unit, format = "f", big.mark = ".", decimal.mark = ",", digits = 2),
-                    Servicelevel = paste0(formatC(Anteil_pünktlich * 100, format = "f", digits = 2, decimal.mark = ","), "%"),
+                    Materialnummer       = materialnummer,
+                    `# Aufträge`          = formatC(Anzahl, format = "f", big.mark = ".", digits = 0),
+                    `Gelieferte Menge`    = formatC(Gesamtmenge, format = "f", big.mark = ".", digits = 0),
+                    Sollmenge            = formatC(Sollmenge, format = "f", big.mark = ".", digits = 0),
+                    `Ø Abweichung [s]`    = formatC(Ø_Abweichung, format = "f", big.mark = ".", decimal.mark = ",", digits = 2),
+                    `Ø LT/Unit [s]`       = formatC(Ø_LT_pro_Unit, format = "f", big.mark = ".", decimal.mark = ",", digits = 2),
+                    Servicelevel         = paste0(formatC(Anteil_pünktlich * 100, format = "f", digits = 2, decimal.mark = ","), "%"),
                     Alert_Grund
                 ) %>%
                 datatable(options = list(pageLength = 15, scrollX = TRUE, order = list(list(0, "desc"))),
@@ -158,7 +168,7 @@ material_server <- function(id) {
                             backgroundColor = styleEqual(c(""), c(""), default = "#f8d7da"))
         })
         
-        # Balkendiagramm
+        #──────────── Balkendiagramm ────────────────────────────────
         output$abc_barplot <- renderPlot({
             ggplot(abc_summary, aes(x = ABC_Klasse, y = Gesamtmenge, fill = ABC_Klasse)) +
                 geom_bar(stat = "identity") +
@@ -168,10 +178,10 @@ material_server <- function(id) {
                 scale_fill_brewer(palette = "Set2")
         })
         
-        # KPI-Vergleich
+        #──────────── KPI-Vergleich ─────────────────────────────────
         output$abc_kpi_plot <- renderPlot({
             abc_summary %>%
-                select(ABC_Klasse, Anzahl_Materialien, Ø_LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
+                dplyr::select(ABC_Klasse, Anzahl_Materialien, Ø_LT_pro_Unit, Ø_Abweichung, Anteil_pünktlich) %>%
                 pivot_longer(-ABC_Klasse, names_to = "Kennzahl", values_to = "Wert") %>%
                 mutate(
                     Wert_anzeige = ifelse(Kennzahl == "Anteil_pünktlich",
@@ -187,7 +197,10 @@ material_server <- function(id) {
                 geom_bar(stat = "identity", position = "dodge") +
                 geom_text(aes(label = Wert_anzeige), vjust = -0.2, size = 4) +
                 facet_wrap(~Kennzahl, scales = "free_y") +
-                labs(title = "ABC-Klassen: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel", x = "ABC-Klasse", y = "Wert") +
+                labs(
+                    title = "ABC-Klassen: Materialanzahl, LT/Unit, Ø-Abweichung, Servicelevel",
+                    x = "ABC-Klasse", y = "Wert"
+                ) +
                 theme_minimal(base_size = 13) +
                 scale_fill_brewer(palette = "Set2")
         })
