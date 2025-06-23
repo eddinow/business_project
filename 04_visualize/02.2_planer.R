@@ -1262,6 +1262,7 @@ planer_server <- function(input, output, session) {
         sl_percent <- paste0(round(sl * 100), "%")
         overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
         
+        #Eddi
         if (sl > overall_sl) {
             icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
             popover_text <- paste("Overperformance |", overall_text)
