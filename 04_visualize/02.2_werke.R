@@ -1084,6 +1084,7 @@ werk_server <- function(input, output, session) {
         
         df <- auftraege_lt_unit %>%
             filter(werk == input$selected_werk) %>%
+            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
             summarise(
@@ -1141,6 +1142,7 @@ werk_server <- function(input, output, session) {
         
         df <- auftraege_lt_unit %>%
             dplyr::filter(werk == input$selected_werk) %>%
+            dplyr::filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[selected_col]])) %>%
             dplyr::group_by(category = .data[[selected_col]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
@@ -1294,8 +1296,9 @@ werk_server <- function(input, output, session) {
         selected <- lt_map[[input$view_selection]]
         label <- input$view_selection  
         
-        bottleneck_info <- vorgaenge_sorted %>%
+        bottleneck_info <- auftraege_lt_unit %>%
             filter(werk == input$selected_werk, abweichung > 0) %>%
+            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             filter(!is.na(.data[[selected]])) %>%
             group_by(group = .data[[selected]]) %>%
             summarise(
@@ -1333,21 +1336,12 @@ werk_server <- function(input, output, session) {
                 werk == input$selected_werk,
                 !is.na(abweichung_unit)
             ) %>%
+            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             arrange(desc(abweichung_unit)) %>%
             slice_head(n = 200) %>%
             transmute(
                 `Auftragsnummer`     = auftragsnummer,
-                `Werk`               = werk,
-                `Materialnummer`     = materialnummer,
-                `Sollmenge`          = sollmenge,
-                `Istmenge`           = gelieferte_menge,
-                `ME`                 = me,
-                `Fertigungslinie`    = fertigungslinie,
-                `Planer`             = planer,
-                `Workflow`           = vorgangsfolge,
-                `Soll-LT [s/ME]`     = round(lt_soll_order, 2),
-                `Ist-LT [s/ME]`      = round(lt_ist_order, 2),
-                `Abweichung [s/ME]`  = round(abweichung_unit, 2)
+                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
             )
         
         datatable(
@@ -1372,17 +1366,18 @@ werk_server <- function(input, output, session) {
         df <- auftraege_lt_unit %>%
             filter(
                 werk == input$selected_werk,
-                abweichung_unit > 0,
-                !is.na(abweichung_unit),
-                !is.na(.data[[selected_col]])
+                abweichung > 0,
+                !is.na(abweichung),
+                !is.na(.data[[selected_col]]),
+                if (input$view_selection == "Material") klassifikation == "A" else TRUE
             )
         
-        labels <- c(" >10", "5-10", "3-4", "<3")
+        labels <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
         counts <- c(
-            sum(df$abweichung_unit > 10),
-            sum(df$abweichung_unit > 5 & df$abweichung_unit <= 10),
-            sum(df$abweichung_unit > 3 & df$abweichung_unit <= 4),
-            sum(df$abweichung_unit > 1 & df$abweichung_unit <= 2)
+            sum(df$abweichung > 10),
+            sum(df$abweichung <= 10 & df$abweichung > 5),
+            sum(df$abweichung <= 5 & df$abweichung > 3),
+            sum(df$abweichung <= 3 & df$abweichung > 1)
         )
         pcts <- round(counts / sum(counts) * 100, 1)
         
@@ -1396,9 +1391,12 @@ werk_server <- function(input, output, session) {
                 "</div>",
                 "</div>"
             ),
-            Details = purrr::map_chr(labels, ~ as.character(
-                actionButton(paste0("btn_q_", gsub("[^0-9]", "", .x)), label = NULL, icon = icon("search"))
-            ))
+            Details = c(
+                as.character(actionButton("btn_q_10", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_105", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_53", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_31", label = NULL, icon = icon("search")))
+            )
         )
         
         datatable(
@@ -1420,10 +1418,10 @@ werk_server <- function(input, output, session) {
         )
     })
     
-    ### 2. Modal + Tabelle bei Buttonclick anzeigen
+    
     observeEvent(input$btn_q_10, {
         showModal(modalDialog(
-            title = "Top-Aufträge mit Verzögerung > 10 Tage",
+            title = "Aufträge mit Verzögerung > 10 Tage",
             DTOutput("modal_q10"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1432,31 +1430,274 @@ werk_server <- function(input, output, session) {
             req(input$selected_werk)
             
             df <- auftraege_lt_unit %>%
-                filter(
-                    werk == input$selected_werk,
-                    abweichung_unit > 10
-                ) %>%
+                filter(werk == input$selected_werk, abweichung > 10) %>%
                 transmute(
-                    `Auftragsnummer`     = auftragsnummer,
-                    `Werk`               = werk,
-                    `Materialnummer`     = materialnummer,
-                    `Sollmenge`          = sollmenge,
-                    `Istmenge`           = gelieferte_menge,
-                    `ME`                 = me,
-                    `Fertigungslinie`    = fertigungslinie,
-                    `Planer`             = planer,
-                    `Workflow`           = vorgangsfolge,
-                    `Soll-LT [s/ME]`     = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`      = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]`  = round(abweichung_unit, 2)
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(
-                df,
-                options = list(pageLength = 10, dom = 'lfrtip'),
-                rownames = FALSE,
-                class = "cell-border hover nowrap"
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_q_105, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verzögerung zwischen 5 und 10 Tagen",
+            DTOutput("modal_q105"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_q105 <- renderDT({
+            req(input$selected_werk)
+            
+            df <- auftraege_lt_unit %>%
+                filter(werk == input$selected_werk, abweichung_unit <= 10 & abweichung_unit > 5) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_q_53, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verzögerung zwischen 3 und 5 Tagen",
+            DTOutput("modal_q53"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_q53 <- renderDT({
+            req(input$selected_werk)
+            
+            df <- auftraege_lt_unit %>%
+                filter(werk == input$selected_werk, abweichung_unit <= 5 & abweichung_unit > 3) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_q_31, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verzögerung zwischen 1 und 3 Tagen",
+            DTOutput("modal_q31"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_q31 <- renderDT({
+            req(input$selected_werk)
+            
+            df <- auftraege_lt_unit %>%
+                filter(werk == input$selected_werk, abweichung_unit <= 3 & abweichung_unit > 1) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    
+    output$top_early_orders <- renderDT({
+        req(input$selected_werk)
+        req(input$view_selection)
+        
+        df <- auftraege_lt_unit %>%
+            filter(
+                werk == input$selected_werk,
+                !is.na(abweichung_unit),
+                abweichung_unit < 0  # nur zu frühe
+            ) %>%
+            arrange(abweichung_unit) %>%  # früheste oben
+            slice_head(n = 200) %>%
+            transmute(
+                `Auftrag`     = auftragsnummer,
+                `Mat.`     = materialnummer,
+                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
             )
+        
+        datatable(
+            df,
+            options = list(
+                pageLength = 10,
+                dom = 'tip',
+                ordering = TRUE
+            ),
+            rownames = FALSE,
+            class = "hover"
+        )
+    })
+    
+    output$early_quartile_summary <- renderDT({
+        req(input$selected_werk)
+        req(input$view_selection)
+        
+        selected_col <- lt_map[[input$view_selection]]
+        
+        df <- auftraege_lt_unit %>%
+            filter(
+                werk == input$selected_werk,
+                abweichung_unit < 0,
+                !is.na(abweichung_unit),
+                !is.na(.data[[selected_col]])
+            )
+        
+        labels <- c("< -10", "-10 bis -5", "-5 bis -3", "-3 bis -1")
+        counts <- c(
+            sum(df$abweichung_unit < -10),
+            sum(df$abweichung_unit >= -10 & df$abweichung_unit < -5),
+            sum(df$abweichung_unit >= -5 & df$abweichung_unit < -3),
+            sum(df$abweichung_unit >= -3 & df$abweichung_unit < -1)
+        )
+        pcts <- round(counts / sum(counts) * 100, 1)
+        
+        summary_df <- tibble(
+            `Verfrühung [T]` = labels,
+            `Anteil [%]` = paste0(
+                "<div style='display: flex; align-items: center; gap: 8px;'>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",
+                "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
+                "<div style='width:", pcts, "%; background-color: #4285F4; height: 100%;'></div>",
+                "</div>",
+                "</div>"
+            ),
+            Details = c(
+                as.character(actionButton("btn_e_10", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_105", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_53", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_31", label = NULL, icon = icon("search")))
+            )
+        )
+        
+        datatable(
+            summary_df,
+            escape = FALSE,
+            rownames = FALSE,
+            selection = 'none',
+            options = list(
+                dom = 't',
+                paging = FALSE,
+                ordering = FALSE,
+                drawCallback = JS(
+                    "function(settings){",
+                    "  Shiny.unbindAll(this.api().table().node());",
+                    "  Shiny.bindAll(this.api().table().node());",
+                    "}"
+                )
+            )
+        )
+    })
+    observeEvent(input$btn_e_10, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung < -10 Tage",
+            DTOutput("modal_e10"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e10 <- renderDT({
+            req(input$selected_werk)
+            
+            df <- auftraege_lt_unit %>%
+                filter(werk == input$selected_werk, abweichung_unit < -10) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_e_105, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung zwischen -10 und -5 Tagen",
+            DTOutput("modal_e105"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e105 <- renderDT({
+            req(input$selected_werk)
+            
+            df <- auftraege_lt_unit %>%
+                filter(werk == input$selected_werk, abweichung_unit >= -10 & abweichung_unit < -5) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_e_53, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung zwischen -5 und -3 Tagen",
+            DTOutput("modal_e53"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e53 <- renderDT({
+            req(input$selected_werk)
+            
+            df <- auftraege_lt_unit %>%
+                filter(werk == input$selected_werk, abweichung_unit >= -5 & abweichung_unit < -3) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_e_31, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung zwischen -3 und -1 Tagen",
+            DTOutput("modal_e31"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e31 <- renderDT({
+            req(input$selected_werk)
+            
+            df <- auftraege_lt_unit %>%
+                filter(werk == input$selected_werk, abweichung_unit >= -3 & abweichung_unit < -1) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     

@@ -8,7 +8,7 @@ library(readxl)
 # Daten laden -------------------------------------------------------------------
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
-source("02_model/kpis_material.R")
+#source("02_model/kpis_material.R")
 
 # Tidy -------------------------------------------------------------------------
 
@@ -76,53 +76,66 @@ vorgaenge_sorted$`Istende Vorgang` <- as.Date(vorgaenge_sorted$`Istende Vorgang`
 
 # Vorgangsebene-----
 
-vorgaenge_lt_unit <- vorgaenge_sorted |> 
-    # Hole Sollmenge je Auftrag (1 Zeile je Auftrag)
-    dplyr::left_join(
-        all_data_finalized |> dplyr::select(auftragsnummer, sollmenge),
-        by = c("Auftragsnummer" = "auftragsnummer")
-    ) |>
-    # Hole Gutmenge je Auftrag + Vorgang
-    dplyr::left_join(
-        vorgaenge_raw |> dplyr::select(Auftragsnummer, Vorgangsnummer, `Gutmenge Vorgang`),
-        by = c("Auftragsnummer", "Vorgangsnummer")
-    ) |>
-    # Berechne Lead Time pro Einheit (in Sekunden, LT*24*60*60)
-    dplyr::mutate(
-        lt_soll_order = (solldauer / sollmenge) * 86400,
-        lt_ist_order  = (istdauer / `Gutmenge Vorgang`) * 86400,
-        abweichung_unit = lt_ist_order - lt_soll_order
-    ) |>
-    
-    dplyr::mutate(
-        abweichung_unit = round(abweichung_unit, 2),
-        lt_soll_order = round(lt_soll_order, 2),
-        lt_ist_order = round(lt_ist_order, 2)
-    ) |>
-    
-    dplyr::left_join(materialnummer_overview %>% dplyr::select(materialnummer, ABC_Klasse),
-                     by = "materialnummer")
+material_klassifikation_vorgang <- all_data_finalized %>%
+    group_by(materialnummer) %>%
+    summarise(
+        total_menge = sum(gelieferte_menge, na.rm = TRUE),
+        .groups = "drop"
+    ) %>%
+    arrange(desc(total_menge)) %>%
+    mutate(
+        kum_anteil = cumsum(total_menge) / sum(total_menge, na.rm = TRUE),
+        klassifikation = case_when(
+            kum_anteil <= 0.8  ~ "A",
+            kum_anteil <= 0.95 ~ "B",
+            TRUE               ~ "C"
+        )
+    ) %>%
+    dplyr::select(materialnummer, klassifikation)
+
+
+vorgaenge_lt_unit <- all_data_finalized %>%
+    mutate(
+        lt_soll_order    = (lead_time_soll / sollmenge) * 86400,
+        lt_ist_order     = (lead_time_ist / gelieferte_menge) * 86400,
+        abweichung_unit  = round(lt_ist_order - lt_soll_order, 2),
+        lt_soll_order    = round(lt_soll_order, 2),
+        lt_ist_order     = round(lt_ist_order, 2)
+    ) %>%
+    left_join(material_klassifikation_vorgang, by = "materialnummer")
 
 
 # Auftragsebene
 
-auftraege_lt_unit <- all_data_finalized %>%
-   
-    # Berechne Lead Times je Auftrag (in Sekunden)
-    dplyr::mutate(
-        lt_soll_order = (lead_time_soll / sollmenge) * 86400,
-        lt_ist_order  = (lead_time_ist / gelieferte_menge) * 86400,
-        abweichung_unit = lt_ist_order - lt_soll_order
+material_klassifikation_auftrag <- all_data_finalized %>%
+    group_by(materialnummer) %>%
+    summarise(
+        total_menge = sum(gelieferte_menge, na.rm = TRUE),
+        .groups = "drop"
     ) %>%
+    arrange(desc(total_menge)) %>%
+    mutate(
+        kum_anteil = cumsum(total_menge) / sum(total_menge, na.rm = TRUE),
+        klassifikation = case_when(
+            kum_anteil <= 0.8  ~ "A",
+            kum_anteil <= 0.95 ~ "B",
+            TRUE               ~ "C"
+        )
+    ) %>%
+    dplyr::select(materialnummer, klassifikation)
 
-    dplyr::mutate(
-        abweichung_unit = round(abweichung_unit, 2),
-        lt_soll_order = round(lt_soll_order, 2),
-        lt_ist_order = round(lt_ist_order, 2)
-    ) |>
-    
-    dplyr::left_join(materialnummer_overview %>% dplyr::select(materialnummer, ABC_Klasse),
-                     by = "materialnummer")
+
+auftraege_lt_unit <- all_data_finalized %>%
+    mutate(
+        lt_soll_order    = (lead_time_soll / sollmenge) * 86400,
+        lt_ist_order     = (lead_time_ist / gelieferte_menge) * 86400,
+        abweichung_unit  = round(lt_ist_order - lt_soll_order, 2),
+        lt_soll_order    = round(lt_soll_order, 2),
+        lt_ist_order     = round(lt_ist_order, 2)
+    ) %>%
+    left_join(material_klassifikation_auftrag, by = "materialnummer")
+
+
 
 # Model -----------
 
