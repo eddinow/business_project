@@ -8,6 +8,7 @@ library(readxl)
 # Daten laden -------------------------------------------------------------------
 all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
+source("02_model/kpis_material.R")
 
 # Tidy -------------------------------------------------------------------------
 
@@ -97,7 +98,10 @@ vorgaenge_lt_unit <- vorgaenge_sorted |>
         abweichung_unit = round(abweichung_unit, 2),
         lt_soll_order = round(lt_soll_order, 2),
         lt_ist_order = round(lt_ist_order, 2)
-    )
+    ) |>
+    
+    dplyr::left_join(materialnummer_overview %>% dplyr::select(materialnummer, ABC_Klasse),
+                     by = "materialnummer")
 
 
 # Auftragsebene
@@ -115,7 +119,10 @@ auftraege_lt_unit <- all_data_finalized %>%
         abweichung_unit = round(abweichung_unit, 2),
         lt_soll_order = round(lt_soll_order, 2),
         lt_ist_order = round(lt_ist_order, 2)
-    )
+    ) |>
+    
+    dplyr::left_join(materialnummer_overview %>% dplyr::select(materialnummer, ABC_Klasse),
+                     by = "materialnummer")
 
 # Model -----------
 
