@@ -31,23 +31,23 @@ source("01_transform/create_lt_unit.R", local = TRUE)
 #SOLLZEITEN--------
 
 # Tidy
-create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
+create_est_lt <- function(df, selected_vorgangsfolge, fallback_bin_size = 100000) {
     df_step <- df %>%
-        filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_soll))
+        filter(vorgangsfolge == selected_vorgangsfolge, !is.na(sollmenge), !is.na(solldauer))
 
     # Cutoffs
     cutoffs <- df_step %>%
         summarise(
             menge_min = quantile(sollmenge, 0.01),
             menge_max = quantile(sollmenge, 0.99),
-            lt_min    = quantile(lead_time_soll, 0.01),
-            lt_max    = quantile(lead_time_soll, 0.99)
+            lt_min    = quantile(solldauer, 0.01),
+            lt_max    = quantile(solldauer, 0.99)
         )
 
     df_clean <- df_step %>%
         filter(
             between(sollmenge, cutoffs$menge_min, cutoffs$menge_max),
-            between(lead_time_soll, cutoffs$lt_min, cutoffs$lt_max)
+            between(solldauer, cutoffs$lt_min, cutoffs$lt_max)
         )
     
 # Transform
@@ -69,9 +69,9 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
     lt_by_bin <- df_binned %>%
         group_by(bin) %>%
         summarise(
-            median_lt = median(lead_time_soll, na.rm = TRUE),
-            p10 = quantile(lead_time_soll, 0.10, na.rm = TRUE),
-            p90 = quantile(lead_time_soll, 0.90, na.rm = TRUE),
+            median_lt = median(solldauer, na.rm = TRUE),
+            p10 = quantile(solldauer, 0.10, na.rm = TRUE),
+            p90 = quantile(solldauer, 0.90, na.rm = TRUE),
             .groups = "drop"
         ) %>%
         filter(!is.na(bin))
@@ -119,23 +119,23 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
 # #ISTZEITEN------------------------------
 
 # Tidy
-create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
+create_est_lt_ist <- function(df, selected_vorgangsfolge, fallback_bin_size = 100000) {
     df_step_ist <- df %>%
-        filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_ist))
+        filter(vorgangsfolge == selected_vorgangsfolge, !is.na(sollmenge), !is.na(istdauer))
 
     # Cutoffs
     cutoffs_ist <- df_step_ist %>%
         summarise(
             menge_min = quantile(sollmenge, 0.01),
             menge_max = quantile(sollmenge, 0.99),
-            lt_min    = quantile(lead_time_ist, 0.01),
-            lt_max    = quantile(lead_time_ist, 0.99)
+            lt_min    = quantile(istdauer, 0.01),
+            lt_max    = quantile(istdauer, 0.99)
         )
 
     df_clean_ist <- df_step_ist %>%
         filter(
             between(sollmenge, cutoffs_ist$menge_min, cutoffs_ist$menge_max),
-            between(lead_time_ist, cutoffs_ist$lt_min, cutoffs_ist$lt_max)
+            between(istdauer, cutoffs_ist$lt_min, cutoffs_ist$lt_max)
         )
 
 # Transform
@@ -155,9 +155,9 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
     lt_by_bin_ist <- df_binned_ist %>%
         group_by(bin) %>%
         summarise(
-            median_lt = median(lead_time_ist, na.rm = TRUE),
-            p10 = quantile(lead_time_ist, 0.10, na.rm = TRUE),
-            p90 = quantile(lead_time_ist, 0.90, na.rm = TRUE),
+            median_lt = median(istdauer, na.rm = TRUE),
+            p10 = quantile(istdauer, 0.10, na.rm = TRUE),
+            p90 = quantile(istdauer, 0.90, na.rm = TRUE),
             .groups = "drop"
         ) %>%
         filter(!is.na(bin))
@@ -188,7 +188,7 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
         geom_line(aes(y = median_lt, group = 1), color = "#002366", linewidth = 1) +
         geom_point(aes(y = median_lt), color = "#002366", size = 2) +
         labs(
-           # title = paste("Lead Time (IST) je Losgrößen-Bin –", vorgangsfolge_id),
+           # title = paste("Lead Time (IST) je Losgrößen-Bin –", selected_vorgangsfolge),
             x = "Sollmengen-Bereich",
             y = "Lead Time (ist)"
         ) +
@@ -206,10 +206,10 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
 # SOLL- UND IST ------------
 
 # Model
-create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100000, session = NULL) {
-    compute_variant <- function(df, vorgangsfolge_id, col_name, label) {
+create_est_lt_combined <- function(df, selected_vorgangsfolge, fallback_bin_size = 100000, session = NULL) {
+    compute_variant <- function(df, selected_vorgangsfolge, col_name, label) {
         df_step <- df %>%
-            filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(.data[[col_name]]))
+            filter(vorgangsfolge == selected_vorgangsfolge, !is.na(sollmenge), !is.na(.data[[col_name]]))
         
         if (nrow(df_step) < 3) return(NULL)
         
@@ -258,8 +258,8 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         return(lt_by_bin)
     }
 
-    df_soll <- compute_variant(df, vorgangsfolge_id, "lead_time_soll", "Soll")
-    df_ist  <- compute_variant(df, vorgangsfolge_id, "lead_time_ist", "Ist")
+    df_soll <- compute_variant(df, selected_vorgangsfolge, "solldauer", "Soll")
+    df_ist  <- compute_variant(df, selected_vorgangsfolge, "istdauer", "Ist")
     if (is.null(df_soll) || is.null(df_ist)) return(NULL)
     
     df_combined <- bind_rows(df_soll, df_ist)
@@ -286,7 +286,7 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         scale_color_manual(values = c("Soll" = "#002366", "Ist" = "#6495ED")) +
         scale_fill_manual(values = c("Soll" = "#002366", "Ist" = "#6495ED")) +
         labs(
-            #title = paste("Soll- und Ist-Lead Time", vorgangsfolge_id),
+            #title = paste("Soll- und Ist-Lead Time", selected_vorgangsfolge),
             x = "Sollmengen-Bereich",
             y = "Lead Time",
             color = "Variante",

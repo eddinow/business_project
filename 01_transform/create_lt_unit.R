@@ -20,6 +20,8 @@ vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 vorgaenge_raw <- vorgaenge_raw %>%
     filter(Auftragsnummer %in% all_data_finalized$auftragsnummer)
 
+# Vorgänge cleaned enthält pro Vorgangsnummer noch eine Zeile pro Auftrag, so dass 
+# ein Auftrag mehrere Zeilen hat. Das ist notwendig für 
 vorgaenge_cleaned <- vorgaenge_raw %>%
     left_join(
         all_data_finalized %>%
@@ -32,13 +34,14 @@ vorgaenge_cleaned <- vorgaenge_raw %>%
                 fertigungslinie,
                 planer,
                 vorgangsfolge,
-                arbeitsplatzfolge
+                arbeitsplatzfolge,
+                sollmenge
             ),
         by = c("Auftragsnummer" = "auftragsnummer")
     )
 
 vorgaenge_cleaned <- vorgaenge_cleaned %>%
-    dplyr::select(-`ME`, -`Gutmenge Vorgang`, -`Ausschuss Vorgang`)
+    dplyr::select(-`ME`, -`Ausschuss Vorgang`)
 
 vorgaenge_cleaned <- vorgaenge_cleaned %>%
     mutate(
@@ -65,6 +68,33 @@ vorgaenge_sorted <- vorgaenge_cleaned %>%
 
 vorgaenge_sorted$starttermin_soll <- as.Date(vorgaenge_sorted$starttermin_soll)
 vorgaenge_sorted$`Istende Vorgang` <- as.Date(vorgaenge_sorted$`Istende Vorgang`)
+
+vorgaenge_sorted <- vorgaenge_sorted %>%
+    mutate(
+        lt_soll_order = ifelse(sollmenge > 0, round((solldauer / sollmenge) * 86400, 2), NA),
+        lt_ist_order = ifelse(`Gutmenge Vorgang` > 0, round((istdauer / `Gutmenge Vorgang`) * 86400, 2), NA),
+        abweichung_unit = round(istdauer - solldauer, 2)
+    )
+
+# Klassifikation nach Sollmenge in vorgaenge_sorted
+material_klassifikation_vorgang <- vorgaenge_sorted %>%
+    group_by(materialnummer) %>%
+    summarise(
+        total_sollmenge = sum(sollmenge, na.rm = TRUE),
+        .groups = "drop"
+    ) %>%
+    arrange(desc(total_sollmenge)) %>%
+    mutate(
+        kum_anteil = cumsum(total_sollmenge) / sum(total_sollmenge, na.rm = TRUE),
+        klassifikation = case_when(
+            kum_anteil <= 0.8  ~ "A",
+            kum_anteil <= 0.95 ~ "B",
+            TRUE               ~ "C"
+        )
+    ) %>%
+    dplyr::select(materialnummer, klassifikation)
+vorgaenge_sorted <- vorgaenge_sorted %>%
+    left_join(material_klassifikation_vorgang, by = "materialnummer")
 
 
 # Transform --------------------------------------------------------------------
