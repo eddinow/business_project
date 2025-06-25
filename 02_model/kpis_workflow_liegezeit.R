@@ -121,11 +121,10 @@ source("01_transform/create_lt_unit.R")
 
 
 # neu-----------------------------
-
-vorgaenge_chrono <- vorgaenge_lt_unit %>%
+vorgaenge_chrono <- vorgaenge_sorted %>%
     mutate(
         `Iststart Vorgang` = ymd(`Iststart Vorgang`),
-        `Istende Vorgang` = ymd(`Istende Vorgang`)
+        `Istende Vorgang`  = ymd(`Istende Vorgang`)
     ) %>%
     arrange(Auftragsnummer, `Iststart Vorgang`)
 
@@ -144,7 +143,7 @@ liegezeiten_df <- vorgaenge_mit_liegezeit %>%
     filter(!is.na(liegezeit) & liegezeit > 0) %>%
     transmute(
         Auftragsnummer = Auftragsnummer,
-        Vorgangsnummer = paste0("Liegezeit nach ", vorgaenger_vorgangsnummer),
+        Vorgangsnummer = paste0("LZ nach ", vorgaenger_vorgangsnummer),
         Arbeitsplatz = NA,
         `Iststart Vorgang` = NA,
         `Istende Vorgang` = NA,

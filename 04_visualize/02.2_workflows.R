@@ -10,7 +10,7 @@ library(plotly)
 library(ggbreak)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
-source("02_model/kpis_werke.R", local = TRUE)
+source("02_model/kpis_workflow_liegezeit.R", local = TRUE)
 source("01_transform/create_lt_unit.R", local = TRUE)
 source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 
@@ -569,6 +569,36 @@ vorgangsfolge_ui <- fluidPage(
                             
                         )
                     )
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Bearbeitungs- und Liegezeiten [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "liegezeiten_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        plotOutput("balkenplot", height = "240px"),
+                    ),
+                    
+                    bsPopover(
+                        id = "liegezeiten_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Julia",
+                        placement = "right",
+                        trigger = "hover"
+                    ),
                 )
             )
         ),
@@ -1768,6 +1798,59 @@ vorgangsfolge_server <- function(input, output, session) {
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
+    
+    # # Liegezeiten
+    data_input <- reactive({
+        ausgabe_df %>%
+            filter(!is.na(vorgangsfolge))
+    })
+    
+    aggregated_data <- reactive({
+        req(input$selected_vorgangsfolge)
+        
+        data_input() %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
+            group_by(Vorgangsnummer) %>%
+            summarise(median_istdauer = median(istdauer, na.rm = TRUE)) %>%
+            ungroup()
+    })
+    
+    output$balkenplot <- renderPlot({
+        df_plot <- aggregated_data() %>%
+            arrange(Vorgangsnummer) %>%
+            mutate(
+                kumulierte_dauer = cumsum(median_istdauer),
+                grauanteil = kumulierte_dauer - median_istdauer,
+                blauanteil = median_istdauer
+            ) %>%
+            pivot_longer(
+                cols = c("grauanteil", "blauanteil"),
+                names_to = "farbe",
+                values_to = "dauer"
+            )
+        
+        ggplot(df_plot, aes(x = Vorgangsnummer, y = dauer, fill = farbe)) +
+            geom_col(width = 0.3) +
+            # Textlabels nur über den blauen Segmenten
+            geom_text(
+                data = df_plot %>% filter(farbe == "blauanteil"),
+                aes(label = round(dauer, 1), y = cumsum(dauer)),  # Höhe = Oberkante des blauen Teils
+                vjust = -0.3,
+                size = 3
+            ) +
+            scale_fill_manual(values = c(
+                "grauanteil" = "#cccccc",
+                "blauanteil" = "#6495ED"
+            )) +
+            labs(
+                x = "Vorgang / Liegezeit",
+                y = "Ist-LT [d]"
+            ) +
+            my_theme()
+    })
+    
+    
+    
     
     
     
