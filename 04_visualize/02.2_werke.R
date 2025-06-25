@@ -389,7 +389,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "liefertreue_info",
                                         title = "Liefertreue",
-                                        content = "Asli Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
+                                        content = "Dieses Diagramm zeigt, bei wie vielen Aufträgen die komplette Sollmenge geliefert wurde. Liefertreue misst also, ob alle bestellten Teile vollständig angekommen sind – unabhängig vom Zeitpunkt.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -513,7 +513,7 @@ werk_ui <- fluidPage(
                                         bsPopover(
                                             id = "auftrverteilung_info",
                                             title = "Verteilung der Aufträge",
-                                            content = "Asli",
+                                            content = "Dieses Kreisdiagramm zeigt, wie sich die Anzahl der Aufträge auf die ausgewählte Kategorie verteilt. Dadurch wird sichtbar, welche Bereiche besonders häufig oder selten im Workflow vertreten sind. So lassen sich Schwerpunkte im Workflow erkennen und Kapazitätsengpässe frühzeitig identifizieren.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
