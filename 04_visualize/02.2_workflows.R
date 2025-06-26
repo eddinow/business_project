@@ -242,7 +242,7 @@ vorgangsfolge_ui <- fluidPage(
             # Linke Seite: Icon + Titel
             div(
                 style = "display: flex; align-items: center; gap: 12px;",
-                icon("industry", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+                icon("project-diagram", class = NULL, style = "font-size: 20px; color: #5f6368;"),
                 span(
                     style = "font-size: 20px; font-weight: 600; color: #202124;",
                     "Workflows"
@@ -1917,8 +1917,22 @@ vorgangsfolge_server <- function(input, output, session) {
     output$workflow_plot <- plotly::renderPlotly({
         result <- est_plot_obj()
         req(result)
-        plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color"))
+        
+        plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color")) %>%
+            plotly::layout(
+                legend = list(
+                    traceorder = "normal",
+                    title = list(text = "Variante")
+                )
+            ) %>%
+            plotly::style(
+                name = "Lead Time Ist", traces = 1
+            ) %>%
+            plotly::style(
+                name = "Lead Time Soll", traces = 2
+            )
     })
+    
     
     output$abweichung_hist_plot <- renderPlotly({
         req(input$selected_vorgangsfolge)

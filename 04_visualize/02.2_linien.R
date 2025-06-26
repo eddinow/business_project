@@ -241,7 +241,7 @@ fertigungslinie_ui <- fluidPage(
             # Linke Seite: Icon + Titel
             div(
                 style = "display: flex; align-items: center; gap: 12px;",
-                icon("industry", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+                icon("arrow-right", class = NULL, style = "font-size: 20px; color: #5f6368;"),
                 span(
                     style = "font-size: 20px; font-weight: 600; color: #202124;",
                     "Fertigungslinien"
