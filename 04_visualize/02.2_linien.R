@@ -368,7 +368,7 @@ fertigungslinie_ui <- fluidPage(
                                     bsPopover(
                                         id = "termintreue_info",
                                         title = "Termintreue",
-                                        content = "Eddi Anteil der Aufträge, die pünktlich zum gewünschten Liefertermin fertig wurden.",
+                                        content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
