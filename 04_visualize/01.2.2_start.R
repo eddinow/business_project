@@ -305,7 +305,6 @@ start_ui <- fluidPage(
                 tabPanel("workflows",  value = "workflows", h2("Workflows-Dashboard (in Arbeit)")),
                 tabPanel("linien",     value = "linien",    h2("Fertigungslinien-Dashboard (in Arbeit)")),
                 tabPanel("werke",      value = "werke",     h2("Werke-Dashboard (in Arbeit)")),
-                tabPanel("planer",     value = "planer",    h2("Planer-Dashboard (in Arbeit)"))
     )
 )
 
@@ -393,7 +392,10 @@ start_server <- function(input, output, session) {
     observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
     observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
     observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
-    observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
+    observeEvent(input$nav_planer, {
+        # statt nur Tab wechseln → Browser auf die Planer-App umleiten
+        runjs("window.location.href = '02.2_planer.html';")
+    })
     
     # Starte immer auf Home ------------------------------------------------------
     isolate({

@@ -1,6 +1,7 @@
 # Pakete --------------------------------------------------------------------
 library(shiny)
 library(shinydashboard)
+library(shinyjs)
 library(shinyWidgets)
 library(shinydashboardPlus)
 library(DT)
@@ -41,7 +42,7 @@ my_theme <- function(base_family = "Inter") {
 
 #UI-----------------------------------------------------------------------------
 planer_ui <- fluidPage(
-    
+    useShinyjs(),
     # HEAD-Bereich mit Styles
     tags$head(
         tags$style(HTML("
@@ -55,46 +56,80 @@ planer_ui <- fluidPage(
       .navbar {
         width: 100%;
         display: flex;
-        justify-content: space-between;
         align-items: center;
         background-color: white;
-        border-bottom: 1px solid #ddd;
+        /* entferne die alte graue Linie */
+        border-bottom: none;
         padding: 1rem 2rem;
         font-weight: bold;
         font-size: 16px;
         position: relative;
       }
-
+      /* Neue, einzige graue Linie ganz unten */
+      .navbar::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background-color: #ddd;
+      }
+      /* Logo als Klick-Button mit gleichem Padding wie die Tabs */
+      .navbar-logo.action-button {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;          /* einheitliche Höhe für Unterstrich */
+        text-decoration: none;
+        cursor: pointer;
+      }
+      /* Entferne Browser-Fokus-/Hover-Underline */
+      .navbar-logo.action-button:hover,
+      .navbar-logo.action-button:focus {
+        text-decoration: none !important;
+        outline: none !important;
+      }
+      /* Aktiver Zustand für Logo: Unterstrich */
+      .navbar-logo.action-button.active {
+        border-bottom: 3px solid #1a73e8;
+      }
+      .navbar-logo span {
+        font-weight: 600;
+        font-size: 18px;
+      }
       .nav-tabs-custom {
         display: flex;
+        flex: 1;
+        justify-content: center;
+        align-items: center;
         gap: 32px;
         font-size: 14px;
         color: #5f6368;
-        padding-top: 8px;
       }
-
-      .nav-tabs-custom a {
+      /* Gleicher Padding-Wert wie beim Logo */
+      .nav-tabs-custom .action-button {
         text-decoration: none;
         color: #5f6368;
-        padding-bottom: 8px;
+        padding: 8px 0;
       }
-
-      .nav-tabs-custom a.active {
+      /* Entferne Browser-Fokus-/Hover-Underline für Tabs */
+      .nav-tabs-custom .action-button:hover,
+      .nav-tabs-custom .action-button:focus {
+        text-decoration: none !important;
+        outline: none !important;
+      }
+      /* Aktiver Zustand für Tabs: Farbe + Unterstrich */
+      .nav-tabs-custom .action-button.active {
         color: #1a73e8;
         font-weight: 600;
         border-bottom: 3px solid #1a73e8;
       }
-
       .navbar-right {
         display: flex;
+        flex: 0 0 auto;
         gap: 20px;
         align-items: center;
-      }
-
-      .navbar-logo {
-        font-weight: 600;
-        font-size: 18px;
-        color: #202124;
+        margin-right: 1rem;
       }
 
       .white-box {
@@ -201,29 +236,44 @@ planer_ui <- fluidPage(
     gap: 12px;
   }
     "))
+        tags$script(HTML("
+      $(document).on('click',
+        '.navbar-logo.action-button, .nav-tabs-custom .action-button',
+        function(){
+          $('.navbar-logo.action-button, .nav-tabs-custom .action-button')
+            .removeClass('active');
+          $(this).addClass('active');
+        }
+      );
+    "))     
     ),
     
-    # NAVBAR OBEN
-    div(
-        style = "width: 100%; display: flex; flex-direction: column; background-color: white; border-bottom: 1px solid #ddd;",
-        
-        # Obere Zeile: Logo, Tabs, Icons
-        div(
-            style = "display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;",
-            
-            # Links: Logo + Tabs
-            div(style = "display: flex; align-items: center; gap: 32px;",
-                div(class = "navbar-logo",
-                    span(style = "color: #4285F4;", "True"),
-                    span(style = "color: #EA4335;", "Time")
-                ),
-                div(class = "nav-tabs-custom",
-                    a(id = "nav_material", href = "#", "Material"),
-                    a(id = "nav_workflows", href = "#", class = "active", "Workflows"),
-                    a(id = "nav_linien", href = "#", "Linien"),
-                    a(id = "nav_werke", href = "#", "Werke")
-                )
-            ),
+    # Navbar ----------------------------------------------------------------------
+    div(class = "navbar",
+        # Logo als klickbarer Link
+        actionLink("nav_home",
+                   div(class = "navbar-logo action-button",
+                       span(style = "color: #4285F4;", "True"),
+                       span(style = "color: #EA4335; margin-left:4px;", "Time")
+                   )
+        ),
+        # Mittlere Tabs
+        div(class = "nav-tabs-custom",
+            actionLink("nav_material",  "Material"),
+            actionLink("nav_workflows", "Workflows"),
+            actionLink("nav_linien",    "Fertigungslinien"),
+            actionLink("nav_werke",     "Werke"),
+            actionLink("nav_planer",    "Planer")
+        ),
+        # Rechte Icons
+        div(class = "navbar-right",
+            actionButton("download_report", label = NULL,
+                         icon = icon("file-arrow-down"),
+                         style = "background: none; border: none; color: #5f6368; font-size: 16px;"),
+            tags$span(icon("user-circle"),
+                      style = "font-size: 20px; color: #5f6368; cursor: pointer;")
+        )
+    ),
             
             # Rechts: Icons
             div(class = "navbar-right",
@@ -1857,5 +1907,9 @@ planer_server <- function(input, output, session) {
     
     
 }
+# Klick auf Logo/“Home” führt zurück zur Hauptseite
+observeEvent(input$nav_home, {
+    runjs("window.location.href = '01.2.2_start.html';")
+})
 
 shinyApp(planer_ui, planer_server)
