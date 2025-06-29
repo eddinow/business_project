@@ -444,6 +444,46 @@ klassifikation_ui <- fluidPage(
                 width = 12,
                 div(
                     class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center; justify-content: space-between;",
+                            div(
+                                style = "display: flex; align-items: center;",
+                                span("Alerts", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                tags$span(
+                                    icon("circle-question"),
+                                    id = "alerts_info",
+                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                )
+                            ),
+                            selectInput(
+                                inputId = "alert_filter",
+                                label = NULL,
+                                choices = c("Alle", "Servicelevel < 50 %", "Ø‑Abweichung > 60 s", "Ø‑LT > 120 s"),
+                                selected = "Alle",
+                                width = "220px"
+                            )
+                        ),
+                        br(),
+                        DTOutput("alert_table")
+                    ),
+                    bsPopover(
+                        id = "alerts_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Materialien mit auffälligen Kennzahlen: niedrige Termintreue, hohe Abweichung oder lange Durchlaufzeit.",
+                        placement = "right",
+                        trigger = "hover"
+                    )
+                )
+            )
+        ),
+        
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
                     style = "background-color: rgba(255, 255, 255, 0.3);",
                     tagList(
                         
@@ -1003,6 +1043,78 @@ klassifikation_server <- function(input, output, session) {
             )
         )
     })
+    # Hilfsfunktion zur Alert-Klassifikation KASPAR ÄNDERN
+    classify_outliers <- function(df) {
+        df %>%
+            mutate(
+                flag_sl    = Anteil_pünktlich < 0.50,
+                flag_delay = Ø_Abweichung     > 60,
+                flag_lt    = Ø_LT_pro_Unit    > 120,
+                Alert      = flag_sl | flag_delay | flag_lt,
+                Priority   = (flag_sl * 3) + (flag_delay * 2) + flag_lt,
+                Alert_Grund = (
+                    paste(
+                        ifelse(flag_sl,    "Servicelevel < 50 %",  ""),
+                        ifelse(flag_delay, "Ø‑Abweichung > 60 s",  ""),
+                        ifelse(flag_lt,    "Ø‑LT > 120 s",         ""),
+                        sep = "; "
+                    ) %>%
+                        gsub("(^; |; $)", "", .) %>%
+                        gsub("; ;", ";", .)
+                )
+            )
+    }
+    
+    # Tabelle mit berechneten Kennzahlen je Material
+    annotated_materials <- reactive({
+        auftraege_lt_unit %>%
+            group_by(materialnummer) %>%
+            summarise(
+                Anteil_pünktlich = mean(abweichung <= 0, na.rm = TRUE),
+                Ø_Abweichung     = mean(abweichung, na.rm = TRUE),
+                Ø_LT_pro_Unit    = mean(lt_ist_order, na.rm = TRUE),
+                .groups = "drop"
+            ) %>%
+            classify_outliers()
+    })
+    
+    # Filterung nach ausgewähltem Alert-Grund
+    filtered_alerts <- reactive({
+        df <- annotated_materials()
+        if (is.null(input$alert_filter) || input$alert_filter == "Alle") {
+            return(df %>% filter(Alert))
+        }
+        df %>% filter(grepl(input$alert_filter, Alert_Grund, fixed = TRUE))
+    })
+    
+    # Anzeige der Tabelle
+    output$alert_table <- renderDT({
+        df <- filtered_alerts()
+        if (nrow(df) == 0) {
+            return(datatable(
+                data.frame(Hinweis = "Keine Materialnummern mit dem gewählten Alert-Kriterium gefunden."),
+                options = list(dom = 't'),
+                rownames = FALSE
+            ))
+        }
+        
+        df %>%
+            arrange(desc(Alert), desc(Priority)) %>%
+            transmute(
+                Materialnummer       = materialnummer,
+                `Ø Abweichung [s]`    = round(Ø_Abweichung, 2),
+                `Ø LT/Unit [s]`       = round(Ø_LT_pro_Unit, 2),
+                Servicelevel         = paste0(round(Anteil_pünktlich * 100, 2), " %"),
+                Alert_Grund
+            ) %>%
+            datatable(
+                options = list(pageLength = 10, scrollX = TRUE),
+                rownames = FALSE,
+                class = "stripe hover cell-border"
+            )
+    })
+    
+    
     
     output$abweichung_time_plot <- renderPlotly({
         req(input$selected_klassifikation)
