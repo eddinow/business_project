@@ -6,8 +6,7 @@ library(shinyjs)           # für JS-Klassenmanipulation
 library(DT)
 library(bsplus)
 
-source("02_model/create_workflows_overview.R")
-source("04_visualize/02.2_planer.R")
+source("02_model/create_workflows_overview.R", local = TRUE)
 
 # UI -----------------------------------------------------------------------------
 start_ui <- fluidPage(
@@ -181,8 +180,6 @@ start_ui <- fluidPage(
     
     # Unsichtbares Tab-Panel für Dashboards -------------------------------------
     tabsetPanel(id = "main_tabs", type = "hidden",
-                # … Home, Material, Workflows, Linien, Werke …
-                tabPanel("Planer", value = "planer", planerUI()),
                 
                 # Home / Hauptseite --------------------------------------------------------
                 tabPanel("home", value = "home",
@@ -308,10 +305,9 @@ start_ui <- fluidPage(
                 tabPanel("workflows",  value = "workflows", h2("Workflows-Dashboard (in Arbeit)")),
                 tabPanel("linien",     value = "linien",    h2("Fertigungslinien-Dashboard (in Arbeit)")),
                 tabPanel("werke",      value = "werke",     h2("Werke-Dashboard (in Arbeit)")),
-            
-                )
+                tabPanel("planer",     value = "planer",    h2("Planer-Dashboard (in Arbeit)"))
     )
-
+)
 
 # Server ------------------------------------------------------------------------
 start_server <- function(input, output, session) {
@@ -398,7 +394,6 @@ start_server <- function(input, output, session) {
     observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
     observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
     observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
-    planerServer(input, output, session)
     
     # Starte immer auf Home ------------------------------------------------------
     isolate({

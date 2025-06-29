@@ -9,9 +9,9 @@ library(echarts4r)
 library(plotly)
 library(ggbreak)
 
-source("02_model/create_workflows_overview.R")
-source("02_model/kpis_werke.R")
-source("01_transform/create_lt_unit.R")
+source("02_model/create_workflows_overview.R", local = TRUE)
+source("02_model/kpis_werke.R", local = TRUE)
+source("01_transform/create_lt_unit.R", local = TRUE)
 
 
 my_theme <- function(base_family = "Inter") {
@@ -39,8 +39,39 @@ my_theme <- function(base_family = "Inter") {
 
 
 # UI -----------------------------------------------------------------------------
-planerUI <- function() {
-    tagList(
+planer_ui <- fluidPage(
+    # HEAD-Bereich mit Styles
+    tags$head(
+        tags$style(HTML(
+            "
+      body {
+        background-color: #f5f7fa;
+        margin: 0;
+        padding: 0;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      }
+
+      .white-box {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        padding: 60px 68px;
+        margin-bottom: 20px;
+        width: 100%;
+        min-height: 140px; 
+      }
+
+      .white-box h4 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #202124;
+      }
+
+      /* Tabellen und Selectize Styles bleiben unverändert */
+            "
+        ))
+    ),
     
     # Sub-Header direkt darunter
     div(
@@ -481,10 +512,10 @@ planerUI <- function() {
         )
     )
 )
-}
+
 
 #Server-------------------------------------------------------------------------
-planerServer <- function(input, output, session) {
+planer_server <- function(input, output, session) {
     
     observe({
         planer <- unique(auftraege_lt_unit$planer)
@@ -1659,3 +1690,5 @@ planerServer <- function(input, output, session) {
     
     
 }
+
+shinyApp(planer_ui, planer_server)
