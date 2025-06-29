@@ -1045,18 +1045,23 @@ klassifikation_server <- function(input, output, session) {
     })
     # Hilfsfunktion zur Alert-Klassifikation KASPAR ÄNDERN
     classify_outliers <- function(df) {
+        # Mittelwerte berechnen
+        mean_sl    <- mean(df$Anteil_pünktlich, na.rm = TRUE)
+        mean_delay <- mean(df$Ø_Abweichung,     na.rm = TRUE)
+        mean_lt    <- mean(df$Ø_LT_pro_Unit,    na.rm = TRUE)
+        
         df %>%
             mutate(
-                flag_sl    = Anteil_pünktlich < 0.50,
-                flag_delay = Ø_Abweichung     > 60,
-                flag_lt    = Ø_LT_pro_Unit    > 120,
+                flag_sl    = Anteil_pünktlich < mean_sl,
+                flag_delay = Ø_Abweichung     < mean_delay,
+                flag_lt    = Ø_LT_pro_Unit    < mean_lt,
                 Alert      = flag_sl | flag_delay | flag_lt,
                 Priority   = (flag_sl * 3) + (flag_delay * 2) + flag_lt,
                 Alert_Grund = (
                     paste(
-                        ifelse(flag_sl,    "Servicelevel < 50 %",  ""),
-                        ifelse(flag_delay, "Ø‑Abweichung > 60 s",  ""),
-                        ifelse(flag_lt,    "Ø‑LT > 120 s",         ""),
+                        ifelse(flag_sl,    "Servicelevel unter Durchschnitt", ""),
+                        ifelse(flag_delay, "Ø‑Abweichung unter Durchschnitt",  ""),
+                        ifelse(flag_lt,    "Ø‑LT unter Durchschnitt",          ""),
                         sep = "; "
                     ) %>%
                         gsub("(^; |; $)", "", .) %>%
@@ -1064,19 +1069,6 @@ klassifikation_server <- function(input, output, session) {
                 )
             )
     }
-    
-    # Tabelle mit berechneten Kennzahlen je Material
-    annotated_materials <- reactive({
-        auftraege_lt_unit %>%
-            group_by(materialnummer) %>%
-            summarise(
-                Anteil_pünktlich = mean(abweichung <= 0, na.rm = TRUE),
-                Ø_Abweichung     = mean(abweichung, na.rm = TRUE),
-                Ø_LT_pro_Unit    = mean(lt_ist_order, na.rm = TRUE),
-                .groups = "drop"
-            ) %>%
-            classify_outliers()
-    })
     
     # Filterung nach ausgewähltem Alert-Grund
     filtered_alerts <- reactive({
