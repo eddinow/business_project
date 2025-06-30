@@ -412,7 +412,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_me_info",
                                         title = "Geschwindigkeit/ME [s]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -435,7 +435,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_auftrag_info",
                                         title = "Geschwindigkeit/Auftrag [Tage]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -488,7 +488,7 @@ werk_ui <- fluidPage(
                                         bsPopover(
                                             id = "performance_table_info",
                                             title = "Aktuelle Performance",
-                                            content = "Julia",
+                                            content = "In der Tabelle wird die ausgewählte Ansicht (z. B. Werke, Linien, Materialien) für jede gewählte Entität (z. B. Planer, Workflows) dargestellt. Dadurch kann nachvollzogen werden, wie sich einzelne Entitäten auf unterschiedliche Strukturebenen auswirken. Grün steht für geringe (< 0,5 s/ME), Gelb für moderate (bis 2 s/ME) und Rot für kritische Verzögerungen (> 2 s/ME). Zusätzlich lassen sich die durchschnittlichen Ist- und Soll-Lead Times pro Mengeneinheit sowie die zugehörige Auftragsanzahl ablesen, um Zusammenhänge zwischen Auslastung und Performance sichtbar zu machen.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
@@ -587,7 +587,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_zeit_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -617,7 +617,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_abs_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                                        content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -645,7 +645,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_rel_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
                                         placement = "right",
                                         trigger = "hover"
                                     )
