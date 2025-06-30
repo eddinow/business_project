@@ -52,50 +52,6 @@ vorgangsfolge_ui <- fluidPage(
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
 
-      .navbar {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: white;
-        border-bottom: 1px solid #ddd;
-        padding: 1rem 2rem;
-        font-weight: bold;
-        font-size: 16px;
-        position: relative;
-      }
-
-      .nav-tabs-custom {
-        display: flex;
-        gap: 32px;
-        font-size: 14px;
-        color: #5f6368;
-        padding-top: 8px;
-      }
-
-      .nav-tabs-custom a {
-        text-decoration: none;
-        color: #5f6368;
-        padding-bottom: 8px;
-      }
-
-      .nav-tabs-custom a.active {
-        color: #1a73e8;
-        font-weight: 600;
-        border-bottom: 3px solid #1a73e8;
-      }
-
-      .navbar-right {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-      }
-
-      .navbar-logo {
-        font-weight: 600;
-        font-size: 18px;
-        color: #202124;
-      }
 
       .white-box {
         background-color: white;
@@ -203,35 +159,6 @@ vorgangsfolge_ui <- fluidPage(
     "))
     ),
     
-    # NAVBAR OBEN
-    div(
-        style = "width: 100%; display: flex; flex-direction: column; background-color: white; border-bottom: 1px solid #ddd;",
-        
-        # Obere Zeile: Logo, Tabs, Icons
-        div(
-            style = "display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;",
-            
-            # Links: Logo + Tabs
-            div(style = "display: flex; align-items: center; gap: 32px;",
-                div(class = "navbar-logo",
-                    span(style = "color: #4285F4;", "True"),
-                    span(style = "color: #EA4335;", "Time")
-                ),
-                div(class = "nav-tabs-custom",
-                    a(id = "nav_material", href = "#", "Material"),
-                    a(id = "nav_workflows", href = "#", class = "active", "Workflows"),
-                    a(id = "nav_linien", href = "#", "Linien"),
-                    a(id = "nav_werke", href = "#", "Werke")
-                )
-            ),
-            
-            # Rechts: Icons
-            div(class = "navbar-right",
-                actionButton("download_report", label = NULL, icon = icon("file-arrow-down"),
-                             style = "background: none; border: none; color: #5f6368; font-size: 16px;"),
-                tags$span(icon("user-circle"), style = "font-size: 20px; color: #5f6368; cursor: pointer;")
-            )
-        ),
         
         # Sub-Header direkt darunter (ohne Lücke)
         div(
@@ -291,9 +218,7 @@ vorgangsfolge_ui <- fluidPage(
                     )
                 )
             )
-        )
-        
-    ),
+        ),
     
     
     # INHALT: max-width Wrapper
