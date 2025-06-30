@@ -266,7 +266,6 @@ klassifikation_ui <- fluidPage(
                             label = NULL,
                             choices = c("A", "B", "C"),
                             selected = "A",
-                            options = list(placeholder = ""),
                             width = "100%"
                         )
                     )
@@ -470,7 +469,7 @@ klassifikation_ui <- fluidPage(
                     bsPopover(
                         id = "alerts_info",
                         title = "Was wird hier gezeigt?",
-                        content = "Materialien mit auffälligen Kennzahlen: niedrige Termintreue, hohe Abweichung oder lange Durchlaufzeit.",
+                        content = "Kaspar",
                         placement = "right",
                         trigger = "hover"
                     )
@@ -837,8 +836,8 @@ klassifikation_server <- function(input, output, session) {
         df_sel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         

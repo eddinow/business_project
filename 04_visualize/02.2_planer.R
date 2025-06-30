@@ -72,7 +72,6 @@ planerUI <- function() {
                         inputId = "selected_planer",
                         label = NULL,
                         choices = NULL,
-                        selected = "FST1",
                         options = list(placeholder = ""),
                         width = "100%"
                     )
@@ -90,7 +89,7 @@ planerUI <- function() {
                     selectInput(
                         inputId = "view_selection",
                         label = NULL,
-                        choices = c("Workflow", "Linie", "Werk", "Material"),
+                        choices = c("Workflow", "Linie", "Werk", "A-Material"),
                         selected = "Linie",
                         width = "100%"
                     )
@@ -747,8 +746,8 @@ planerServer <- function(input, output, session) {
         df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         
@@ -903,7 +902,7 @@ planerServer <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "Material" = "materialnummer"
+        "A-Material" = "materialnummer"
     )
     
     #Formel zur Berechnung des Modus

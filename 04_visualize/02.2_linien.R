@@ -265,8 +265,6 @@ fertigungslinie_ui <- fluidPage(
                             inputId = "selected_fertigungslinie",
                             label = NULL,
                             choices = NULL,
-                            selected = "1",
-                            options = list(placeholder = ""),
                             width = "100%"
                         )
                     )
@@ -284,7 +282,7 @@ fertigungslinie_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Workflow", "Planer", "Werk", "Material"),
+                            choices = c("Workflow", "Planer", "Werk", "A-Material"),
                             selected = "Werk",
                             width = "100%"
                         )
@@ -533,18 +531,34 @@ fertigungslinie_ui <- fluidPage(
                                     tagList(
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            span("Top 200 Aufträge mit Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
                                             id = "topdelay_info",
-                                            title = "Top 200 Aufträge mit höchster Abweichung",
-                                            content = "Eddi",
+                                            title = "Verfrühung & Verzögerung",
+                                            content = "Zeigt, wie stark einzelne Aufträge vom Soll abweichen. Mit Klick auf die Lupe werden die konkreten Aufträge eingeblendet.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
-                                        DTOutput("delay_quartile_summary")
+                                        
+                                        tabsetPanel(
+                                            id = "abweichung_tabs",
+                                            type = "tabs",
+                                            
+                                            # Tab 1: Verzögerungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verzögerungen",
+                                                DTOutput("delay_quartile_summary")
+                                            ),
+                                            
+                                            # Tab 2: Verfrühungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verfrühungen",
+                                                DTOutput("early_quartile_summary")
+                                            )
+                                        )
                                     )
                                 )
                             )
@@ -672,7 +686,7 @@ fertigungslinie_server <- function(input, output, session) {
             session,
             inputId = "selected_fertigungslinie",
             choices = c("Fertigungslinie auswählen" = "", fertigungslinie),
-            selected = "1001", 
+            selected = "1", 
             server = TRUE
         )
     })
@@ -1068,7 +1082,7 @@ fertigungslinie_server <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "Material" = "materialnummer"
+        "A-Material" = "materialnummer"
     )
     
     #Formel zur Berechnung des Modus
@@ -1436,8 +1450,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1460,8 +1474,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
@@ -1484,8 +1498,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
@@ -1508,8 +1522,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
@@ -1531,9 +1545,11 @@ fertigungslinie_server <- function(input, output, session) {
             arrange(abweichung_unit) %>%  # früheste oben
             slice_head(n = 200) %>%
             transmute(
-                `Auftrag`     = auftragsnummer,
-                `Mat.`     = materialnummer,
-                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
+                Auftragsnummer     = auftragsnummer,
+                Materialnummer     = materialnummer,
+                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                `Abweichung [s/ME]` = round(abweichung_unit, 2)
             )
         
         datatable(
@@ -1622,8 +1638,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
@@ -1646,8 +1662,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
@@ -1670,8 +1686,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
@@ -1694,8 +1710,8 @@ fertigungslinie_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             

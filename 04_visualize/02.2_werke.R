@@ -265,8 +265,6 @@ werk_ui <- fluidPage(
                             inputId = "selected_werk",
                             label = NULL,
                             choices = NULL,
-                            selected = "",
-                            options = list(placeholder = ""),
                             width = "100%"
                         )
                     )
@@ -284,7 +282,7 @@ werk_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Workflow", "Linie", "Planer", "Material"),
+                            choices = c("Workflow", "Linie", "Planer", "A-Material"),
                             selected = "Linie",
                             width = "100%"
                         )
@@ -531,18 +529,34 @@ werk_ui <- fluidPage(
                                     tagList(
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            span("Top 200 Aufträge mit Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
                                             id = "topdelay_info",
-                                            title = "Top 200 Aufträge mit höchster Abweichung",
-                                            content = "Eddi",
+                                            title = "Verfrühung & Verzögerung",
+                                            content = "Zeigt, wie stark einzelne Aufträge vom Soll abweichen. Mit Klick auf die Lupe werden die konkreten Aufträge eingeblendet.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
-                                        DTOutput("delay_quartile_summary")
+                                        
+                                        tabsetPanel(
+                                            id = "abweichung_tabs",
+                                            type = "tabs",
+                                            
+                                            # Tab 1: Verzögerungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verzögerungen",
+                                                DTOutput("delay_quartile_summary")
+                                            ),
+                                            
+                                            # Tab 2: Verfrühungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verfrühungen",
+                                                DTOutput("early_quartile_summary")
+                                            )
+                                        )
                                     )
                                 )
                             )
@@ -910,8 +924,8 @@ werk_server <- function(input, output, session) {
         df_sel <- auftraege_lt_unit %>% filter(werk == input$selected_werk, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         
@@ -1066,7 +1080,7 @@ werk_server <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "Material" = "materialnummer"
+        "A-Material" = "materialnummer"
     )
     
     #Formel zur Berechnung des Modus

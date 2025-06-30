@@ -266,7 +266,6 @@ vorgangsfolge_ui <- fluidPage(
                             inputId = "selected_vorgangsfolge",
                             label = NULL,
                             choices = NULL,
-                            selected = "FST1",
                             options = list(placeholder = ""),
                             width = "100%"
                         )
@@ -285,7 +284,7 @@ vorgangsfolge_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Arbeitsschritte", "Arbeitsplatz", "Material"),
+                            choices = c("Arbeitsschritte", "Arbeitsplatz", "A-Material"),
                             selected = "Arbeitsschritte",
                             width = "100%"
                         )
@@ -751,7 +750,7 @@ vorgangsfolge_server <- function(input, output, session) {
             session,
             inputId = "selected_vorgangsfolge",
             choices = c("Workflow auswählen" = "", vorgangsfolge),
-            selected = "FST1", 
+            selected = "0010", 
             server = TRUE
         )
     })
@@ -1005,8 +1004,8 @@ vorgangsfolge_server <- function(input, output, session) {
         df_sel <- vorgaenge_sorted %>% filter(vorgangsfolge == input$selected_vorgangsfolge, !is.na(istdauer))
         df_all <- vorgaenge_sorted %>% filter(!is.na(istdauer))
         
-        geschw_sel <- round(mean(df_sel$istdauer, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$istdauer, na.rm = TRUE), 1)
+        geschw_sel <- round(median(df_sel$istdauer, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_all$istdauer, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         
@@ -1161,7 +1160,7 @@ vorgangsfolge_server <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "Material" = "materialnummer",
+        "A-Material" = "materialnummer",
         "Arbeitsschritte" = "Vorgangsnummer",
         "Arbeitsplatz" = "Arbeitsplatz"
     )
