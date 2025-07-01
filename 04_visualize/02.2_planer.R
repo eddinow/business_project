@@ -340,7 +340,7 @@ planerUI <- function() {
                                         bsPopover(
                                             id = "topdelay_info",
                                             title = "Verfrühung & Verzögerung",
-                                            content = "Zeigt, wie stark einzelne Aufträge vom Soll abweichen. Mit Klick auf die Lupe werden die konkreten Aufträge eingeblendet.",
+                                            content = "Passend zu der oben getroffenen Auswahl sieht man in dieser Darstellung die prozentualen Anteile von Aufträgen, die in vier Gruppen nach Dauer der Verzögerung bzw. Verfrühung kategorisiert sind. Je nach Bedarf kann man über die Lupen-Icons weiterführende Details zu den einzelnen Aufträgen einsehen und daraus gezielte Optimierungsmaßnahmen ableiten.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
