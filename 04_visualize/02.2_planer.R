@@ -146,9 +146,7 @@ planerUI <- function() {
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "geschw_info", 
-                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
                         ),
                         
                         # Alle 4 Donuts nebeneinander
@@ -1271,8 +1269,8 @@ planerServer <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1295,9 +1293,9 @@ planerServer <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1319,9 +1317,9 @@ planerServer <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1343,9 +1341,9 @@ planerServer <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1366,9 +1364,11 @@ planerServer <- function(input, output, session) {
             arrange(abweichung_unit) %>%  # früheste oben
             slice_head(n = 200) %>%
             transmute(
-                `Auftrag`     = auftragsnummer,
-                `Mat.`     = materialnummer,
-                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
+                Auftragsnummer     = auftragsnummer,
+                Materialnummer     = materialnummer,
+                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                `Abweichung [T/Auftr.]` = round(abweichung, 2)
             )
         
         datatable(
@@ -1453,13 +1453,12 @@ planerServer <- function(input, output, session) {
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(planer == input$selected_planer, abweichung_unit < -10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1481,9 +1480,9 @@ planerServer <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1505,9 +1504,9 @@ planerServer <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1529,9 +1528,9 @@ planerServer <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")

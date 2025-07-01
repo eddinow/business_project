@@ -188,15 +188,93 @@ start_ui <- fluidPage(
                 tabPanel("home", value = "home",
                          div(style = "max-width: 1100px; margin: 0 auto;",
                              
-                             # KPI-Zeile 1
                              fluidRow(
-                                 column(6, uiOutput("overall_servicelevel")),
-                                 column(6, uiOutput("soll_lt"))
+                                 column(
+                                     width = 6,
+                                     div(
+                                         class = "white-box",
+                                         style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                                         uiOutput("livetracker_auftraege")
+                                     )
+                                 ),
+                                 column(
+                                     width = 6,
+                                     div(
+                                         class = "white-box",
+                                         style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                                         uiOutput("livetracker_servicelevel")
+                                     )
+                                 )
                              ),
-                             # KPI-Zeile 2
+                             
+                             
+                             # Material-Box
                              fluidRow(
-                                 column(6, uiOutput("overall_delay")),
-                                 column(6, uiOutput("ist_lt"))
+                                 column(12,
+                                        div(class = "white-box",
+                                            tagList(
+                                                div(style = "display:flex; justify-content:space-between; align-items:center;",
+                                                    div(style = "display:flex; align-items:center;",
+                                                        span("Lead Times nach Material (A,B,C)",
+                                                             style = "font-weight:600;font-size:16px;color:#202124;"),
+                                                        tags$span(icon("circle-question"), id = "linien_info",
+                                                                  style = "color:#5f6368;margin-left:8px;") %>%
+                                                            bs_embed_popover(
+                                                                title   = "Material Übersicht",
+                                                                content = "Sie können für einzelne Fertigungslinien …",
+                                                                placement = "right", trigger = "focus"
+                                                            )
+                                                    ),
+                                                    div(style = "display:flex; align-items:center;",
+                                                        div(style = "margin-right:12px;",
+                                                            selectInput("sortierung_material", label = NULL,
+                                                                        choices = c("Top","Kritisch"),
+                                                                        selected = "Top", width = "140px")
+                                                        ),
+                                                        downloadButton("download_csv_material", label = NULL,
+                                                                       icon = icon("download"),
+                                                                       style = "padding:6px 10px; margin-top:-16px;")
+                                                    )
+                                                ),
+                                                br(),
+                                                DTOutput("material_table")
+                                            )
+                                        )
+                                 )
+                             ),
+                             #Planer-Box
+                             fluidRow(
+                                 column(12,
+                                        div(class = "white-box",
+                                            tagList(
+                                                div(style = "display:flex; justify-content:space-between; align-items:center;",
+                                                    div(style = "display:flex; align-items:center;",
+                                                        span("Lead Times nach Planern",
+                                                             style = "font-weight:600;font-size:16px;color:#202124;"),
+                                                        tags$span(icon("circle-question"), id = "linien_info",
+                                                                  style = "color:#5f6368;margin-left:8px;") %>%
+                                                            bs_embed_popover(
+                                                                title   = "Planer Übersicht",
+                                                                content = "Sie können für einzelne Fertigungslinien …",
+                                                                placement = "right", trigger = "focus"
+                                                            )
+                                                    ),
+                                                    div(style = "display:flex; align-items:center;",
+                                                        div(style = "margin-right:12px;",
+                                                            selectInput("sortierung_planer", label = NULL,
+                                                                        choices = c("Top","Kritisch"),
+                                                                        selected = "Top", width = "140px")
+                                                        ),
+                                                        downloadButton("download_csv_planer", label = NULL,
+                                                                       icon = icon("download"),
+                                                                       style = "padding:6px 10px; margin-top:-16px;")
+                                                    )
+                                                ),
+                                                br(),
+                                                DTOutput("planer_table")
+                                            )
+                                        )
+                                 )
                              ),
                              # Workflows-Box
                              fluidRow(
@@ -308,104 +386,116 @@ start_ui <- fluidPage(
                 tabPanel("workflows",  value = "workflows", h2("Workflows-Dashboard (in Arbeit)")),
                 tabPanel("linien",     value = "linien",    h2("Fertigungslinien-Dashboard (in Arbeit)")),
                 tabPanel("werke",      value = "werke",     h2("Werke-Dashboard (in Arbeit)")),
-            
-                )
+                
     )
+)
 
 
 # Server ------------------------------------------------------------------------
 start_server <- function(input, output, session) {
     
-    # KPI: Service Level ---------------------------------------------------------
-    output$overall_servicelevel <- renderUI({
-        sl_pct <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
-            sum(!is.na(auftraege_lt_unit$abweichung_unit))
-        sl_val <- round(sl_pct * 100)
-        color  <- if (sl_val < 70) "#ea4335" else if (sl_val < 95) "#fbbc04" else "#34a853"
-        div(class = "white-box",
-            div(style = "display:flex; flex-direction:column;",
-                span(style = paste0("font-weight:600;font-size:32px;color:",color,";"),
-                     paste0(sl_val,"%")),
-                span(style = "font-size:16px;color:#5f6368;","Service Level")
+    
+    output$livetracker_auftraege <- renderUI({
+        
+        anzahl <- auftraege_lt_unit %>%
+            summarise(n = n_distinct(auftragsnummer)) %>%
+            pull(n)
+        
+        tags$div(
+            style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
+            tags$span(
+                style = "font-weight: 600; font-size: 22px; color: #202124;",
+                anzahl
+            ),
+            tags$span(
+                style = "font-size: 14px; color: #5f6368;",
+                "# Aufträge"
             )
         )
     })
     
-    # KPI: Planned LT per Unit --------------------------------------------------
-    output$soll_lt <- renderUI({
-        val <- median(auftraege_lt_unit$lt_soll_order, na.rm = TRUE)
-        div(class = "white-box",
-            div(style = "display:flex; flex-direction:column;",
-                span(style = "font-weight:600;font-size:32px;color:#202124;",
-                     paste0(round(val,2)," s")),
-                span(style = "font-size:16px;color:#5f6368;","Planned LT/Unit")
+    
+    overall_servicelevel <- reactive({
+        sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
+            sum(!is.na(auftraege_lt_unit$auftragsnummer))
+    })
+    
+    
+    output$livetracker_servicelevel <- renderUI({
+        
+        filtered <- auftraege_lt_unit 
+        
+        if (nrow(filtered) == 0) {
+            return(
+                div(
+                    style = "display: flex; flex-direction: column;",
+                    span(style = "font-weight: 600; font-size: 24px; color: #9e9e9e;", "–"),
+                    span("Servicelevel", style = "color: #5f6368; font-size: 14px;")
+                )
+            )
+        }
+        
+        sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(filtered$auftragsnummer))
+        overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(auftraege_lt_unit$auftragsnummer))
+        
+        sl_percent <- paste0(round(sl * 100), "%")
+        overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
+        
+        #Eddi
+        if (sl > overall_sl) {
+            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
+            popover_text <- paste("Overperformance |", overall_text)
+        } else {
+            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #ea4335; margin-right: 6px;'>⚠️</span>"
+            popover_text <- paste("Underperformance |", overall_text)
+        }
+        
+        tagList(
+            HTML(paste0(
+                "<div style='display: flex; align-items: center;'>",
+                icon_tag,
+                "<span style='font-weight: 600; font-size: 24px; color: #202124;'>", sl_percent, "</span>",
+                "</div>"
+            )),
+            span("Servicelevel", style = "font-size: 14px; color: #5f6368; margin-top: 4px;"),
+            bsPopover(
+                id = "servicelevel_icon",
+                title = "Servicelevel-Vergleich",
+                content = popover_text,
+                placement = "top",
+                trigger = "hover"
             )
         )
     })
-    
-    # KPI: Delay per Unit --------------------------------------------------------
-    output$overall_delay <- renderUI({
-        val <- median(auftraege_lt_unit$abweichung_unit, na.rm = TRUE)
-        div(class = "white-box",
-            div(style = "display:flex; flex-direction:column;",
-                span(style = "font-weight:600;font-size:32px;color:#202124;",
-                     paste0(round(val,2)," s")),
-                span(style = "font-size:16px;color:#5f6368;","Delay/Unit")
-            )
-        )
-    })
-    
-    # KPI: Actual LT per Unit ---------------------------------------------------
-    output$ist_lt <- renderUI({
-        val <- median(auftraege_lt_unit$lt_ist_order, na.rm = TRUE)
-        div(class = "white-box",
-            div(style = "display:flex; flex-direction:column;",
-                span(style = "font-weight:600;font-size:32px;color:#202124;",
-                     paste0(round(val,2)," s")),
-                span(style = "font-size:16px;color:#5f6368;","Actual LT/Unit")
-            )
-        )
-    })
-    
-    # Helper: render & download für die Tabellen --------------------------------
-    render_table_and_download <- function(data, sel_id, tbl_out, dl_out, prefix) {
-        output[[tbl_out]] <- renderDT({
-            df <- data
-            df$servicelevel_numeric <- as.numeric(gsub('%','',df$Servicelevel))/100
-            df <- if (input[[sel_id]]=="Top") df[order(-df$servicelevel_numeric),] else df[order(df$servicelevel_numeric),]
-            df <- df |> dplyr::select(-servicelevel_numeric)
-            datatable(df, escape = which(names(df)!="ampel"),
-                      options = list(pageLength=10, dom='tip', ordering=FALSE),
-                      rownames=FALSE, class='hover', width='100%')
+        
+        render_table_and_download(workflows_overview, "sortierung_workflows",
+                                  "workflow_table","download_csv_workflows","workflows")
+        render_table_and_download(linien_overview,   "sortierung_linien",
+                                  "linien_table",  "download_csv_linien",  "linien")
+        render_table_and_download(werke_overview,    "sortierung_werke",
+                                  "werke_table",   "download_csv_werke",   "werke")
+        render_table_and_download(planer_overview,    "sortierung_planer",
+                                  "planer_table",   "download_csv_planer",   "planer")
+        render_table_and_download(material_overview,    "sortierung_material",
+                                  "material_table",   "download_csv_material",   "material")
+        
+        # Navigation: nur updateTabsetPanel; visuelle Hervorhebung per JS ----------
+        observeEvent(input$nav_home,      updateTabsetPanel(session,"main_tabs","home"))
+        observeEvent(input$nav_material,  updateTabsetPanel(session,"main_tabs","material"))
+        observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
+        observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
+        observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
+        observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
+        planerServer(input, output, session)
+        
+        # Starte immer auf Home ------------------------------------------------------
+        isolate({
+            updateTabsetPanel(session,"main_tabs","home")
+            runjs("$('.navbar-logo.action-button').addClass('active');")
         })
-        output[[dl_out]] <- downloadHandler(
-            filename = function() paste0(prefix,"_",Sys.Date(),".csv"),
-            content = function(file) write.csv(data, file, row.names=FALSE)
-        )
     }
     
-    render_table_and_download(workflows_overview, "sortierung_workflows",
-                              "workflow_table","download_csv_workflows","workflows")
-    render_table_and_download(linien_overview,   "sortierung_linien",
-                              "linien_table",  "download_csv_linien",  "linien")
-    render_table_and_download(werke_overview,    "sortierung_werke",
-                              "werke_table",   "download_csv_werke",   "werke")
-    
-    # Navigation: nur updateTabsetPanel; visuelle Hervorhebung per JS ----------
-    observeEvent(input$nav_home,      updateTabsetPanel(session,"main_tabs","home"))
-    observeEvent(input$nav_material,  updateTabsetPanel(session,"main_tabs","material"))
-    observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
-    observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
-    observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
-    observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
-    planerServer(input, output, session)
-    
-    # Starte immer auf Home ------------------------------------------------------
-    isolate({
-        updateTabsetPanel(session,"main_tabs","home")
-        runjs("$('.navbar-logo.action-button').addClass('active');")
-    })
-}
-
-# Run App -----------------------------------------------------------------------
-shinyApp(start_ui, start_server)
+    # Run App -----------------------------------------------------------------------
+    shinyApp(start_ui, start_server)

@@ -324,9 +324,7 @@ klassifikation_ui <- fluidPage(
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "geschw_info", 
-                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
                         ),
                         
                         # Alle 4 Donuts nebeneinander
@@ -458,10 +456,11 @@ klassifikation_ui <- fluidPage(
                             selectInput(
                                 inputId = "alert_filter",
                                 label = NULL,
-                                choices = c("Alle", "Servicelevel < 50 %", "Ø‑Abweichung > 60 s", "Ø‑LT > 120 s"),
+                                choices = c("Alle", "Servicelevel unter Durchschnitt", "Ø‑Abweichung unter Durchschnitt", "Ø‑LT unter Durchschnitt"),
                                 selected = "Alle",
                                 width = "220px"
                             )
+                            
                         ),
                         br(),
                         DTOutput("alert_table")
@@ -1042,6 +1041,8 @@ klassifikation_server <- function(input, output, session) {
             )
         )
     })
+    
+    
     # Hilfsfunktion zur Alert-Klassifikation KASPAR ÄNDERN
     classify_outliers <- function(df) {
         # Mittelwerte berechnen
@@ -1068,6 +1069,13 @@ klassifikation_server <- function(input, output, session) {
                 )
             )
     }
+    
+    annotated_materials <- reactive({
+        req(input$selected_klassifikation)
+        materialnummer_overview %>%
+            filter(ABC_Klasse == input$selected_klassifikation) %>%
+            classify_outliers()
+    })
     
     # Filterung nach ausgewähltem Alert-Grund
     filtered_alerts <- reactive({
@@ -1096,12 +1104,12 @@ klassifikation_server <- function(input, output, session) {
                 `Ø Abweichung [s]`    = round(Ø_Abweichung, 2),
                 `Ø LT/Unit [s]`       = round(Ø_LT_pro_Unit, 2),
                 Servicelevel         = paste0(round(Anteil_pünktlich * 100, 2), " %"),
-                Alert_Grund
+                #Alert_Grund
             ) %>%
             datatable(
-                options = list(pageLength = 10, scrollX = TRUE),
+                options = list(pageLength = 10, scrollX = TRUE, dom = 'tp'),
                 rownames = FALSE,
-                class = "stripe hover cell-border"
+                class = "hover"
             )
     })
     

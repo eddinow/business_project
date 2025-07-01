@@ -344,9 +344,7 @@ vorgangsfolge_ui <- fluidPage(
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "geschw_info", 
-                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
                         ),
                         
                         # Alle 4 Donuts nebeneinander
@@ -594,6 +592,36 @@ vorgangsfolge_ui <- fluidPage(
                     bsPopover(
                         id = "liegezeiten_info",
                         title = "Was wird hier gezeigt?",
+                        content = "Zeigt die Ist-Lead Times inklusive Liegezeiten als kumulierte Werte. Der blaue Anteil symbolisiert dabei die Lead Time des jeweiligen Prozessschrittes. Diese genaue Dauer steht als Wert ablesbar auch über den Balken. User kriegen so einen Eindruck, ob und in welchem Umfang Liegezeiten die Bearbeitung eines Auftrags treiben. Ausgangspunkt für qualitative Ursachenanalysen.",
+                        placement = "right",
+                        trigger = "hover"
+                    ),
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time nach Sollmenge [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_menge_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        plotly::plotlyOutput("workflow_plot", height = "240px"),
+                    ),
+                    
+                    bsPopover(
+                        id = "abw_menge_info",
+                        title = "Was wird hier gezeigt?",
                         content = "Julia",
                         placement = "right",
                         trigger = "hover"
@@ -638,36 +666,6 @@ vorgangsfolge_ui <- fluidPage(
                                         id = "abw_zeit_info",
                                         title = "Was wird hier gezeigt?",
                                         content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
-                                        placement = "right",
-                                        trigger = "hover"
-                                    ),
-                                )
-                            )
-                        ),
-                        
-                        fluidRow(
-                            column(
-                                width = 12,
-                                div(
-                                    class = "white-box",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center;",
-                                            span("Lead Time Abweichung nach Sollmenge [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(
-                                                icon("circle-question"),
-                                                id = "abw_menge_info",
-                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                                            )
-                                        ),
-                                        br(),
-                                        plotly::plotlyOutput("workflow_plot", height = "240px"),
-                                    ),
-                                    
-                                    bsPopover(
-                                        id = "abw_menge_info",
-                                        title = "Was wird hier gezeigt?",
-                                        content = "Julia",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -1529,10 +1527,10 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung > 10) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1553,11 +1551,11 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 10 & abweichung_unit > 5) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1577,11 +1575,11 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 5 & abweichung_unit > 3) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1601,11 +1599,11 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 3 & abweichung_unit > 1) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1626,9 +1624,11 @@ vorgangsfolge_server <- function(input, output, session) {
             arrange(abweichung_unit) %>%  # früheste oben
             slice_head(n = 200) %>%
             transmute(
-                `Auftrag`     = Auftragsnummer,
-                `Mat.`     = materialnummer,
-                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
+                Auftragsnummer     = auftragsnummer,
+                Materialnummer     = materialnummer,
+                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                `Abweichung [T/Auftr.]` = round(abweichung, 2)
             )
         
         datatable(
@@ -1715,11 +1715,11 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit < -10) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1739,11 +1739,11 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -10 & abweichung_unit < -5) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1763,11 +1763,11 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -5 & abweichung_unit < -3) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1787,11 +1787,11 @@ vorgangsfolge_server <- function(input, output, session) {
             df <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -3 & abweichung_unit < -1) %>%
                 transmute(
-                    Auftragsnummer     = Auftragsnummer,
+                    Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")

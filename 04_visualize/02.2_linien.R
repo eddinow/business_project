@@ -342,9 +342,7 @@ fertigungslinie_ui <- fluidPage(
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "geschw_info", 
-                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
                         ),
                         
                         # Alle 4 Donuts nebeneinander
@@ -1476,7 +1474,7 @@ fertigungslinie_server <- function(input, output, session) {
                     Materialnummer     = materialnummer,
                     `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                     `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1500,7 +1498,7 @@ fertigungslinie_server <- function(input, output, session) {
                     Materialnummer     = materialnummer,
                     `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                     `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1524,7 +1522,7 @@ fertigungslinie_server <- function(input, output, session) {
                     Materialnummer     = materialnummer,
                     `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                     `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1549,7 +1547,7 @@ fertigungslinie_server <- function(input, output, session) {
                 Materialnummer     = materialnummer,
                 `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                 `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                `Abweichung [T/Auftr.]` = round(abweichung, 2)
             )
         
         datatable(
@@ -1640,7 +1638,7 @@ fertigungslinie_server <- function(input, output, session) {
                     Materialnummer     = materialnummer,
                     `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                     `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1664,7 +1662,7 @@ fertigungslinie_server <- function(input, output, session) {
                     Materialnummer     = materialnummer,
                     `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                     `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1688,7 +1686,7 @@ fertigungslinie_server <- function(input, output, session) {
                     Materialnummer     = materialnummer,
                     `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                     `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1712,7 +1710,7 @@ fertigungslinie_server <- function(input, output, session) {
                     Materialnummer     = materialnummer,
                     `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
                     `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
