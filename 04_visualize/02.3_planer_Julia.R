@@ -38,19 +38,18 @@ my_theme <- function(base_family = "Inter") {
 }
 
 
-#UI-----------------------------------------------------------------------------
-fertigungslinie_ui <- fluidPage(
-    
+# UI -----------------------------------------------------------------------------
+planer_ui <- fluidPage(
     # HEAD-Bereich mit Styles
     tags$head(
-        tags$style(HTML("
+        tags$style(HTML(
+            "
       body {
         background-color: #f5f7fa;
         margin: 0;
         padding: 0;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
-
 
       .white-box {
         background-color: white;
@@ -69,162 +68,74 @@ fertigungslinie_ui <- fluidPage(
         color: #202124;
       }
 
-      table.dataTable {
-        border-collapse: collapse !important;
-        font-size: 12px;
-      }
-
-      table.dataTable.no-footer {
-        border-bottom: none;
-      }
-
-      .dataTable th, .dataTable td {
-        border: none !important;
-        padding: 8px 12px !important;
-      }
-
-      table.dataTable tbody tr:hover {
-        background-color: #f0f4f8 !important;
-        cursor: pointer;
-      }
-
-      .stripe tbody tr:nth-child(odd) {
-        background-color: #ffffff !important;
-      }
-
-      .stripe tbody tr:nth-child(even) {
-        background-color: #f9fafb !important;
-      }
-
-      .dataTables_wrapper {
-        border-radius: 12px;
-        overflow: hidden;
-      }
-
-      .dataTable tbody td {
-        border-bottom: 1px solid #e0e0e0 !important;
-      }
-
-      .selectize-input {
-        padding-right: 30px !important;
-      }
-
-      .dataTables_wrapper .dataTables_paginate {
-        font-size: 12px;
-        margin-top: 8px;
-        text-align: right;
-      }
-
-      .dataTables_wrapper .dataTables_paginate .paginate_button {
-        padding: 2px 6px;
-        margin: 0 2px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: white;
-        color: #444;
-        font-size: 12px;
-      }
-
-      .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background-color: #e8f0fe;
-        border-color: #4285f4;
-        color: #1a73e8;
-        font-weight: 600;
-      }
-
-      .dataTables_info {
-        display: none !important;
-      }
-      
-       /* Zentriert das Dropdown im Subheader */
-  .subheader-dropdown .selectize-control.single {
-    margin-top: 0 !important;
-    display: flex;
-    align-items: center;
-  }
-
-  .subheader-dropdown .selectize-input {
-    margin: 0 !important;
-    padding: 6px 10px !important;
-    height: 36px !important;
-    font-size: 14px;
-  }
-
-  .subheader-dropdown {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-    "))
+      /* Tabellen und Selectize Styles bleiben unverändert */
+            "
+        ))
     ),
     
-        
-        # Sub-Header direkt darunter (ohne Lücke)
-        div(
-            style = "background-color: #f1f3f4; padding: 18px 32px; height: 72px;
+    # Sub-Header direkt darunter
+    div(
+        style = "background-color: #f1f3f4; padding: 18px 32px; height: 72px;
          display: flex; align-items: center; justify-content: space-between;
          border-top: 1px solid #e0e0e0;",
-            
-            # Linke Seite: Icon + Titel
+        # Linke Seite: Icon + Titel
+        div(
+            style = "display: flex; align-items: center; gap: 12px;",
+            icon("user-cog", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+            span(
+                style = "font-size: 20px; font-weight: 600; color: #202124;",
+                "Planer"
+            )
+        ),
+        # Rechte Seite: Linien-Auswahl + zweite Ansichtsauswahl
+        div(
+            style = "display: flex; align-items: center; gap: 24px;",
+            # Linie auswählen
             div(
-                style = "display: flex; align-items: center; gap: 12px;",
-                icon("arrow-right", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+                style = "display: flex; align-items: center; gap: 8px;",
                 span(
-                    style = "font-size: 20px; font-weight: 600; color: #202124;",
-                    "Fertigungslinien"
+                    style = "font-size: 14px; color: #202124; font-weight: 500;",
+                    "1. Planer auswählen:"
+                ),
+                div(
+                    style = "width: 180px;",
+                    selectizeInput(
+                        inputId = "selected_planer",
+                        label = NULL,
+                        choices = NULL,
+                        selected = "FST1",
+                        options = list(placeholder = ""),
+                        width = "100%"
+                    )
                 )
             ),
-            
-            # Rechte Seite: Linien-Auswahl + zweite Ansichtsauswahl
+            # 2. Ansicht auswählen
             div(
-                style = "display: flex; align-items: center; gap: 24px;",
-                
-                # Linie auswählen
-                div(
-                    style = "display: flex; align-items: center; gap: 8px;",
-                    span(
-                        style = "font-size: 14px; color: #202124; font-weight: 500;",
-                        "1. Fertigungslinie auswählen:"
-                    ),
-                    div(
-                        style = "width: 180px;",
-                        selectizeInput(
-                            inputId = "selected_fertigungslinie",
-                            label = NULL,
-                            choices = NULL,
-                            width = "100%"
-                        )
-                    )
+                style = "display: flex; align-items: center; gap: 8px;",
+                span(
+                    style = "font-size: 14px; color: #202124; font-weight: 500;",
+                    "2. Ansicht auswählen:"
                 ),
-                
-                # 2. Ansicht auswählen
                 div(
-                    style = "display: flex; align-items: center; gap: 8px;",
-                    span(
-                        style = "font-size: 14px; color: #202124; font-weight: 500;",
-                        "2. Ansicht auswählen:"
-                    ),
-                    div(
-                        style = "width: 180px;",
-                        selectInput(
-                            inputId = "view_selection",
-                            label = NULL,
-                            choices = c("Workflow", "Planer", "Werk", "A-Material"),
-                            selected = "Werk",
-                            width = "100%"
-                        )
+                    style = "width: 180px;",
+                    selectInput(
+                        inputId = "view_selection",
+                        label = NULL,
+                        choices = c("Workflow", "Linie", "Werk", "Material"),
+                        selected = "Linie",
+                        width = "100%"
                     )
                 )
             )
-        ),
-    
+        )
+    ),
     
     # INHALT: max-width Wrapper
     div(style = "max-width: 1100px; margin: 0 auto;",
-        
+        # Rest des UI bleibt unverändert, beginnend mit Titel, KPI-Boxes, etc.
         div(
-            style = "padding: 48px 0 12px 0;",  # Abstand oben und unten
-            uiOutput("fertigungslinie_title")
+            style = "padding: 48px 0 12px 0;",
+            uiOutput("planer_title")
         ),
         
         #KPI Boxen
@@ -267,7 +178,9 @@ fertigungslinie_ui <- fluidPage(
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(icon("circle-question"), id = "geschw_info", 
+                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                         ),
                         
                         # Alle 4 Donuts nebeneinander
@@ -312,7 +225,7 @@ fertigungslinie_ui <- fluidPage(
                                     bsPopover(
                                         id = "liefertreue_info",
                                         title = "Liefertreue",
-                                        content = "Dieses Diagramm zeigt, bei wie vielen Aufträgen die komplette Sollmenge geliefert wurde. Liefertreue misst also, ob alle bestellten Teile vollständig angekommen sind – unabhängig vom Zeitpunkt.",
+                                        content = "Asli Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -335,7 +248,7 @@ fertigungslinie_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_me_info",
                                         title = "Geschwindigkeit/ME [s]",
-                                        content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
+                                        content = "Julia",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -358,7 +271,7 @@ fertigungslinie_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_auftrag_info",
                                         title = "Geschwindigkeit/Auftrag [Tage]",
-                                        content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
+                                        content = "Julia",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -411,7 +324,7 @@ fertigungslinie_ui <- fluidPage(
                                         bsPopover(
                                             id = "performance_table_info",
                                             title = "Aktuelle Performance",
-                                            content = "In der Tabelle wird die ausgewählte Ansicht (z. B. Werke, Linien, Materialien) für jede gewählte Entität (z. B. Planer, Workflows) dargestellt. Dadurch kann nachvollzogen werden, wie sich einzelne Entitäten auf unterschiedliche Strukturebenen auswirken. Grün steht für geringe (< 0,5 s/ME), Gelb für moderate (bis 2 s/ME) und Rot für kritische Verzögerungen (> 2 s/ME). Zusätzlich lassen sich die durchschnittlichen Ist- und Soll-Lead Times pro Mengeneinheit sowie die zugehörige Auftragsanzahl ablesen, um Zusammenhänge zwischen Auslastung und Performance sichtbar zu machen.",
+                                            content = "Julia",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
@@ -436,7 +349,7 @@ fertigungslinie_ui <- fluidPage(
                                         bsPopover(
                                             id = "auftrverteilung_info",
                                             title = "Verteilung der Aufträge",
-                                            content = "Dieses Kreisdiagramm zeigt, wie sich die Anzahl der Aufträge auf die ausgewählte Kategorie verteilt. Dadurch wird sichtbar, welche Bereiche besonders häufig oder selten im Workflow vertreten sind. So lassen sich Schwerpunkte im Workflow erkennen und Kapazitätsengpässe frühzeitig identifizieren.",
+                                            content = "Asli",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
@@ -485,6 +398,8 @@ fertigungslinie_ui <- fluidPage(
                                     )
                                 )
                             )
+                            
+                            
                         )
                     )
                 )
@@ -526,7 +441,7 @@ fertigungslinie_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_zeit_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
+                                        content = "Julia",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -556,7 +471,7 @@ fertigungslinie_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_abs_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
+                                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -584,7 +499,7 @@ fertigungslinie_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_rel_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
+                                        content = "Julia",
                                         placement = "right",
                                         trigger = "hover"
                                     )
@@ -600,40 +515,54 @@ fertigungslinie_ui <- fluidPage(
 
 
 #Server-------------------------------------------------------------------------
-fertigungslinie_server <- function(input, output, session) {
+planer_server <- function(input, output, session) {
     
     observe({
-        fertigungslinie <- unique(auftraege_lt_unit$fertigungslinie)
+        planer <- unique(auftraege_lt_unit$planer)
         
         updateSelectizeInput(
             session,
-            inputId = "selected_fertigungslinie",
-            choices = c("Fertigungslinie auswählen" = "", fertigungslinie),
-            selected = "1", 
+            inputId = "selected_planer",
+            choices = c("Planer auswählen" = "", planer),
+            selected = "FST1", 
             server = TRUE
         )
     })
     
-    output$fertigungslinie_title <- renderUI({
-        req(input$selected_fertigungslinie)
+    #Beschränken auf A-Materialien
+    get_filtered_data <- function(df, selected_planer, selected_view) {
+        df_filtered <- df %>%
+            filter(planer == selected_planer)
+        
+        if (selected_view == "Material") {
+            df_filtered <- df_filtered %>%
+                filter(klassifikation == "A")
+        }
+        
+        return(df_filtered)
+    }
+    
+    
+    output$planer_title <- renderUI({
+        req(input$selected_planer)
         
         tags$div(
             style = "margin-top: 32px; margin-bottom: 32px;",
             tags$h2(
-                paste("Details | Fertigungslinie", input$selected_fertigungslinie),
+                paste("Details | Planer", input$selected_planer),
                 style = "font-size: 25px; font-weight: 600; color: #202124; margin: 0;"
             )
         )
     })
     
     output$donut_termintreue <- renderEcharts4r({
-        sel <- input$selected_fertigungslinie
-        df_s <- auftraege_lt_unit %>% filter(fertigungslinie == sel)
-        df_o <- auftraege_lt_unit %>% filter(fertigungslinie != sel)
+        sel <- input$selected_planer
+        df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        df_o <- auftraege_lt_unit %>% filter(planer != sel)
         
         value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
         avg   <- round(df_o %>%
-                           group_by(fertigungslinie) %>%
+                           group_by(planer) %>%
                            summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
                            pull(rate) %>%
                            mean(na.rm = TRUE) * 100, 1)
@@ -688,9 +617,9 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$donut_liefertreue <- renderEcharts4r({
-        sel <- input$selected_fertigungslinie
-        df_s <- auftraege_lt_unit %>% filter(fertigungslinie == sel)
-        df_o <- auftraege_lt_unit %>% filter(fertigungslinie != sel)
+        sel <- input$selected_planer
+        df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        df_o <- auftraege_lt_unit %>% filter(planer != sel)
         
         value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
         avg   <- round(mean(df_o$gelieferte_menge >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
@@ -780,9 +709,9 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$donut_geschwindigkeit_me <- renderEcharts4r({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         
-        df_sel <- auftraege_lt_unit %>% filter(fertigungslinie == input$selected_fertigungslinie, !is.na(lt_ist_order))
+        df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lt_ist_order))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
         
         geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
@@ -844,13 +773,13 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$donut_geschwindigkeit_auftrag <- renderEcharts4r({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         
-        df_sel <- auftraege_lt_unit %>% filter(fertigungslinie == input$selected_fertigungslinie, !is.na(lead_time_ist))
+        df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         
@@ -907,9 +836,9 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$performance_vgl <- renderUI({
-        sel  <- input$selected_fertigungslinie
-        df_s <- auftraege_lt_unit %>% filter(fertigungslinie == sel)
-        df_o <- auftraege_lt_unit %>% filter(fertigungslinie != sel)
+        sel  <- input$selected_planer
+        df_s <- auftraege_lt_unit %>% filter(planer == sel)
+        df_o <- auftraege_lt_unit %>% filter(planer != sel)
         
         # KPI-Werte berechnen (vereinfacht hier)
         kpis <- tibble::tibble(
@@ -921,10 +850,10 @@ fertigungslinie_server <- function(input, output, session) {
                 nrow(df_s)
             ),
             avg = c(
-                df_o %>% group_by(fertigungslinie) %>% summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>% pull(rate) %>% mean(na.rm = TRUE) * 100,
-                df_o %>% filter(abweichung_unit > 0) %>% group_by(fertigungslinie) %>% summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>% pull(avg) %>% mean(na.rm = TRUE),
+                df_o %>% group_by(planer) %>% summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>% pull(rate) %>% mean(na.rm = TRUE) * 100,
+                df_o %>% filter(abweichung_unit > 0) %>% group_by(planer) %>% summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>% pull(avg) %>% mean(na.rm = TRUE),
                 df_o %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
-                df_o %>% group_by(fertigungslinie) %>% summarise(n = n()) %>% pull(n) %>% mean(na.rm = TRUE)
+                df_o %>% group_by(planer) %>% summarise(n = n()) %>% pull(n) %>% mean(na.rm = TRUE)
             )
         )
         
@@ -969,32 +898,32 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$allocation_title <- renderUI({
-        req(input$selected_fertigungslinie, input$view_selection)
+        req(input$selected_planer, input$view_selection)
         h4(
-            paste0("Ansicht ", input$view_selection, " für Fertigungslinie ", input$selected_fertigungslinie),
+            paste0("Ansicht ", input$view_selection, " für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
     output$abweichung_title <- renderUI({
-        req(input$selected_fertigungslinie, input$view_selection)
+        req(input$selected_planer, input$view_selection)
         h4(
-            paste0("Ansicht Lead Time Abweichung für Fertigungslinie ", input$selected_fertigungslinie),
+            paste0("Ansicht Lead Time Abweichung für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
     output$performance_titel <- renderUI({
         h4(
-            paste0("Ansicht Performance für Fertigungslinie ", input$selected_fertigungslinie),
+            paste0("Ansicht Performance für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
     output$lt_title <- renderUI({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         h4(
-            paste("Lead Time- und Performanceübersicht Fertigungslinie", input$selected_fertigungslinie), 
+            paste("Lead Time- und Performanceübersicht Planer", input$selected_planer), 
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
@@ -1005,7 +934,7 @@ fertigungslinie_server <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "A-Material" = "materialnummer"
+        "Material" = "materialnummer"
     )
     
     #Formel zur Berechnung des Modus
@@ -1016,13 +945,13 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$delay_table_shared <- renderDT({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         req(input$view_selection)
         
         col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
-            filter(fertigungslinie == input$selected_fertigungslinie) %>%
+            filter(planer == input$selected_planer) %>%
             filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
@@ -1073,14 +1002,14 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$allocation_pie_shared <- renderEcharts4r({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         req(input$view_selection)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
         selected_col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
-            dplyr::filter(fertigungslinie == input$selected_fertigungslinie) %>%
+            dplyr::filter(planer == input$selected_planer) %>%
             dplyr::filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[selected_col]])) %>%
             dplyr::group_by(category = .data[[selected_col]]) %>%
@@ -1150,10 +1079,10 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$livetracker_auftraege <- renderUI({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         
         anzahl <- auftraege_lt_unit %>%
-            filter(fertigungslinie == input$selected_fertigungslinie) %>%
+            filter(planer == input$selected_planer) %>%
             summarise(n = n_distinct(auftragsnummer)) %>%
             pull(n)
         
@@ -1178,10 +1107,10 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$livetracker_servicelevel <- renderUI({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         
         filtered <- auftraege_lt_unit %>%
-            filter(fertigungslinie == input$selected_fertigungslinie)
+            filter(planer == input$selected_planer)
         
         if (nrow(filtered) == 0) {
             return(
@@ -1201,6 +1130,7 @@ fertigungslinie_server <- function(input, output, session) {
         sl_percent <- paste0(round(sl * 100), "%")
         overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
         
+        #Eddi
         if (sl > overall_sl) {
             icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
             popover_text <- paste("Overperformance |", overall_text)
@@ -1229,14 +1159,14 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$livetracker_bottleneck <- renderUI({
-        req(input$selected_fertigungslinie, input$view_selection)
+        req(input$selected_planer, input$view_selection)
         
         # Spaltenname aus vorhandenem Mapping lt_map
         selected <- lt_map[[input$view_selection]]
         label <- input$view_selection  
         
         bottleneck_info <- auftraege_lt_unit %>%
-            filter(fertigungslinie == input$selected_fertigungslinie, abweichung > 0) %>%
+            filter(planer == input$selected_planer, abweichung > 0) %>%
             filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             filter(!is.na(.data[[selected]])) %>%
             group_by(group = .data[[selected]]) %>%
@@ -1267,12 +1197,12 @@ fertigungslinie_server <- function(input, output, session) {
     })
     
     output$top_delay_orders <- renderDT({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         req(input$view_selection)
         
         df <- auftraege_lt_unit %>%
             filter(
-                fertigungslinie == input$selected_fertigungslinie,
+                planer == input$selected_planer,
                 !is.na(abweichung_unit)
             ) %>%
             filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
@@ -1297,14 +1227,14 @@ fertigungslinie_server <- function(input, output, session) {
     
     ### 1. Neue Tabelle mit Verzögerungsbereichen erzeugen
     output$delay_quartile_summary <- renderDT({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         req(input$view_selection)
         
         selected_col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
             filter(
-                fertigungslinie == input$selected_fertigungslinie,
+                planer == input$selected_planer,
                 abweichung > 0,
                 !is.na(abweichung),
                 !is.na(.data[[selected_col]]),
@@ -1366,15 +1296,15 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_q10 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung > 10) %>%
+                filter(planer == input$selected_planer, abweichung > 10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1390,16 +1320,16 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_q105 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung_unit <= 10 & abweichung_unit > 5) %>%
+                filter(planer == input$selected_planer, abweichung_unit <= 10 & abweichung_unit > 5) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1414,16 +1344,16 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_q53 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung_unit <= 5 & abweichung_unit > 3) %>%
+                filter(planer == input$selected_planer, abweichung_unit <= 5 & abweichung_unit > 3) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1438,16 +1368,16 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_q31 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung_unit <= 3 & abweichung_unit > 1) %>%
+                filter(planer == input$selected_planer, abweichung_unit <= 3 & abweichung_unit > 1) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1456,23 +1386,21 @@ fertigungslinie_server <- function(input, output, session) {
     
     
     output$top_early_orders <- renderDT({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         req(input$view_selection)
         
         df <- auftraege_lt_unit %>%
             filter(
-                fertigungslinie == input$selected_fertigungslinie,
+                planer == input$selected_planer,
                 !is.na(abweichung_unit),
                 abweichung_unit < 0  # nur zu frühe
             ) %>%
             arrange(abweichung_unit) %>%  # früheste oben
             slice_head(n = 200) %>%
             transmute(
-                Auftragsnummer     = auftragsnummer,
-                Materialnummer     = materialnummer,
-                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                `Auftrag`     = auftragsnummer,
+                `Mat.`     = materialnummer,
+                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
             )
         
         datatable(
@@ -1488,14 +1416,14 @@ fertigungslinie_server <- function(input, output, session) {
     })
     
     output$early_quartile_summary <- renderDT({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         req(input$view_selection)
         
         selected_col <- lt_map[[input$view_selection]]
         
         df <- auftraege_lt_unit %>%
             filter(
-                fertigungslinie == input$selected_fertigungslinie,
+                planer == input$selected_planer,
                 abweichung_unit < 0,
                 !is.na(abweichung_unit),
                 !is.na(.data[[selected_col]])
@@ -1554,16 +1482,16 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_e10 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung_unit < -10) %>%
+                filter(planer == input$selected_planer, abweichung_unit < -10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1578,16 +1506,16 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_e105 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung_unit >= -10 & abweichung_unit < -5) %>%
+                filter(planer == input$selected_planer, abweichung_unit >= -10 & abweichung_unit < -5) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1602,16 +1530,16 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_e53 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung_unit >= -5 & abweichung_unit < -3) %>%
+                filter(planer == input$selected_planer, abweichung_unit >= -5 & abweichung_unit < -3) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1626,27 +1554,30 @@ fertigungslinie_server <- function(input, output, session) {
         ))
         
         output$modal_e31 <- renderDT({
-            req(input$selected_fertigungslinie)
+            req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(fertigungslinie == input$selected_fertigungslinie, abweichung_unit >= -3 & abweichung_unit < -1) %>%
+                filter(planer == input$selected_planer, abweichung_unit >= -3 & abweichung_unit < -1) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
+                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    
+    
+    
     output$abweichung_time_plot <- renderPlotly({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         
         df <- auftraege_lt_unit %>%
-            filter(fertigungslinie == input$selected_fertigungslinie) %>%
+            filter(planer == input$selected_planer) %>%
             arrange(starttermin_ist) %>%
             slice(seq(1, n(), by = 10))
         
@@ -1674,9 +1605,9 @@ fertigungslinie_server <- function(input, output, session) {
             )
     })
     
-    plot_abweichung_histogram <- function(df, selected_fertigungslinie) {
+    plot_abweichung_histogram <- function(df, selected_planer) {
         df_filtered <- df %>%
-            filter(fertigungslinie == selected_fertigungslinie & !is.na(abweichung))
+            filter(planer == selected_planer & !is.na(abweichung))
         
         if (nrow(df_filtered) == 0) return(NULL)
         
@@ -1697,15 +1628,15 @@ fertigungslinie_server <- function(input, output, session) {
     }
     
     output$abweichung_hist_plot <- renderPlotly({
-        req(input$selected_fertigungslinie)
-        plot_abweichung_histogram(vorgaenge_sorted, input$selected_fertigungslinie)
+        req(input$selected_planer)
+        plot_abweichung_histogram(vorgaenge_sorted, input$selected_planer)
     })
     
     abweichung_tabelle <- reactive({
-        req(input$selected_fertigungslinie)
+        req(input$selected_planer)
         
         df <- auftraege_lt_unit %>%
-            filter(fertigungslinie == input$selected_fertigungslinie) %>%
+            filter(planer == input$selected_planer) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
             mutate(
                 abw_rel = (lt_ist_order - lt_soll_order) / lt_soll_order,
@@ -1760,4 +1691,4 @@ fertigungslinie_server <- function(input, output, session) {
     
 }
 
-shinyApp(fertigungslinie_ui, fertigungslinie_server)
+shinyApp(planer_ui, planer_server)

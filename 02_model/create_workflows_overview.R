@@ -39,8 +39,8 @@ workflows_overview <- auftraege_lt_unit %>%
             sum(!is.na(abweichung_unit)),
         .groups = "drop"
     ) %>%
-
-# Visualize --------------------------------------------------------------------
+    
+    # Visualize --------------------------------------------------------------------
 
 mutate(
     `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
@@ -49,14 +49,14 @@ mutate(
         servicelevel_numeric >= 0.7  ~ "orange",
         TRUE                         ~ "red"
     ),
-    ampel = paste0(
+    Status = paste0(
         "<div style='color: ", ampel_color, 
         "; font-size: 20px; display: inline-block; text-align: center;'>&#9679;</div>"
     )
 ) %>%
     rename(`Workflow` = vorgangsfolge) %>%
     dplyr::select(
-        ampel_color, ampel, Workflow,
+        Status, Workflow,
         `Soll-LT/Unit [s]`, `Ist-LT/Unit [s]`, `Avg Delay/Unit [s]`,
         `# Orders`, `Servicelevel`
     ) %>%
@@ -88,22 +88,21 @@ mutate(
         servicelevel_numeric >= 0.7  ~ "orange",
         TRUE                         ~ "red"
     ),
-    ampel = paste0(
+    Status = paste0(
         "<div style='color: ", ampel_color, 
         "; font-size: 20px; display: inline-block; text-align: center;'>&#9679;</div>"
     )
 ) %>%
     rename(`Fertigungslinie` = fertigungslinie) %>%
     dplyr::select(
-        ampel_color, ampel, Fertigungslinie,
+        Status, Fertigungslinie,
         `Soll-LT/Unit [s]`, `Ist-LT/Unit [s]`, `Avg Delay/Unit [s]`,
         `# Orders`, `Servicelevel`
     ) %>%
     arrange(desc(`# Orders`))
 
 #Werke--------------------------------------------------------------------------
-
-werke_overview <- vorgaenge_lt_unit %>%
+werke_overview <- auftraege_lt_unit %>%
     filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
     group_by(werk) %>%
     summarise(
@@ -127,18 +126,20 @@ mutate(
         servicelevel_numeric >= 0.7  ~ "orange",
         TRUE                         ~ "red"
     ),
-    ampel = paste0(
+    Status = paste0(
         "<div style='color: ", ampel_color, 
         "; font-size: 20px; display: inline-block; text-align: center;'>&#9679;</div>"
     )
 ) %>%
     rename(`Werk` = werk) %>%
     dplyr::select(
-        ampel_color, ampel, Werk,
+        Status, Werk,
         `Soll-LT/Unit [s]`, `Ist-LT/Unit [s]`, `Avg Delay/Unit [s]`,
         `# Orders`, `Servicelevel`
     ) %>%
     arrange(desc(`# Orders`))
+
+
 
 
 #Planer---------------------------------------------------------------
@@ -167,19 +168,54 @@ mutate(
         servicelevel_numeric >= 0.7  ~ "orange",
         TRUE                         ~ "red"
     ),
-    ampel = paste0(
+    Status = paste0(
         "<div style='color: ", ampel_color, 
         "; font-size: 20px; display: inline-block; text-align: center;'>&#9679;</div>"
     )
 ) %>%
     rename(`Planer` = planer) %>%
     dplyr::select(
-        ampel_color, ampel, Planer,
+        Status, Planer,
         `Soll-LT/Unit [s]`, `Ist-LT/Unit [s]`, `Avg Delay/Unit [s]`,
         `# Orders`, `Servicelevel`
     ) %>%
     arrange(desc(`# Orders`))
 
-# Communicate ------------------------------------------------------------------
+# Material
+
+material_overview <- auftraege_lt_unit %>%
+    filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
+    group_by(klassifikation) %>%
+    summarise(
+        lt_soll_median = median(lt_soll_order, na.rm = TRUE),
+        lt_ist_median  = median(lt_ist_order,  na.rm = TRUE),
+        `# Orders` = n(),
+        servicelevel_numeric = sum(abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(abweichung_unit)),
+        .groups = "drop"
+    ) %>%
+    mutate(
+        `Soll-LT/Unit [s]`     = round(lt_soll_median, 2),
+        `Ist-LT/Unit [s]`      = round(lt_ist_median, 2),
+        `Avg Delay/Unit [s]`   = round(pmax(lt_ist_median - lt_soll_median, 0), 4),
+        `Servicelevel`         = paste0(round(servicelevel_numeric * 100, 0), "%"),
+        ampel_color = case_when(
+            servicelevel_numeric >= 0.95 ~ "green",
+            servicelevel_numeric >= 0.7  ~ "orange",
+            TRUE                         ~ "red"
+        ),
+        Status = paste0(
+            "<div style='color: ", ampel_color, 
+            "; font-size: 20px; display: inline-block; text-align: center;'>&#9679;</div>"
+        )
+    ) %>%
+    rename(`Material (A,B,C)` = klassifikation) %>%
+    dplyr::select(
+        Status, `Material (A,B,C)`,
+        `Soll-LT/Unit [s]`, `Ist-LT/Unit [s]`, `Avg Delay/Unit [s]`,
+        `# Orders`, `Servicelevel`
+    ) %>%
+    arrange(`Material (A,B,C)`)
+
 
 

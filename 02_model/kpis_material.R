@@ -52,3 +52,5 @@ abc_summary <- materialnummer_overview %>%
         Anteil_pünktlich = mean(Anteil_pünktlich, na.rm = TRUE) # KEIN round!
     ) %>%
     ungroup()
+
+view(materialnummer_overview)

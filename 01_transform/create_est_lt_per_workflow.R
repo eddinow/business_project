@@ -31,55 +31,55 @@ source("01_transform/create_lt_unit.R", local = TRUE)
 #SOLLZEITEN--------
 
 # Tidy
-create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
+create_est_lt <- function(df, selected_vorgangsfolge, fallback_bin_size = 100000) {
     df_step <- df %>%
-        filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_soll))
-
+        filter(vorgangsfolge == selected_vorgangsfolge, !is.na(sollmenge), !is.na(solldauer))
+    
     # Cutoffs
     cutoffs <- df_step %>%
         summarise(
             menge_min = quantile(sollmenge, 0.01),
             menge_max = quantile(sollmenge, 0.99),
-            lt_min    = quantile(lead_time_soll, 0.01),
-            lt_max    = quantile(lead_time_soll, 0.99)
+            lt_min    = quantile(solldauer, 0.01),
+            lt_max    = quantile(solldauer, 0.99)
         )
-
+    
     df_clean <- df_step %>%
         filter(
             between(sollmenge, cutoffs$menge_min, cutoffs$menge_max),
-            between(lead_time_soll, cutoffs$lt_min, cutoffs$lt_max)
+            between(solldauer, cutoffs$lt_min, cutoffs$lt_max)
         )
     
-# Transform
+    # Transform
     # Bin-Breite automatisch bestimmen (mit fallback)
     iqr <- IQR(df_clean$sollmenge, na.rm = TRUE)
     n <- sum(!is.na(df_clean$sollmenge))
     bin_size <- 2 * iqr / (n^(1/3))
     if (is.na(bin_size) || bin_size <= 0) bin_size <- fallback_bin_size
-
+    
     breaks <- seq(0, max(df_clean$sollmenge, na.rm = TRUE) + bin_size, by = bin_size)
     if (length(breaks) < 2) return(NULL)
-
+    
     df_binned <- df_clean %>%
         mutate(
             bin = cut(sollmenge, breaks = breaks, include.lowest = TRUE, right = FALSE)
         )
-
-# Model
+    
+    # Model
     lt_by_bin <- df_binned %>%
         group_by(bin) %>%
         summarise(
-            median_lt = median(lead_time_soll, na.rm = TRUE),
-            p10 = quantile(lead_time_soll, 0.10, na.rm = TRUE),
-            p90 = quantile(lead_time_soll, 0.90, na.rm = TRUE),
+            median_lt = median(solldauer, na.rm = TRUE),
+            p10 = quantile(solldauer, 0.10, na.rm = TRUE),
+            p90 = quantile(solldauer, 0.90, na.rm = TRUE),
             .groups = "drop"
         ) %>%
         filter(!is.na(bin))
-
+    
     bin_levels <- levels(df_binned$bin)
     bin_starts <- as.numeric(gsub("^\\[|\\(|,.*$", "", bin_levels))
     bin_ends   <- as.numeric(gsub("^.*,(.*)\\]$", "\\1", bin_levels))
-
+    
     bin_bounds <- tibble(bin = factor(bin_levels, levels = bin_levels)) %>%
         mutate(
             bin_start = bin_starts,
@@ -90,8 +90,8 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
             )
         ) %>%
         filter(bin %in% lt_by_bin$bin)
-
-# Visualize
+    
+    # Visualize
     lt_by_bin <- lt_by_bin %>%
         left_join(bin_bounds, by = "bin") %>%
         mutate(bin_label = factor(bin_label, levels = bin_label))
@@ -106,7 +106,7 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
         ) +
         theme_minimal() +
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+    
     return(list(
         plot = p,
         table = lt_by_bin %>%
@@ -119,53 +119,53 @@ create_est_lt <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
 # #ISTZEITEN------------------------------
 
 # Tidy
-create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) {
+create_est_lt_ist <- function(df, selected_vorgangsfolge, fallback_bin_size = 100000) {
     df_step_ist <- df %>%
-        filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(lead_time_ist))
-
+        filter(vorgangsfolge == selected_vorgangsfolge, !is.na(sollmenge), !is.na(istdauer))
+    
     # Cutoffs
     cutoffs_ist <- df_step_ist %>%
         summarise(
             menge_min = quantile(sollmenge, 0.01),
             menge_max = quantile(sollmenge, 0.99),
-            lt_min    = quantile(lead_time_ist, 0.01),
-            lt_max    = quantile(lead_time_ist, 0.99)
+            lt_min    = quantile(istdauer, 0.01),
+            lt_max    = quantile(istdauer, 0.99)
         )
-
+    
     df_clean_ist <- df_step_ist %>%
         filter(
             between(sollmenge, cutoffs_ist$menge_min, cutoffs_ist$menge_max),
-            between(lead_time_ist, cutoffs_ist$lt_min, cutoffs_ist$lt_max)
+            between(istdauer, cutoffs_ist$lt_min, cutoffs_ist$lt_max)
         )
-
-# Transform
+    
+    # Transform
     iqr_ist <- IQR(df_clean_ist$sollmenge, na.rm = TRUE)
     n_ist <- sum(!is.na(df_clean_ist$sollmenge))
     bin_size_ist <- 2 * iqr_ist / (n_ist^(1/3))
     if (is.na(bin_size_ist) || bin_size_ist <= 0) bin_size_ist <- fallback_bin_size
-
+    
     breaks_ist <- seq(0, max(df_clean_ist$sollmenge, na.rm = TRUE) + bin_size_ist, by = bin_size_ist)
     if (length(breaks_ist) < 2) return(NULL)
-
+    
     df_binned_ist <- df_clean_ist %>%
         mutate(
             bin = cut(sollmenge, breaks = breaks_ist, include.lowest = TRUE, right = FALSE)
         )
-
+    
     lt_by_bin_ist <- df_binned_ist %>%
         group_by(bin) %>%
         summarise(
-            median_lt = median(lead_time_ist, na.rm = TRUE),
-            p10 = quantile(lead_time_ist, 0.10, na.rm = TRUE),
-            p90 = quantile(lead_time_ist, 0.90, na.rm = TRUE),
+            median_lt = median(istdauer, na.rm = TRUE),
+            p10 = quantile(istdauer, 0.10, na.rm = TRUE),
+            p90 = quantile(istdauer, 0.90, na.rm = TRUE),
             .groups = "drop"
         ) %>%
         filter(!is.na(bin))
-
+    
     bin_levels_ist <- levels(df_binned_ist$bin)
     bin_starts_ist <- as.numeric(gsub("^\\[|\\(|,.*$", "", bin_levels_ist))
     bin_ends_ist   <- as.numeric(gsub("^.*,(.*)\\]$", "\\1", bin_levels_ist))
-
+    
     bin_bounds_ist <- tibble(bin = factor(bin_levels_ist, levels = bin_levels_ist)) %>%
         mutate(
             bin_start = bin_starts_ist,
@@ -176,25 +176,25 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
             )
         ) %>%
         filter(bin %in% lt_by_bin_ist$bin)
-
-# Model
+    
+    # Model
     lt_by_bin_ist <- lt_by_bin_ist %>%
         left_join(bin_bounds_ist, by = "bin") %>%
         mutate(bin_label = factor(bin_label, levels = bin_label))
-
-# Visualize
+    
+    # Visualize
     p_ist <- ggplot(lt_by_bin_ist, aes(x = bin_label)) +
         geom_ribbon(aes(ymin = p10, ymax = p90, group = 1), fill = "#002366", alpha = 0.2) +
         geom_line(aes(y = median_lt, group = 1), color = "#002366", linewidth = 1) +
         geom_point(aes(y = median_lt), color = "#002366", size = 2) +
         labs(
-           # title = paste("Lead Time (IST) je Losgrößen-Bin –", vorgangsfolge_id),
+            # title = paste("Lead Time (IST) je Losgrößen-Bin –", selected_vorgangsfolge),
             x = "Sollmengen-Bereich",
             y = "Lead Time (ist)"
         ) +
         theme_minimal() +
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+    
     return(list(
         plot = p_ist,
         table = lt_by_bin_ist %>%
@@ -206,10 +206,10 @@ create_est_lt_ist <- function(df, vorgangsfolge_id, fallback_bin_size = 100000) 
 # SOLL- UND IST ------------
 
 # Model
-create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100000, session = NULL) {
-    compute_variant <- function(df, vorgangsfolge_id, col_name, label) {
+create_est_lt_combined <- function(df, selected_vorgangsfolge, fallback_bin_size = 100000, session = NULL) {
+    compute_variant <- function(df, selected_vorgangsfolge, col_name, label) {
         df_step <- df %>%
-            filter(vorgangsfolge == vorgangsfolge_id, !is.na(sollmenge), !is.na(.data[[col_name]]))
+            filter(vorgangsfolge == selected_vorgangsfolge, !is.na(sollmenge), !is.na(.data[[col_name]]))
         
         if (nrow(df_step) < 3) return(NULL)
         
@@ -257,14 +257,14 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
         
         return(lt_by_bin)
     }
-
-    df_soll <- compute_variant(df, vorgangsfolge_id, "lead_time_soll", "Soll")
-    df_ist  <- compute_variant(df, vorgangsfolge_id, "lead_time_ist", "Ist")
+    
+    df_soll <- compute_variant(df, selected_vorgangsfolge, "solldauer", "Soll")
+    df_ist  <- compute_variant(df, selected_vorgangsfolge, "istdauer", "Ist")
     if (is.null(df_soll) || is.null(df_ist)) return(NULL)
     
     df_combined <- bind_rows(df_soll, df_ist)
     
-# Visualize
+    # Visualize
     if (!is.null(session)) {
         updateSliderInput(session, "selected_sollmenge",
                           min = min(df_combined$bin_start, na.rm = TRUE),
@@ -273,24 +273,41 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
                           step = 1000)
     }
     
-    
     all_labels <- levels(df_combined$bin_label)
     selected_labels <- all_labels[seq(1, length(all_labels), by = ceiling(length(all_labels) / 5))]
     
     total_points <- nrow(df_combined)
     
+    # Dummy-Daten nur für die Legende
+    leg_df <- data.frame(
+        variante = c("Ist", "Soll"),
+        bin_label = factor(rep(df_combined$bin_label[1], 2), levels = levels(df_combined$bin_label)),
+        median_lt = c(0, 0)  # z. B. 0 oder ein realistischer, kleiner Wert
+    )
+    
     p <- ggplot(df_combined, aes(x = bin_label, group = variante)) +
-        geom_ribbon(aes(ymin = p10, ymax = p90, fill = variante), alpha = 0.08) +
-        geom_line(aes(y = median_lt, color = variante), linewidth = 0.3) +
-        geom_point(aes(y = median_lt, color = variante), size = 0.4) +
-        scale_color_manual(values = c("Soll" = "#002366", "Ist" = "#6495ED")) +
-        scale_fill_manual(values = c("Soll" = "#002366", "Ist" = "#6495ED")) +
+        # Transparente Bänder (keine Legende anzeigen)
+        geom_ribbon(aes(ymin = p10, ymax = p90, fill = variante), alpha = 0.08, show.legend = FALSE) +
+        
+        # Reale Datenlinien (nicht für Legende)
+        geom_line(aes(y = median_lt, color = variante), linewidth = 0.3, show.legend = FALSE) +
+        geom_point(aes(y = median_lt, color = variante), size = 0.4, show.legend = FALSE) +
+        
+        # Dummy-Linien nur für die Legende
+        geom_line(data = leg_df, aes(y = median_lt, color = variante), linewidth = 1, na.rm = TRUE) +
+        
+        scale_color_manual(
+            values = c("Soll" = "#8B0000", "Ist" = "#6495ED"),
+            labels = c("Soll" = "LT Soll", "Ist" = "LT Ist")
+        ) +
+        scale_fill_manual(
+            values = c("Soll" = "#8B0000", "Ist" = "#6495ED"),
+            guide = "none"  # keine eigene Legende für Flächen
+        ) +
         labs(
-            #title = paste("Soll- und Ist-Lead Time", vorgangsfolge_id),
             x = "Sollmengen-Bereich",
             y = "Lead Time",
             color = "Variante",
-            fill = "Variante",
             caption = paste("Aufträge ges.:", total_points)
         ) +
         scale_x_discrete(breaks = selected_labels) +
@@ -302,11 +319,12 @@ create_est_lt_combined <- function(df, vorgangsfolge_id, fallback_bin_size = 100
             legend.box = "vertical"
         )
     
+    
+    
     return(list(
         plot = p,
         table = df_combined %>%
             dplyr::select(bin_label, bin_start, bin_end, variante, lt_median = median_lt, lt_lower = p10, lt_upper = p90)
     ))
 }
-
 # Communicate ------------------------------------------------------------------

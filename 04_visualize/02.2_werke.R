@@ -51,50 +51,6 @@ werk_ui <- fluidPage(
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
 
-      .navbar {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: white;
-        border-bottom: 1px solid #ddd;
-        padding: 1rem 2rem;
-        font-weight: bold;
-        font-size: 16px;
-        position: relative;
-      }
-
-      .nav-tabs-custom {
-        display: flex;
-        gap: 32px;
-        font-size: 14px;
-        color: #5f6368;
-        padding-top: 8px;
-      }
-
-      .nav-tabs-custom a {
-        text-decoration: none;
-        color: #5f6368;
-        padding-bottom: 8px;
-      }
-
-      .nav-tabs-custom a.active {
-        color: #1a73e8;
-        font-weight: 600;
-        border-bottom: 3px solid #1a73e8;
-      }
-
-      .navbar-right {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-      }
-
-      .navbar-logo {
-        font-weight: 600;
-        font-size: 18px;
-        color: #202124;
-      }
 
       .white-box {
         background-color: white;
@@ -202,35 +158,6 @@ werk_ui <- fluidPage(
     "))
     ),
     
-    # NAVBAR OBEN
-    div(
-        style = "width: 100%; display: flex; flex-direction: column; background-color: white; border-bottom: 1px solid #ddd;",
-        
-        # Obere Zeile: Logo, Tabs, Icons
-        div(
-            style = "display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;",
-            
-            # Links: Logo + Tabs
-            div(style = "display: flex; align-items: center; gap: 32px;",
-                div(class = "navbar-logo",
-                    span(style = "color: #4285F4;", "True"),
-                    span(style = "color: #EA4335;", "Time")
-                ),
-                div(class = "nav-tabs-custom",
-                    a(id = "nav_material", href = "#", "Material"),
-                    a(id = "nav_workflows", href = "#", class = "active", "Workflows"),
-                    a(id = "nav_linien", href = "#", "Linien"),
-                    a(id = "nav_werke", href = "#", "Werke")
-                )
-            ),
-            
-            # Rechts: Icons
-            div(class = "navbar-right",
-                actionButton("download_report", label = NULL, icon = icon("file-arrow-down"),
-                             style = "background: none; border: none; color: #5f6368; font-size: 16px;"),
-                tags$span(icon("user-circle"), style = "font-size: 20px; color: #5f6368; cursor: pointer;")
-            )
-        ),
         
         # Sub-Header direkt darunter (ohne Lücke)
         div(
@@ -265,8 +192,6 @@ werk_ui <- fluidPage(
                             inputId = "selected_werk",
                             label = NULL,
                             choices = NULL,
-                            selected = "",
-                            options = list(placeholder = ""),
                             width = "100%"
                         )
                     )
@@ -284,16 +209,14 @@ werk_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Workflow", "Linie", "Planer", "Material"),
+                            choices = c("Workflow", "Linie", "Planer", "A-Material"),
                             selected = "Linie",
                             width = "100%"
                         )
                     )
                 )
             )
-        )
-        
-    ),
+        ),
     
     
     # INHALT: max-width Wrapper
@@ -366,7 +289,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "termintreue_info",
                                         title = "Termintreue",
-                                        content = "Eddi Anteil der Aufträge, die pünktlich zum gewünschten Liefertermin fertig wurden.",
+                                        content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -412,7 +335,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_me_info",
                                         title = "Geschwindigkeit/ME [s]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -435,7 +358,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_auftrag_info",
                                         title = "Geschwindigkeit/Auftrag [Tage]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -447,14 +370,7 @@ werk_ui <- fluidPage(
             )
         ),
         
-        
-        bsPopover(
-            id = "performance_vgl_info",
-            title = "Was wird hier gezeigt?",
-            content = "Eddi",
-            placement = "right",
-            trigger = "hover"
-        ),
+
         
         
         fluidRow(
@@ -488,7 +404,7 @@ werk_ui <- fluidPage(
                                         bsPopover(
                                             id = "performance_table_info",
                                             title = "Aktuelle Performance",
-                                            content = "Julia",
+                                            content = "In der Tabelle wird die ausgewählte Ansicht (z. B. Werke, Linien, Materialien) für jede gewählte Entität (z. B. Planer, Workflows) dargestellt. Dadurch kann nachvollzogen werden, wie sich einzelne Entitäten auf unterschiedliche Strukturebenen auswirken. Grün steht für geringe (< 0,5 s/ME), Gelb für moderate (bis 2 s/ME) und Rot für kritische Verzögerungen (> 2 s/ME). Zusätzlich lassen sich die durchschnittlichen Ist- und Soll-Lead Times pro Mengeneinheit sowie die zugehörige Auftragsanzahl ablesen, um Zusammenhänge zwischen Auslastung und Performance sichtbar zu machen.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
@@ -531,18 +447,34 @@ werk_ui <- fluidPage(
                                     tagList(
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            span("Top 200 Aufträge mit Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
                                             id = "topdelay_info",
-                                            title = "Top 200 Aufträge mit höchster Abweichung",
-                                            content = "Eddi",
+                                            title = "Verfrühung & Verzögerung",
+                                            content = "Zeigt, wie stark einzelne Aufträge vom Soll abweichen. Mit Klick auf die Lupe werden die konkreten Aufträge eingeblendet.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
-                                        DTOutput("delay_quartile_summary")
+                                        
+                                        tabsetPanel(
+                                            id = "abweichung_tabs",
+                                            type = "tabs",
+                                            
+                                            # Tab 1: Verzögerungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verzögerungen",
+                                                DTOutput("delay_quartile_summary")
+                                            ),
+                                            
+                                            # Tab 2: Verfrühungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verfrühungen",
+                                                DTOutput("early_quartile_summary")
+                                            )
+                                        )
                                     )
                                 )
                             )
@@ -587,7 +519,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_zeit_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -617,7 +549,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_abs_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                                        content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -645,7 +577,7 @@ werk_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_rel_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
                                         placement = "right",
                                         trigger = "hover"
                                     )
@@ -910,8 +842,8 @@ werk_server <- function(input, output, session) {
         df_sel <- auftraege_lt_unit %>% filter(werk == input$selected_werk, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         
@@ -1066,7 +998,7 @@ werk_server <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "Material" = "materialnummer"
+        "A-Material" = "materialnummer"
     )
     
     #Formel zur Berechnung des Modus
@@ -1434,8 +1366,8 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1458,9 +1390,9 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1482,9 +1414,9 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1506,9 +1438,9 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1529,9 +1461,11 @@ werk_server <- function(input, output, session) {
             arrange(abweichung_unit) %>%  # früheste oben
             slice_head(n = 200) %>%
             transmute(
-                `Auftrag`     = auftragsnummer,
-                `Mat.`     = materialnummer,
-                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
+                Auftragsnummer     = auftragsnummer,
+                Materialnummer     = materialnummer,
+                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                `Abweichung [T/Auftr.]` = round(abweichung, 2)
             )
         
         datatable(
@@ -1620,9 +1554,9 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1644,9 +1578,9 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1668,9 +1602,9 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1692,9 +1626,9 @@ werk_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")

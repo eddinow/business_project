@@ -10,8 +10,9 @@ library(plotly)
 library(ggbreak)
 
 source("02_model/create_workflows_overview.R", local = TRUE)
-source("02_model/kpis_werke.R", local = TRUE)
+source("02_model/kpis_workflow_liegezeit.R", local = TRUE)
 source("01_transform/create_lt_unit.R", local = TRUE)
+source("01_transform/create_est_lt_per_workflow.R", local = TRUE)
 
 
 my_theme <- function(base_family = "Inter") {
@@ -39,7 +40,7 @@ my_theme <- function(base_family = "Inter") {
 
 
 #UI-----------------------------------------------------------------------------
-workflow_ui <- fluidPage(
+vorgangsfolge_ui <- fluidPage(
     
     # HEAD-Bereich mit Styles
     tags$head(
@@ -51,50 +52,6 @@ workflow_ui <- fluidPage(
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
 
-      .navbar {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: white;
-        border-bottom: 1px solid #ddd;
-        padding: 1rem 2rem;
-        font-weight: bold;
-        font-size: 16px;
-        position: relative;
-      }
-
-      .nav-tabs-custom {
-        display: flex;
-        gap: 32px;
-        font-size: 14px;
-        color: #5f6368;
-        padding-top: 8px;
-      }
-
-      .nav-tabs-custom a {
-        text-decoration: none;
-        color: #5f6368;
-        padding-bottom: 8px;
-      }
-
-      .nav-tabs-custom a.active {
-        color: #1a73e8;
-        font-weight: 600;
-        border-bottom: 3px solid #1a73e8;
-      }
-
-      .navbar-right {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-      }
-
-      .navbar-logo {
-        font-weight: 600;
-        font-size: 18px;
-        color: #202124;
-      }
 
       .white-box {
         background-color: white;
@@ -202,35 +159,6 @@ workflow_ui <- fluidPage(
     "))
     ),
     
-    # NAVBAR OBEN
-    div(
-        style = "width: 100%; display: flex; flex-direction: column; background-color: white; border-bottom: 1px solid #ddd;",
-        
-        # Obere Zeile: Logo, Tabs, Icons
-        div(
-            style = "display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;",
-            
-            # Links: Logo + Tabs
-            div(style = "display: flex; align-items: center; gap: 32px;",
-                div(class = "navbar-logo",
-                    span(style = "color: #4285F4;", "True"),
-                    span(style = "color: #EA4335;", "Time")
-                ),
-                div(class = "nav-tabs-custom",
-                    a(id = "nav_material", href = "#", "Material"),
-                    a(id = "nav_workflows", href = "#", class = "active", "Workflows"),
-                    a(id = "nav_linien", href = "#", "Linien"),
-                    a(id = "nav_werke", href = "#", "Werke")
-                )
-            ),
-            
-            # Rechts: Icons
-            div(class = "navbar-right",
-                actionButton("download_report", label = NULL, icon = icon("file-arrow-down"),
-                             style = "background: none; border: none; color: #5f6368; font-size: 16px;"),
-                tags$span(icon("user-circle"), style = "font-size: 20px; color: #5f6368; cursor: pointer;")
-            )
-        ),
         
         # Sub-Header direkt darunter (ohne Lücke)
         div(
@@ -241,7 +169,7 @@ workflow_ui <- fluidPage(
             # Linke Seite: Icon + Titel
             div(
                 style = "display: flex; align-items: center; gap: 12px;",
-                icon("industry", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+                icon("project-diagram", class = NULL, style = "font-size: 20px; color: #5f6368;"),
                 span(
                     style = "font-size: 20px; font-weight: 600; color: #202124;",
                     "Workflows"
@@ -262,10 +190,9 @@ workflow_ui <- fluidPage(
                     div(
                         style = "width: 180px;",
                         selectizeInput(
-                            inputId = "selected_workflow",
+                            inputId = "selected_vorgangsfolge",
                             label = NULL,
                             choices = NULL,
-                            selected = "1",
                             options = list(placeholder = ""),
                             width = "100%"
                         )
@@ -284,16 +211,14 @@ workflow_ui <- fluidPage(
                         selectInput(
                             inputId = "view_selection",
                             label = NULL,
-                            choices = c("Linie", "Planer", "Werk", "Material"),
-                            selected = "Werk",
+                            choices = c("Arbeitsschritte", "Arbeitsplatz", "A-Material"),
+                            selected = "Arbeitsschritte",
                             width = "100%"
                         )
                     )
                 )
             )
-        )
-        
-    ),
+        ),
     
     
     # INHALT: max-width Wrapper
@@ -301,7 +226,7 @@ workflow_ui <- fluidPage(
         
         div(
             style = "padding: 48px 0 12px 0;",  # Abstand oben und unten
-            uiOutput("workflow_title")
+            uiOutput("vorgangsfolge_title")
         ),
         
         #KPI Boxen
@@ -344,9 +269,7 @@ workflow_ui <- fluidPage(
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "geschw_info", 
-                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
                         ),
                         
                         # Alle 4 Donuts nebeneinander
@@ -368,7 +291,7 @@ workflow_ui <- fluidPage(
                                     bsPopover(
                                         id = "termintreue_info",
                                         title = "Termintreue",
-                                        content = "Eddi Anteil der Aufträge, die pünktlich zum gewünschten Liefertermin fertig wurden.",
+                                        content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -414,7 +337,7 @@ workflow_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_me_info",
                                         title = "Geschwindigkeit/ME [s]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -437,7 +360,7 @@ workflow_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_auftrag_info",
                                         title = "Geschwindigkeit/Auftrag [Tage]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -490,7 +413,7 @@ workflow_ui <- fluidPage(
                                         bsPopover(
                                             id = "performance_table_info",
                                             title = "Aktuelle Performance",
-                                            content = "Julia",
+                                            content = "In der Tabelle wird die ausgewählte Ansicht (z. B. Werke, Linien, Materialien) für jede gewählte Entität (z. B. Planer, Workflows) dargestellt. Dadurch kann nachvollzogen werden, wie sich einzelne Entitäten auf unterschiedliche Strukturebenen auswirken. Grün steht für geringe (< 0,5 s/ME), Gelb für moderate (bis 2 s/ME) und Rot für kritische Verzögerungen (> 2 s/ME). Zusätzlich lassen sich die durchschnittlichen Ist- und Soll-Lead Times pro Mengeneinheit sowie die zugehörige Auftragsanzahl ablesen, um Zusammenhänge zwischen Auslastung und Performance sichtbar zu machen.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
@@ -533,23 +456,101 @@ workflow_ui <- fluidPage(
                                     tagList(
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
-                                            span("Top 200 Aufträge mit höchster Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                            span("Top 200 Aufträge mit Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
                                             id = "topdelay_info",
-                                            title = "Top 200 Aufträge mit höchster Abweichung",
-                                            content = "Eddi",
+                                            title = "Verfrühung & Verzögerung",
+                                            content = "Zeigt, wie stark einzelne Aufträge vom Soll abweichen. Mit Klick auf die Lupe werden die konkreten Aufträge eingeblendet.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
-                                        DTOutput("delay_quartile_summary")
+                                        
+                                        tabsetPanel(
+                                            id = "abweichung_tabs",
+                                            type = "tabs",
+                                            
+                                            # Tab 1: Verzögerungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verzögerungen",
+                                                DTOutput("delay_quartile_summary")
+                                            ),
+                                            
+                                            # Tab 2: Verfrühungsverteilung mit Lupenbuttons
+                                            tabPanel(
+                                                "Verfrühungen",
+                                                DTOutput("early_quartile_summary")
+                                            )
+                                        )
                                     )
                                 )
                             )
+                            
+                            
                         )
                     )
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Bearbeitungs- und Liegezeiten [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "liegezeiten_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        plotOutput("balkenplot", height = "240px"),
+                    ),
+                    
+                    bsPopover(
+                        id = "liegezeiten_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Zeigt die Ist-Lead Times inklusive Liegezeiten als kumulierte Werte. Der blaue Anteil symbolisiert dabei die Lead Time des jeweiligen Prozessschrittes. Diese genaue Dauer steht als Wert ablesbar auch über den Balken. User kriegen so einen Eindruck, ob und in welchem Umfang Liegezeiten die Bearbeitung eines Auftrags treiben. Ausgangspunkt für qualitative Ursachenanalysen.",
+                        placement = "right",
+                        trigger = "hover"
+                    ),
+                )
+            )
+        ),
+        
+        fluidRow(
+            column(
+                width = 12,
+                div(
+                    class = "white-box",
+                    tagList(
+                        div(
+                            style = "display: flex; align-items: center;",
+                            span("Lead Time nach Sollmenge [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                            tags$span(
+                                icon("circle-question"),
+                                id = "abw_menge_info",
+                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                            )
+                        ),
+                        br(),
+                        plotly::plotlyOutput("workflow_plot", height = "240px"),
+                    ),
+                    
+                    bsPopover(
+                        id = "abw_menge_info",
+                        title = "Was wird hier gezeigt?",
+                        content = "Julia",
+                        placement = "right",
+                        trigger = "hover"
+                    ),
                 )
             )
         ),
@@ -589,7 +590,7 @@ workflow_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_zeit_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -619,7 +620,7 @@ workflow_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_abs_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                                        content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -647,7 +648,7 @@ workflow_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_rel_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
                                         placement = "right",
                                         trigger = "hover"
                                     )
@@ -663,36 +664,50 @@ workflow_ui <- fluidPage(
 
 
 #Server-------------------------------------------------------------------------
-workflow_server <- function(input, output, session) {
+vorgangsfolge_server <- function(input, output, session) {
     
     observe({
-        workflow <- unique(auftraege_lt_unit$vorgangsfolge)
+        vorgangsfolge <- unique(vorgaenge_sorted$vorgangsfolge)
         
         updateSelectizeInput(
             session,
-            inputId = "selected_workflow",
-            choices = c("Workflow auswählen" = "", workflow),
+            inputId = "selected_vorgangsfolge",
+            choices = c("Workflow auswählen" = "", vorgangsfolge),
             selected = "0010", 
             server = TRUE
         )
     })
     
-    output$workflow_title <- renderUI({
-        req(input$selected_workflow)
+    #Beschränken auf A-Materialien
+    get_filtered_data <- function(df, selected_vorgangsfolge, selected_view) {
+        df_filtered <- df %>%
+            filter(vorgangsfolge == selected_vorgangsfolge)
+        
+        if (selected_view == "Material") {
+            df_filtered <- df_filtered %>%
+                filter(klassifikation == "A")
+        }
+        
+        return(df_filtered)
+    }
+    
+    
+    output$vorgangsfolge_title <- renderUI({
+        req(input$selected_vorgangsfolge)
         
         tags$div(
             style = "margin-top: 32px; margin-bottom: 32px;",
             tags$h2(
-                paste("Details | Workflow", input$selected_workflow),
+                paste("Details | Workflow", input$selected_vorgangsfolge),
                 style = "font-size: 25px; font-weight: 600; color: #202124; margin: 0;"
             )
         )
     })
     
     output$donut_termintreue <- renderEcharts4r({
-        sel <- input$selected_workflow
-        df_s <- auftraege_lt_unit %>% filter(vorgangsfolge == sel)
-        df_o <- auftraege_lt_unit %>% filter(vorgangsfolge != sel)
+        sel <- input$selected_vorgangsfolge
+        df_s <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
+        df_o <- vorgaenge_sorted %>% filter(vorgangsfolge != sel)
         
         value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
         avg   <- round(df_o %>%
@@ -751,12 +766,12 @@ workflow_server <- function(input, output, session) {
     
     
     output$donut_liefertreue <- renderEcharts4r({
-        sel <- input$selected_workflow
-        df_s <- auftraege_lt_unit %>% filter(vorgangsfolge == sel)
-        df_o <- auftraege_lt_unit %>% filter(vorgangsfolge != sel)
+        sel <- input$selected_vorgangsfolge
+        df_s <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
+        df_o <- vorgaenge_sorted %>% filter(vorgangsfolge != sel)
         
-        value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
-        avg   <- round(mean(df_o$gelieferte_menge >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
+        value <- round(mean(df_s$`Gutmenge Vorgang` >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
+        avg   <- round(mean(df_o$`Gutmenge Vorgang` >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
         
         # Entscheidungssymbol & Farbe
         symbol <- if (value > avg) {
@@ -843,10 +858,10 @@ workflow_server <- function(input, output, session) {
     
     
     output$donut_geschwindigkeit_me <- renderEcharts4r({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         
-        df_sel <- auftraege_lt_unit %>% filter(vorgangsfolge == input$selected_workflow, !is.na(lt_ist_order))
-        df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
+        df_sel <- vorgaenge_sorted %>% filter(vorgangsfolge == input$selected_vorgangsfolge, !is.na(lt_ist_order))
+        df_all <- vorgaenge_sorted %>% filter(!is.na(lt_ist_order))
         
         geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
         geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
@@ -907,13 +922,13 @@ workflow_server <- function(input, output, session) {
     
     
     output$donut_geschwindigkeit_auftrag <- renderEcharts4r({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         
-        df_sel <- auftraege_lt_unit %>% filter(vorgangsfolge == input$selected_workflow, !is.na(lead_time_ist))
-        df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
+        df_sel <- vorgaenge_sorted %>% filter(vorgangsfolge == input$selected_vorgangsfolge, !is.na(istdauer))
+        df_all <- vorgaenge_sorted %>% filter(!is.na(istdauer))
         
-        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(median(df_sel$istdauer, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_all$istdauer, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         
@@ -970,9 +985,9 @@ workflow_server <- function(input, output, session) {
     
     
     output$performance_vgl <- renderUI({
-        sel  <- input$selected_workflow
-        df_s <- auftraege_lt_unit %>% filter(vorgangsfolge == sel)
-        df_o <- auftraege_lt_unit %>% filter(vorgangsfolge != sel)
+        sel  <- input$selected_vorgangsfolge
+        df_s <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
+        df_o <- vorgaenge_sorted %>% filter(vorgangsfolge != sel)
         
         # KPI-Werte berechnen (vereinfacht hier)
         kpis <- tibble::tibble(
@@ -984,10 +999,10 @@ workflow_server <- function(input, output, session) {
                 nrow(df_s)
             ),
             avg = c(
-                df_o %>% group_by(workflow) %>% summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>% pull(rate) %>% mean(na.rm = TRUE) * 100,
-                df_o %>% filter(abweichung_unit > 0) %>% group_by(workflow) %>% summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>% pull(avg) %>% mean(na.rm = TRUE),
+                df_o %>% group_by(vorgangsfolge) %>% summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>% pull(rate) %>% mean(na.rm = TRUE) * 100,
+                df_o %>% filter(abweichung_unit > 0) %>% group_by(vorgangsfolge) %>% summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>% pull(avg) %>% mean(na.rm = TRUE),
                 df_o %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
-                df_o %>% group_by(workflow) %>% summarise(n = n()) %>% pull(n) %>% mean(na.rm = TRUE)
+                df_o %>% group_by(vorgangsfolge) %>% summarise(n = n()) %>% pull(n) %>% mean(na.rm = TRUE)
             )
         )
         
@@ -1032,32 +1047,32 @@ workflow_server <- function(input, output, session) {
     
     
     output$allocation_title <- renderUI({
-        req(input$selected_workflow, input$view_selection)
+        req(input$selected_vorgangsfolge, input$view_selection)
         h4(
-            paste0("Ansicht ", input$view_selection, " für Workflow ", input$selected_workflow),
+            paste0("Ansicht ", input$view_selection, " für Workflow ", input$selected_vorgangsfolge),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
     output$abweichung_title <- renderUI({
-        req(input$selected_workflow, input$view_selection)
+        req(input$selected_vorgangsfolge, input$view_selection)
         h4(
-            paste0("Ansicht Lead Time Abweichung für Workflow ", input$selected_workflow),
+            paste0("Ansicht Lead Time Abweichung für Workflow ", input$selected_vorgangsfolge),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
     output$performance_titel <- renderUI({
         h4(
-            paste0("Ansicht Performance für Workflow ", input$selected_workflow),
+            paste0("Ansicht Performance für Workflow ", input$selected_vorgangsfolge),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
     output$lt_title <- renderUI({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         h4(
-            paste("Lead Time- und Performanceübersicht Workflow", input$selected_workflow), 
+            paste("Lead Time- und Performanceübersicht Workflow", input$selected_vorgangsfolge), 
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
@@ -1068,7 +1083,9 @@ workflow_server <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "Material" = "materialnummer"
+        "A-Material" = "materialnummer",
+        "Arbeitsschritte" = "Vorgangsnummer",
+        "Arbeitsplatz" = "Arbeitsplatz"
     )
     
     #Formel zur Berechnung des Modus
@@ -1079,13 +1096,14 @@ workflow_server <- function(input, output, session) {
     
     
     output$delay_table_shared <- renderDT({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         req(input$view_selection)
         
         col <- lt_map[[input$view_selection]]
         
-        df <- auftraege_lt_unit %>%
-            filter(vorgangsfolge == input$selected_workflow) %>%
+        df <- vorgaenge_sorted %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
+            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
             summarise(
@@ -1135,14 +1153,15 @@ workflow_server <- function(input, output, session) {
     
     
     output$allocation_pie_shared <- renderEcharts4r({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         req(input$view_selection)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
         selected_col <- lt_map[[input$view_selection]]
         
-        df <- auftraege_lt_unit %>%
-            dplyr::filter(vorgangsfolge == input$selected_workflow) %>%
+        df <- vorgaenge_sorted %>%
+            dplyr::filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
+            dplyr::filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[selected_col]])) %>%
             dplyr::group_by(category = .data[[selected_col]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
@@ -1211,11 +1230,11 @@ workflow_server <- function(input, output, session) {
     
     
     output$livetracker_auftraege <- renderUI({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         
-        anzahl <- auftraege_lt_unit %>%
-            filter(vorgangsfolge == input$selected_workflow) %>%
-            summarise(n = n_distinct(auftragsnummer)) %>%
+        anzahl <- vorgaenge_sorted %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
+            summarise(n = n_distinct(Auftragsnummer)) %>%
             pull(n)
         
         tags$div(
@@ -1233,16 +1252,16 @@ workflow_server <- function(input, output, session) {
     
     
     overall_servicelevel <- reactive({
-        sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
-            sum(!is.na(auftraege_lt_unit$auftragsnummer))
+        sum(vorgaenge_sorted$abweichung_unit <= 0, na.rm = TRUE) /
+            sum(!is.na(vorgaenge_sorted$Auftragsnummer))
     })
     
     
     output$livetracker_servicelevel <- renderUI({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         
-        filtered <- auftraege_lt_unit %>%
-            filter(vorgangsfolge == input$selected_workflow)
+        filtered <- vorgaenge_sorted %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge)
         
         if (nrow(filtered) == 0) {
             return(
@@ -1255,13 +1274,14 @@ workflow_server <- function(input, output, session) {
         }
         
         sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
-            sum(!is.na(filtered$auftragsnummer))
-        overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
-            sum(!is.na(auftraege_lt_unit$auftragsnummer))
+            sum(!is.na(filtered$Auftragsnummer))
+        overall_sl <- sum(vorgaenge_sorted$abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(vorgaenge_sorted$Auftragsnummer))
         
         sl_percent <- paste0(round(sl * 100), "%")
         overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
         
+        #Eddi
         if (sl > overall_sl) {
             icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
             popover_text <- paste("Overperformance |", overall_text)
@@ -1290,14 +1310,15 @@ workflow_server <- function(input, output, session) {
     
     
     output$livetracker_bottleneck <- renderUI({
-        req(input$selected_workflow, input$view_selection)
+        req(input$selected_vorgangsfolge, input$view_selection)
         
         # Spaltenname aus vorhandenem Mapping lt_map
         selected <- lt_map[[input$view_selection]]
         label <- input$view_selection  
         
         bottleneck_info <- vorgaenge_sorted %>%
-            filter(vorgangsfolge == input$selected_workflow, abweichung > 0) %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung > 0) %>%
+            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             filter(!is.na(.data[[selected]])) %>%
             group_by(group = .data[[selected]]) %>%
             summarise(
@@ -1327,29 +1348,20 @@ workflow_server <- function(input, output, session) {
     })
     
     output$top_delay_orders <- renderDT({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         req(input$view_selection)
         
-        df <- auftraege_lt_unit %>%
+        df <- vorgaenge_sorted %>%
             filter(
-                vorgangsfolge == input$selected_workflow,
+                vorgangsfolge == input$selected_vorgangsfolge,
                 !is.na(abweichung_unit)
             ) %>%
+            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
             arrange(desc(abweichung_unit)) %>%
             slice_head(n = 200) %>%
             transmute(
-                `Auftragsnummer`     = auftragsnummer,
-                `Werk`               = werk,
-                `Materialnummer`     = materialnummer,
-                `Sollmenge`          = sollmenge,
-                `Istmenge`           = gelieferte_menge,
-                `ME`                 = me,
-                `Fertigungslinie`    = fertigungslinie,
-                `Planer`             = planer,
-                `Workflow`           = vorgangsfolge,
-                `Soll-LT [s/ME]`     = round(lt_soll_order, 2),
-                `Ist-LT [s/ME]`      = round(lt_ist_order, 2),
-                `Abweichung [s/ME]`  = round(abweichung_unit, 2)
+                `Auftragsnummer`     = Auftragsnummer,
+                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
             )
         
         datatable(
@@ -1366,25 +1378,26 @@ workflow_server <- function(input, output, session) {
     
     ### 1. Neue Tabelle mit Verzögerungsbereichen erzeugen
     output$delay_quartile_summary <- renderDT({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         req(input$view_selection)
         
         selected_col <- lt_map[[input$view_selection]]
         
-        df <- auftraege_lt_unit %>%
+        df <- vorgaenge_sorted %>%
             filter(
-                vorgangsfolge == input$selected_workflow,
-                abweichung_unit > 0,
-                !is.na(abweichung_unit),
-                !is.na(.data[[selected_col]])
+                vorgangsfolge == input$selected_vorgangsfolge,
+                abweichung > 0,
+                !is.na(abweichung),
+                !is.na(.data[[selected_col]]),
+                if (input$view_selection == "Material") klassifikation == "A" else TRUE
             )
         
-        labels <- c(" >10", "5-10", "3-4", "<3")
+        labels <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
         counts <- c(
-            sum(df$abweichung_unit > 10),
-            sum(df$abweichung_unit > 5 & df$abweichung_unit <= 10),
-            sum(df$abweichung_unit > 3 & df$abweichung_unit <= 4),
-            sum(df$abweichung_unit > 1 & df$abweichung_unit <= 2)
+            sum(df$abweichung > 10),
+            sum(df$abweichung <= 10 & df$abweichung > 5),
+            sum(df$abweichung <= 5 & df$abweichung > 3),
+            sum(df$abweichung <= 3 & df$abweichung > 1)
         )
         pcts <- round(counts / sum(counts) * 100, 1)
         
@@ -1398,9 +1411,12 @@ workflow_server <- function(input, output, session) {
                 "</div>",
                 "</div>"
             ),
-            Details = purrr::map_chr(labels, ~ as.character(
-                actionButton(paste0("btn_q_", gsub("[^0-9]", "", .x)), label = NULL, icon = icon("search"))
-            ))
+            Details = c(
+                as.character(actionButton("btn_q_10", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_105", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_53", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_31", label = NULL, icon = icon("search")))
+            )
         )
         
         datatable(
@@ -1422,55 +1438,356 @@ workflow_server <- function(input, output, session) {
         )
     })
     
-    ### 2. Modal + Tabelle bei Buttonclick anzeigen
+    
     observeEvent(input$btn_q_10, {
         showModal(modalDialog(
-            title = "Top-Aufträge mit Verzögerung > 10 Tage",
+            title = "Aufträge mit Verzögerung > 10 Tage",
             DTOutput("modal_q10"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
         output$modal_q10 <- renderDT({
-            req(input$selected_workflow)
+            req(input$selected_vorgangsfolge)
             
-            df <- auftraege_lt_unit %>%
-                filter(
-                    vorgangsfolge == input$selected_workflow,
-                    abweichung_unit > 10
-                ) %>%
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung > 10) %>%
                 transmute(
-                    `Auftragsnummer`     = auftragsnummer,
-                    `Werk`               = werk,
-                    `Materialnummer`     = materialnummer,
-                    `Sollmenge`          = sollmenge,
-                    `Istmenge`           = gelieferte_menge,
-                    `ME`                 = me,
-                    `Fertigungslinie`    = fertigungslinie,
-                    `Planer`             = planer,
-                    `Workflow`           = vorgangsfolge,
-                    `Soll-LT [s/ME]`     = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`      = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]`  = round(abweichung_unit, 2)
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(
-                df,
-                options = list(pageLength = 10, dom = 'lfrtip'),
-                rownames = FALSE,
-                class = "cell-border hover nowrap"
-            )
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
-    output$abweichung_time_plot <- renderPlotly({
-        req(input$selected_workflow)
+    observeEvent(input$btn_q_105, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verzögerung zwischen 5 und 10 Tagen",
+            DTOutput("modal_q105"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
         
-        df <- auftraege_lt_unit %>%
-            filter(vorgangsfolge == input$selected_workflow) %>%
-            arrange(starttermin_ist) %>%
+        output$modal_q105 <- renderDT({
+            req(input$selected_vorgangsfolge)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 10 & abweichung_unit > 5) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_q_53, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verzögerung zwischen 3 und 5 Tagen",
+            DTOutput("modal_q53"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_q53 <- renderDT({
+            req(input$selected_vorgangsfolge)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 5 & abweichung_unit > 3) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_q_31, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verzögerung zwischen 1 und 3 Tagen",
+            DTOutput("modal_q31"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_q31 <- renderDT({
+            req(input$selected_vorgangsfolge)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 3 & abweichung_unit > 1) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    
+    output$top_early_orders <- renderDT({
+        req(input$selected_vorgangsfolge)
+        req(input$view_selection)
+        
+        df <- vorgaenge_sorted %>%
+            filter(
+                vorgangsfolge == input$selected_vorgangsfolge,
+                !is.na(abweichung_unit),
+                abweichung_unit < 0  # nur zu frühe
+            ) %>%
+            arrange(abweichung_unit) %>%  # früheste oben
+            slice_head(n = 200) %>%
+            transmute(
+                Auftragsnummer     = auftragsnummer,
+                Materialnummer     = materialnummer,
+                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                `Abweichung [T/Auftr.]` = round(abweichung, 2)
+            )
+        
+        datatable(
+            df,
+            options = list(
+                pageLength = 10,
+                dom = 'tip',
+                ordering = TRUE
+            ),
+            rownames = FALSE,
+            class = "hover"
+        )
+    })
+    
+    output$early_quartile_summary <- renderDT({
+        req(input$selected_vorgangsfolge)
+        req(input$view_selection)
+        
+        selected_col <- lt_map[[input$view_selection]]
+        
+        df <- vorgaenge_sorted %>%
+            filter(
+                vorgangsfolge == input$selected_vorgangsfolge,
+                abweichung_unit < 0,
+                !is.na(abweichung_unit),
+                !is.na(.data[[selected_col]])
+            )
+        
+        labels <- c("< -10", "-10 bis -5", "-5 bis -3", "-3 bis -1")
+        counts <- c(
+            sum(df$abweichung_unit < -10),
+            sum(df$abweichung_unit >= -10 & df$abweichung_unit < -5),
+            sum(df$abweichung_unit >= -5 & df$abweichung_unit < -3),
+            sum(df$abweichung_unit >= -3 & df$abweichung_unit < -1)
+        )
+        pcts <- round(counts / sum(counts) * 100, 1)
+        
+        summary_df <- tibble(
+            `Verfrühung [T]` = labels,
+            `Anteil [%]` = paste0(
+                "<div style='display: flex; align-items: center; gap: 8px;'>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",
+                "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
+                "<div style='width:", pcts, "%; background-color: #4285F4; height: 100%;'></div>",
+                "</div>",
+                "</div>"
+            ),
+            Details = c(
+                as.character(actionButton("btn_e_10", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_105", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_53", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_31", label = NULL, icon = icon("search")))
+            )
+        )
+        
+        datatable(
+            summary_df,
+            escape = FALSE,
+            rownames = FALSE,
+            selection = 'none',
+            options = list(
+                dom = 't',
+                paging = FALSE,
+                ordering = FALSE,
+                drawCallback = JS(
+                    "function(settings){",
+                    "  Shiny.unbindAll(this.api().table().node());",
+                    "  Shiny.bindAll(this.api().table().node());",
+                    "}"
+                )
+            )
+        )
+    })
+    observeEvent(input$btn_e_10, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung < -10 Tage",
+            DTOutput("modal_e10"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e10 <- renderDT({
+            req(input$selected_vorgangsfolge)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit < -10) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_e_105, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung zwischen -10 und -5 Tagen",
+            DTOutput("modal_e105"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e105 <- renderDT({
+            req(input$selected_vorgangsfolge)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -10 & abweichung_unit < -5) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_e_53, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung zwischen -5 und -3 Tagen",
+            DTOutput("modal_e53"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e53 <- renderDT({
+            req(input$selected_vorgangsfolge)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -5 & abweichung_unit < -3) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    observeEvent(input$btn_e_31, {
+        showModal(modalDialog(
+            title = "Aufträge mit Verfrühung zwischen -3 und -1 Tagen",
+            DTOutput("modal_e31"),
+            size = "l", easyClose = TRUE, footer = modalButton("Schließen")
+        ))
+        
+        output$modal_e31 <- renderDT({
+            req(input$selected_vorgangsfolge)
+            
+            df <- vorgaenge_sorted %>%
+                filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -3 & abweichung_unit < -1) %>%
+                transmute(
+                    Auftragsnummer     = auftragsnummer,
+                    Materialnummer     = materialnummer,
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
+                )
+            
+            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+        })
+    })
+    
+    # # Liegezeiten
+    data_input <- reactive({
+        ausgabe_df %>%
+            filter(!is.na(vorgangsfolge))
+    })
+    
+    aggregated_data <- reactive({
+        req(input$selected_vorgangsfolge)
+        
+        data_input() %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
+            group_by(Vorgangsnummer) %>%
+            summarise(median_istdauer = median(istdauer, na.rm = TRUE)) %>%
+            ungroup()
+    })
+    
+    output$balkenplot <- renderPlot({
+        df_plot <- aggregated_data() %>%
+            arrange(Vorgangsnummer) %>%
+            mutate(
+                kumulierte_dauer = cumsum(median_istdauer),
+                grauanteil = kumulierte_dauer - median_istdauer,
+                blauanteil = median_istdauer
+            ) %>%
+            pivot_longer(
+                cols = c("grauanteil", "blauanteil"),
+                names_to = "farbe",
+                values_to = "dauer"
+            )
+        
+        ggplot(df_plot, aes(x = Vorgangsnummer, y = dauer, fill = farbe)) +
+            geom_col(width = 0.3) +
+            # Textlabels nur über den blauen Segmenten
+            geom_text(
+                data = df_plot %>% filter(farbe == "blauanteil"),
+                aes(label = round(dauer, 1), y = cumsum(dauer)),  # Höhe = Oberkante des blauen Teils
+                vjust = -0.3,
+                size = 3
+            ) +
+            scale_fill_manual(values = c(
+                "grauanteil" = "#cccccc",
+                "blauanteil" = "#6495ED"
+            )) +
+            labs(
+                x = "Vorgang / Liegezeit",
+                y = "Ist-LT [d]"
+            ) +
+            my_theme()
+    })
+    
+    
+    
+    
+    
+    
+    
+    output$abweichung_time_plot <- renderPlotly({
+        req(input$selected_vorgangsfolge)
+        
+        df <- vorgaenge_sorted %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
+            arrange(`Iststart Vorgang`) %>%
             slice(seq(1, n(), by = 10))
         
-        p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
+        p <- ggplot(df, aes(x = `Iststart Vorgang`, y = abweichung)) +
             geom_smooth(
                 method = "loess", se = FALSE, span = 0.2, color = "#6495ED", size = 0.7
             ) +
@@ -1494,9 +1811,9 @@ workflow_server <- function(input, output, session) {
             )
     })
     
-    plot_abweichung_histogram <- function(df, selected_workflow) {
+    plot_abweichung_histogram <- function(df, selected_vorgangsfolge) {
         df_filtered <- df %>%
-            filter(vorgangsfolge == selected_workflow & !is.na(abweichung))
+            filter(vorgangsfolge == selected_vorgangsfolge & !is.na(abweichung))
         
         if (nrow(df_filtered) == 0) return(NULL)
         
@@ -1516,16 +1833,41 @@ workflow_server <- function(input, output, session) {
         ggplotly(p)
     }
     
+    est_plot_obj <- reactive({
+        req(input$selected_vorgangsfolge)
+        create_est_lt_combined(vorgaenge_sorted, input$selected_vorgangsfolge, session = session)
+    })
+    
+    output$workflow_plot <- plotly::renderPlotly({
+        result <- est_plot_obj()
+        req(result)
+        
+        plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color")) %>%
+            plotly::layout(
+                legend = list(
+                    traceorder = "normal",
+                    title = list(text = "Variante")
+                )
+            ) %>%
+            plotly::style(
+                name = "Lead Time Ist", traces = 1
+            ) %>%
+            plotly::style(
+                name = "Lead Time Soll", traces = 2
+            )
+    })
+    
+    
     output$abweichung_hist_plot <- renderPlotly({
-        req(input$selected_workflow)
-        plot_abweichung_histogram(vorgaenge_sorted, input$selected_workflow)
+        req(input$selected_vorgangsfolge)
+        plot_abweichung_histogram(vorgaenge_sorted, input$selected_vorgangsfolge)
     })
     
     abweichung_tabelle <- reactive({
-        req(input$selected_workflow)
+        req(input$selected_vorgangsfolge)
         
-        df <- auftraege_lt_unit %>%
-            filter(vorgangsfolge == input$selected_workflow) %>%
+        df <- vorgaenge_sorted %>%
+            filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
             mutate(
                 abw_rel = (lt_ist_order - lt_soll_order) / lt_soll_order,
@@ -1580,4 +1922,4 @@ workflow_server <- function(input, output, session) {
     
 }
 
-shinyApp(workflow_ui, workflow_server)
+shinyApp(vorgangsfolge_ui, vorgangsfolge_server)

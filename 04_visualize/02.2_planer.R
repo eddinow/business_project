@@ -9,9 +9,9 @@ library(echarts4r)
 library(plotly)
 library(ggbreak)
 
-source("02_model/create_workflows_overview.R", local = TRUE)
-source("02_model/kpis_werke.R", local = TRUE)
-source("01_transform/create_lt_unit.R", local = TRUE)
+source("02_model/create_workflows_overview.R")
+source("02_model/kpis_werke.R")
+source("01_transform/create_lt_unit.R")
 
 
 my_theme <- function(base_family = "Inter") {
@@ -38,269 +38,71 @@ my_theme <- function(base_family = "Inter") {
 }
 
 
-#UI-----------------------------------------------------------------------------
-planer_ui <- fluidPage(
+# UI -----------------------------------------------------------------------------
+planerUI <- function() {
+    tagList(
     
-    # HEAD-Bereich mit Styles
-    tags$head(
-        tags$style(HTML("
-      body {
-        background-color: #f5f7fa;
-        margin: 0;
-        padding: 0;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      }
-
-      .navbar {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: white;
-        border-bottom: 1px solid #ddd;
-        padding: 1rem 2rem;
-        font-weight: bold;
-        font-size: 16px;
-        position: relative;
-      }
-
-      .nav-tabs-custom {
-        display: flex;
-        gap: 32px;
-        font-size: 14px;
-        color: #5f6368;
-        padding-top: 8px;
-      }
-
-      .nav-tabs-custom a {
-        text-decoration: none;
-        color: #5f6368;
-        padding-bottom: 8px;
-      }
-
-      .nav-tabs-custom a.active {
-        color: #1a73e8;
-        font-weight: 600;
-        border-bottom: 3px solid #1a73e8;
-      }
-
-      .navbar-right {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-      }
-
-      .navbar-logo {
-        font-weight: 600;
-        font-size: 18px;
-        color: #202124;
-      }
-
-      .white-box {
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        padding: 60px 68px;
-        margin-bottom: 20px;
-        width: 100%;
-        min-height: 140px; 
-      }
-
-      .white-box h4 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 20px;
-        color: #202124;
-      }
-
-      table.dataTable {
-        border-collapse: collapse !important;
-        font-size: 12px;
-      }
-
-      table.dataTable.no-footer {
-        border-bottom: none;
-      }
-
-      .dataTable th, .dataTable td {
-        border: none !important;
-        padding: 8px 12px !important;
-      }
-
-      table.dataTable tbody tr:hover {
-        background-color: #f0f4f8 !important;
-        cursor: pointer;
-      }
-
-      .stripe tbody tr:nth-child(odd) {
-        background-color: #ffffff !important;
-      }
-
-      .stripe tbody tr:nth-child(even) {
-        background-color: #f9fafb !important;
-      }
-
-      .dataTables_wrapper {
-        border-radius: 12px;
-        overflow: hidden;
-      }
-
-      .dataTable tbody td {
-        border-bottom: 1px solid #e0e0e0 !important;
-      }
-
-      .selectize-input {
-        padding-right: 30px !important;
-      }
-
-      .dataTables_wrapper .dataTables_paginate {
-        font-size: 12px;
-        margin-top: 8px;
-        text-align: right;
-      }
-
-      .dataTables_wrapper .dataTables_paginate .paginate_button {
-        padding: 2px 6px;
-        margin: 0 2px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: white;
-        color: #444;
-        font-size: 12px;
-      }
-
-      .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background-color: #e8f0fe;
-        border-color: #4285f4;
-        color: #1a73e8;
-        font-weight: 600;
-      }
-
-      .dataTables_info {
-        display: none !important;
-      }
-      
-       /* Zentriert das Dropdown im Subheader */
-  .subheader-dropdown .selectize-control.single {
-    margin-top: 0 !important;
-    display: flex;
-    align-items: center;
-  }
-
-  .subheader-dropdown .selectize-input {
-    margin: 0 !important;
-    padding: 6px 10px !important;
-    height: 36px !important;
-    font-size: 14px;
-  }
-
-  .subheader-dropdown {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-    "))
-    ),
-    
-    # NAVBAR OBEN
+    # Sub-Header direkt darunter
     div(
-        style = "width: 100%; display: flex; flex-direction: column; background-color: white; border-bottom: 1px solid #ddd;",
-        
-        # Obere Zeile: Logo, Tabs, Icons
-        div(
-            style = "display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;",
-            
-            # Links: Logo + Tabs
-            div(style = "display: flex; align-items: center; gap: 32px;",
-                div(class = "navbar-logo",
-                    span(style = "color: #4285F4;", "True"),
-                    span(style = "color: #EA4335;", "Time")
-                ),
-                div(class = "nav-tabs-custom",
-                    a(id = "nav_material", href = "#", "Material"),
-                    a(id = "nav_workflows", href = "#", class = "active", "Workflows"),
-                    a(id = "nav_linien", href = "#", "Linien"),
-                    a(id = "nav_werke", href = "#", "Werke")
-                )
-            ),
-            
-            # Rechts: Icons
-            div(class = "navbar-right",
-                actionButton("download_report", label = NULL, icon = icon("file-arrow-down"),
-                             style = "background: none; border: none; color: #5f6368; font-size: 16px;"),
-                tags$span(icon("user-circle"), style = "font-size: 20px; color: #5f6368; cursor: pointer;")
-            )
-        ),
-        
-        # Sub-Header direkt darunter (ohne Lücke)
-        div(
-            style = "background-color: #f1f3f4; padding: 18px 32px; height: 72px;
+        style = "background-color: #f1f3f4; padding: 18px 32px; height: 72px;
          display: flex; align-items: center; justify-content: space-between;
          border-top: 1px solid #e0e0e0;",
-            
-            # Linke Seite: Icon + Titel
+        # Linke Seite: Icon + Titel
+        div(
+            style = "display: flex; align-items: center; gap: 12px;",
+            icon("user-cog", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+            span(
+                style = "font-size: 20px; font-weight: 600; color: #202124;",
+                "Planer"
+            )
+        ),
+        # Rechte Seite: Linien-Auswahl + zweite Ansichtsauswahl
+        div(
+            style = "display: flex; align-items: center; gap: 24px;",
+            # Linie auswählen
             div(
-                style = "display: flex; align-items: center; gap: 12px;",
-                icon("industry", class = NULL, style = "font-size: 20px; color: #5f6368;"),
+                style = "display: flex; align-items: center; gap: 8px;",
                 span(
-                    style = "font-size: 20px; font-weight: 600; color: #202124;",
-                    "Planer"
+                    style = "font-size: 14px; color: #202124; font-weight: 500;",
+                    "1. Planer auswählen:"
+                ),
+                div(
+                    style = "width: 180px;",
+                    selectizeInput(
+                        inputId = "selected_planer",
+                        label = NULL,
+                        choices = NULL,
+                        options = list(placeholder = ""),
+                        width = "100%"
+                    )
                 )
             ),
-            
-            # Rechte Seite: Linien-Auswahl + zweite Ansichtsauswahl
+            # 2. Ansicht auswählen
             div(
-                style = "display: flex; align-items: center; gap: 24px;",
-                
-                # Linie auswählen
-                div(
-                    style = "display: flex; align-items: center; gap: 8px;",
-                    span(
-                        style = "font-size: 14px; color: #202124; font-weight: 500;",
-                        "1. Planer auswählen:"
-                    ),
-                    div(
-                        style = "width: 180px;",
-                        selectizeInput(
-                            inputId = "selected_planer",
-                            label = NULL,
-                            choices = NULL,
-                            selected = "FST1",
-                            options = list(placeholder = ""),
-                            width = "100%"
-                        )
-                    )
+                style = "display: flex; align-items: center; gap: 8px;",
+                span(
+                    style = "font-size: 14px; color: #202124; font-weight: 500;",
+                    "2. Ansicht auswählen:"
                 ),
-                
-                # 2. Ansicht auswählen
                 div(
-                    style = "display: flex; align-items: center; gap: 8px;",
-                    span(
-                        style = "font-size: 14px; color: #202124; font-weight: 500;",
-                        "2. Ansicht auswählen:"
-                    ),
-                    div(
-                        style = "width: 180px;",
-                        selectInput(
-                            inputId = "view_selection",
-                            label = NULL,
-                            choices = c("Workflow", "Linie", "Werk", "Material"),
-                            selected = "Linie",
-                            width = "100%"
-                        )
+                    style = "width: 180px;",
+                    selectInput(
+                        inputId = "view_selection",
+                        label = NULL,
+                        choices = c("Workflow", "Linie", "Werk", "A-Material"),
+                        selected = "Linie",
+                        width = "100%"
                     )
                 )
             )
         )
-        
     ),
-    
     
     # INHALT: max-width Wrapper
     div(style = "max-width: 1100px; margin: 0 auto;",
-        
+        # Rest des UI bleibt unverändert, beginnend mit Titel, KPI-Boxes, etc.
         div(
-            style = "padding: 48px 0 12px 0;",  # Abstand oben und unten
+            style = "padding: 48px 0 12px 0;",
             uiOutput("planer_title")
         ),
         
@@ -344,9 +146,7 @@ planer_ui <- fluidPage(
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                            tags$span(icon("circle-question"), id = "geschw_info", 
-                                      style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
                         ),
                         
                         # Alle 4 Donuts nebeneinander
@@ -368,7 +168,7 @@ planer_ui <- fluidPage(
                                     bsPopover(
                                         id = "termintreue_info",
                                         title = "Termintreue",
-                                        content = "Eddi Anteil der Aufträge, die pünktlich zum gewünschten Liefertermin fertig wurden.",
+                                        content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -414,7 +214,7 @@ planer_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_me_info",
                                         title = "Geschwindigkeit/ME [s]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -437,7 +237,7 @@ planer_ui <- fluidPage(
                                     bsPopover(
                                         id = "geschwindigkeit_auftrag_info",
                                         title = "Geschwindigkeit/Auftrag [Tage]",
-                                        content = "Julia",
+                                        content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
                                         placement = "top",
                                         trigger = "hover"
                                     )
@@ -490,7 +290,7 @@ planer_ui <- fluidPage(
                                         bsPopover(
                                             id = "performance_table_info",
                                             title = "Aktuelle Performance",
-                                            content = "Julia",
+                                            content = "In der Tabelle wird die ausgewählte Ansicht (z. B. Werke, Linien, Materialien) für jede gewählte Entität (z. B. Planer, Workflows) dargestellt. Dadurch kann nachvollzogen werden, wie sich einzelne Entitäten auf unterschiedliche Strukturebenen auswirken. Grün steht für geringe (< 0,5 s/ME), Gelb für moderate (bis 2 s/ME) und Rot für kritische Verzögerungen (> 2 s/ME). Zusätzlich lassen sich die durchschnittlichen Ist- und Soll-Lead Times pro Mengeneinheit sowie die zugehörige Auftragsanzahl ablesen, um Zusammenhänge zwischen Auslastung und Performance sichtbar zu machen.",
                                             placement = "top",
                                             trigger = "hover"
                                         ),
@@ -607,7 +407,7 @@ planer_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_zeit_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -637,7 +437,7 @@ planer_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_abs_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Dieses Diagramm zeigt die Ist- und Soll-LTs in Abhängigkeit von der Sollmenge. So werden Unsicherheiten der einzelnen Workflows abhängig vom Auftragsvolumen sichtbar",
+                                        content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
                                         placement = "right",
                                         trigger = "hover"
                                     ),
@@ -665,7 +465,7 @@ planer_ui <- fluidPage(
                                     bsPopover(
                                         id = "abw_rel_info",
                                         title = "Was wird hier gezeigt?",
-                                        content = "Julia",
+                                        content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
                                         placement = "right",
                                         trigger = "hover"
                                     )
@@ -678,10 +478,10 @@ planer_ui <- fluidPage(
         )
     )
 )
-
+}
 
 #Server-------------------------------------------------------------------------
-planer_server <- function(input, output, session) {
+planerServer <- function(input, output, session) {
     
     observe({
         planer <- unique(auftraege_lt_unit$planer)
@@ -944,8 +744,8 @@ planer_server <- function(input, output, session) {
         df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        geschw_sel <- round(mean(df_sel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
         
         rel_diff <- geschw_all - geschw_sel
         
@@ -1100,7 +900,7 @@ planer_server <- function(input, output, session) {
         "Werk"     = "werk",
         "Linie"    = "fertigungslinie",
         "Planer"   = "planer",
-        "Material" = "materialnummer"
+        "A-Material" = "materialnummer"
     )
     
     #Formel zur Berechnung des Modus
@@ -1469,8 +1269,8 @@ planer_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1493,9 +1293,9 @@ planer_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1517,9 +1317,9 @@ planer_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1541,9 +1341,9 @@ planer_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1564,9 +1364,11 @@ planer_server <- function(input, output, session) {
             arrange(abweichung_unit) %>%  # früheste oben
             slice_head(n = 200) %>%
             transmute(
-                `Auftrag`     = auftragsnummer,
-                `Mat.`     = materialnummer,
-                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
+                Auftragsnummer     = auftragsnummer,
+                Materialnummer     = materialnummer,
+                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                `Abweichung [T/Auftr.]` = round(abweichung, 2)
             )
         
         datatable(
@@ -1651,13 +1453,12 @@ planer_server <- function(input, output, session) {
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
-                filter(planer == input$selected_planer, abweichung_unit < -10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1679,9 +1480,9 @@ planer_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1703,9 +1504,9 @@ planer_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1727,9 +1528,9 @@ planer_server <- function(input, output, session) {
                 transmute(
                     Auftragsnummer     = auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [s/ME]`   = round(lt_soll_order, 2),
-                    `Ist-LT [s/ME]`    = round(lt_ist_order, 2),
-                    `Abweichung [s/ME]` = round(abweichung_unit, 2)
+                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
+                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
             datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
@@ -1856,5 +1657,3 @@ planer_server <- function(input, output, session) {
     
     
 }
-
-shinyApp(planer_ui, planer_server)
