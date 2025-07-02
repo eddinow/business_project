@@ -202,7 +202,7 @@ start_ui <- fluidPage(
                                      div(
                                          class = "white-box",
                                          style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                                         uiOutput("livetracker_servicelevel")
+                                         uiOutput("livetracker_overall_servicelevel")
                                      )
                                  )
                              ),
@@ -415,13 +415,13 @@ start_server <- function(input, output, session) {
     })
     
     
-    overall_servicelevel <- reactive({
-        sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
-            sum(!is.na(auftraege_lt_unit$auftragsnummer))
-    })
+    # overall_servicelevel <- reactive({
+    #     sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
+    #         sum(!is.na(auftraege_lt_unit$auftragsnummer))
+    # })
     
     
-    output$livetracker_servicelevel <- renderUI({
+    output$livetracker_overall_servicelevel <- renderUI({
         
         # Berechne den Overall Servicelevel direkt aus der gesamten Tabelle
         overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
