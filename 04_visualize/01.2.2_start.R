@@ -423,79 +423,69 @@ start_server <- function(input, output, session) {
     
     output$livetracker_servicelevel <- renderUI({
         
-        filtered <- auftraege_lt_unit 
-        
-        if (nrow(filtered) == 0) {
-            return(
-                div(
-                    style = "display: flex; flex-direction: column;",
-                    span(style = "font-weight: 600; font-size: 24px; color: #9e9e9e;", "–"),
-                    span("Servicelevel", style = "color: #5f6368; font-size: 14px;")
-                )
-            )
-        }
-        
-        sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
-            sum(!is.na(filtered$auftragsnummer))
+        # Berechne den Overall Servicelevel direkt aus der gesamten Tabelle
         overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
             sum(!is.na(auftraege_lt_unit$auftragsnummer))
         
-        sl_percent <- paste0(round(sl * 100), "%")
-        overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
+        sl_percent <- paste0(round(overall_sl * 100), "%")
         
-        #Eddi
-        if (sl > overall_sl) {
-            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
-            popover_text <- paste("Overperformance |", overall_text)
-        } else {
-            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #ea4335; margin-right: 6px;'>⚠️</span>"
-            popover_text <- paste("Underperformance |", overall_text)
-        }
-        
-        tagList(
-            HTML(paste0(
-                "<div style='display: flex; align-items: center;'>",
-                icon_tag,
-                "<span style='font-weight: 600; font-size: 24px; color: #202124;'>", sl_percent, "</span>",
-                "</div>"
-            )),
-            span("Servicelevel", style = "font-size: 14px; color: #5f6368; margin-top: 4px;"),
-            bsPopover(
-                id = "servicelevel_icon",
-                title = "Servicelevel-Vergleich",
-                content = popover_text,
-                placement = "top",
-                trigger = "hover"
+        # UI-Ausgabe: nur Zahl + Beschriftung
+        tags$div(
+            style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
+            tags$span(
+                style = "font-weight: 600; font-size: 22px; color: #202124;",
+                sl_percent
+            ),
+            tags$span(
+                style = "font-size: 14px; color: #5f6368;",
+                "Servicelevel (gesamt)"
             )
         )
     })
-        
-        render_table_and_download(workflows_overview, "sortierung_workflows",
-                                  "workflow_table","download_csv_workflows","workflows")
-        render_table_and_download(linien_overview,   "sortierung_linien",
-                                  "linien_table",  "download_csv_linien",  "linien")
-        render_table_and_download(werke_overview,    "sortierung_werke",
-                                  "werke_table",   "download_csv_werke",   "werke")
-        render_table_and_download(planer_overview,    "sortierung_planer",
-                                  "planer_table",   "download_csv_planer",   "planer")
-        render_table_and_download(material_overview,    "sortierung_material",
-                                  "material_table",   "download_csv_material",   "material")
-        
-        # Navigation: nur updateTabsetPanel; visuelle Hervorhebung per JS ----------
-        observeEvent(input$nav_home,      updateTabsetPanel(session,"main_tabs","home"))
-        observeEvent(input$nav_material,  updateTabsetPanel(session,"main_tabs","material"))
-        observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
-        observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
-        observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
-        observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
-        planerServer(input, output, session)
-        
-        # Starte immer auf Home ------------------------------------------------------
-        isolate({
-            updateTabsetPanel(session,"main_tabs","home")
-            runjs("$('.navbar-logo.action-button').addClass('active');")
+    
+    
+    render_table_and_download <- function(data, sel_id, tbl_out, dl_out, prefix) {
+        output[[tbl_out]] <- renderDT({
+            df <- data
+            df$servicelevel_numeric <- as.numeric(gsub('%','',df$Servicelevel))/100
+            df <- if (input[[sel_id]]=="Top") df[order(-df$servicelevel_numeric),] else df[order(df$servicelevel_numeric),]
+            df <- df |> dplyr::select(-servicelevel_numeric)
+            datatable(df, escape = which(names(df)!="Status"),
+                      options = list(pageLength=10, dom='tip', ordering=FALSE),
+                      rownames=FALSE, class='hover', width='100%')
         })
+        output[[dl_out]] <- downloadHandler(
+            filename = function() paste0(prefix,"_",Sys.Date(),".csv"),
+            content = function(file) write.csv(data, file, row.names=FALSE)
+        )
     }
     
-    # Run App -----------------------------------------------------------------------
-    shinyApp(start_ui, start_server)
+    render_table_and_download(workflows_overview, "sortierung_workflows",
+                              "workflow_table","download_csv_workflows","workflows")
+    render_table_and_download(linien_overview,   "sortierung_linien",
+                              "linien_table",  "download_csv_linien",  "linien")
+    render_table_and_download(werke_overview,    "sortierung_werke",
+                              "werke_table",   "download_csv_werke",   "werke")
+    render_table_and_download(planer_overview,    "sortierung_planer",
+                              "planer_table",   "download_csv_planer",   "planer")
+    render_table_and_download(material_overview,    "sortierung_material",
+                              "material_table",   "download_csv_material",   "material")
+    
+    # Navigation: nur updateTabsetPanel; visuelle Hervorhebung per JS ----------
+    observeEvent(input$nav_home,      updateTabsetPanel(session,"main_tabs","home"))
+    observeEvent(input$nav_material,  updateTabsetPanel(session,"main_tabs","material"))
+    observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
+    observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
+    observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
+    observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
+    planerServer(input, output, session)
+    
+    # Starte immer auf Home ------------------------------------------------------
+    isolate({
+        updateTabsetPanel(session,"main_tabs","home")
+        runjs("$('.navbar-logo.action-button').addClass('active');")
+    })
+}
+
+# Run App -----------------------------------------------------------------------
+shinyApp(start_ui, start_server)
