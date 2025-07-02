@@ -8,6 +8,7 @@ library(bsplus)
 
 source("02_model/create_workflows_overview.R")
 source("04_visualize/02.2_planer.R")
+source("04_visualize/02.2_werke.R")
 
 # UI -----------------------------------------------------------------------------
 start_ui <- fluidPage(
@@ -182,6 +183,7 @@ start_ui <- fluidPage(
     # Unsichtbares Tab-Panel für Dashboards -------------------------------------
     tabsetPanel(id = "main_tabs", type = "hidden",
                 # … Home, Material, Workflows, Linien, Werke …
+                tabPanel("Werke", value = "werke", werkUI()),
                 tabPanel("Planer", value = "planer", planerUI()),
                 
                 # Home / Hauptseite --------------------------------------------------------
@@ -385,7 +387,6 @@ start_ui <- fluidPage(
                 tabPanel("material",   value = "material",  h2("Material-Dashboard (in Arbeit)")),
                 tabPanel("workflows",  value = "workflows", h2("Workflows-Dashboard (in Arbeit)")),
                 tabPanel("linien",     value = "linien",    h2("Fertigungslinien-Dashboard (in Arbeit)")),
-                tabPanel("werke",      value = "werke",     h2("Werke-Dashboard (in Arbeit)")),
                 
     )
 )
@@ -477,6 +478,7 @@ start_server <- function(input, output, session) {
     observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
     observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
     observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
+    werkServer(input, output, session)
     observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
     planerServer(input, output, session)
     
