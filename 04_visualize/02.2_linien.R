@@ -9,9 +9,9 @@ library(echarts4r)
 library(plotly)
 library(ggbreak)
 
-source("02_model/create_workflows_overview.R", local = TRUE)
-source("02_model/kpis_werke.R", local = TRUE)
-source("01_transform/create_lt_unit.R", local = TRUE)
+source("02_model/create_workflows_overview.R")
+source("02_model/kpis_werke.R")
+source("01_transform/create_lt_unit.R")
 
 
 my_theme <- function(base_family = "Inter") {
@@ -39,125 +39,8 @@ my_theme <- function(base_family = "Inter") {
 
 
 #UI-----------------------------------------------------------------------------
-fertigungslinie_ui <- fluidPage(
-    
-    # HEAD-Bereich mit Styles
-    tags$head(
-        tags$style(HTML("
-      body {
-        background-color: #f5f7fa;
-        margin: 0;
-        padding: 0;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      }
-
-
-      .white-box {
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        padding: 60px 68px;
-        margin-bottom: 20px;
-        width: 100%;
-        min-height: 140px; 
-      }
-
-      .white-box h4 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 20px;
-        color: #202124;
-      }
-
-      table.dataTable {
-        border-collapse: collapse !important;
-        font-size: 12px;
-      }
-
-      table.dataTable.no-footer {
-        border-bottom: none;
-      }
-
-      .dataTable th, .dataTable td {
-        border: none !important;
-        padding: 8px 12px !important;
-      }
-
-      table.dataTable tbody tr:hover {
-        background-color: #f0f4f8 !important;
-        cursor: pointer;
-      }
-
-      .stripe tbody tr:nth-child(odd) {
-        background-color: #ffffff !important;
-      }
-
-      .stripe tbody tr:nth-child(even) {
-        background-color: #f9fafb !important;
-      }
-
-      .dataTables_wrapper {
-        border-radius: 12px;
-        overflow: hidden;
-      }
-
-      .dataTable tbody td {
-        border-bottom: 1px solid #e0e0e0 !important;
-      }
-
-      .selectize-input {
-        padding-right: 30px !important;
-      }
-
-      .dataTables_wrapper .dataTables_paginate {
-        font-size: 12px;
-        margin-top: 8px;
-        text-align: right;
-      }
-
-      .dataTables_wrapper .dataTables_paginate .paginate_button {
-        padding: 2px 6px;
-        margin: 0 2px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: white;
-        color: #444;
-        font-size: 12px;
-      }
-
-      .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background-color: #e8f0fe;
-        border-color: #4285f4;
-        color: #1a73e8;
-        font-weight: 600;
-      }
-
-      .dataTables_info {
-        display: none !important;
-      }
-      
-       /* Zentriert das Dropdown im Subheader */
-  .subheader-dropdown .selectize-control.single {
-    margin-top: 0 !important;
-    display: flex;
-    align-items: center;
-  }
-
-  .subheader-dropdown .selectize-input {
-    margin: 0 !important;
-    padding: 6px 10px !important;
-    height: 36px !important;
-    font-size: 14px;
-  }
-
-  .subheader-dropdown {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-    "))
-    ),
-    
+fertigungslinieUI <- function() {
+    tagList(
     
     # Sub-Header direkt darunter (ohne Lücke)
     div(
@@ -597,10 +480,10 @@ fertigungslinie_ui <- fluidPage(
         )
     )
 )
-
+}
 
 #Server-------------------------------------------------------------------------
-fertigungslinie_server <- function(input, output, session) {
+fertigungslinieServer <- function(input, output, session) {
     
     observe({
         fertigungslinie <- unique(auftraege_lt_unit$fertigungslinie)
@@ -1760,5 +1643,3 @@ fertigungslinie_server <- function(input, output, session) {
     
     
 }
-
-shinyApp(fertigungslinie_ui, fertigungslinie_server)

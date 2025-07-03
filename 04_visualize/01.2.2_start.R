@@ -9,6 +9,9 @@ library(bsplus)
 source("02_model/create_workflows_overview.R")
 source("04_visualize/02.2_planer.R")
 source("04_visualize/02.2_werke.R")
+source("04_visualize/02.2_linien.R")
+source("04_visualize/02.2_workflows.R")
+source("04_visualize/02.2_material.R")
 
 # UI -----------------------------------------------------------------------------
 start_ui <- fluidPage(
@@ -183,6 +186,9 @@ start_ui <- fluidPage(
     # Unsichtbares Tab-Panel für Dashboards -------------------------------------
     tabsetPanel(id = "main_tabs", type = "hidden",
                 # … Home, Material, Workflows, Linien, Werke …
+                tabPanel("Material", value = "material", klassifikationUI()),
+                tabPanel("Workflows", value = "workflows", vorgangsfolgeUI()),
+                tabPanel("Linien", value = "linien", fertigungslinieUI()),
                 tabPanel("Werke", value = "werke", werkUI()),
                 tabPanel("Planer", value = "planer", planerUI()),
                 
@@ -382,12 +388,6 @@ start_ui <- fluidPage(
                              )
                          )
                 ),
-                
-                # Platzhalter für weitere Dashboards ----------------------------------------
-                tabPanel("material",   value = "material",  h2("Material-Dashboard (in Arbeit)")),
-                tabPanel("workflows",  value = "workflows", h2("Workflows-Dashboard (in Arbeit)")),
-                tabPanel("linien",     value = "linien",    h2("Fertigungslinien-Dashboard (in Arbeit)")),
-                
     )
 )
 
@@ -475,8 +475,11 @@ start_server <- function(input, output, session) {
     # Navigation: nur updateTabsetPanel; visuelle Hervorhebung per JS ----------
     observeEvent(input$nav_home,      updateTabsetPanel(session,"main_tabs","home"))
     observeEvent(input$nav_material,  updateTabsetPanel(session,"main_tabs","material"))
+    klassifikationServer(input, output, session)
     observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
+    vorgangsfolgeServer(input, output, session)
     observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
+    fertigungslinieServer(input, output, session)
     observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
     werkServer(input, output, session)
     observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
