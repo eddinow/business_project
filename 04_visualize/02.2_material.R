@@ -217,7 +217,7 @@ klassifikation_ui <- fluidPage(
                 div(
                     class = "white-box",
                     style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_auftraege")
+                    uiOutput("livetracker_auftraege_material")
                 )
             ),
             column(
@@ -225,7 +225,7 @@ klassifikation_ui <- fluidPage(
                 div(
                     class = "white-box",
                     style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_servicelevel")
+                    uiOutput("livetracker_servicelevel_material")
                 )
             ),
             column(
@@ -233,7 +233,7 @@ klassifikation_ui <- fluidPage(
                 div(
                     class = "white-box",
                     style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_bottleneck")
+                    uiOutput("livetracker_bottleneck_material")
                 )
             )
         ),
@@ -260,7 +260,7 @@ klassifikation_ui <- fluidPage(
                             # Donut 1 – Termintreue
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_termintreue", height = "160px"),
+                                echarts4rOutput("donut_termintreue_material", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("termintreue_icon"),
@@ -282,7 +282,7 @@ klassifikation_ui <- fluidPage(
                             # Donut 2 – Liefertreue
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_liefertreue", height = "160px"),
+                                echarts4rOutput("donut_liefertreue_material", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("liefertreue_icon"),
@@ -305,7 +305,7 @@ klassifikation_ui <- fluidPage(
                             # Donut 3 – Geschwindigkeit pro ME
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_geschwindigkeit_me", height = "160px"),
+                                echarts4rOutput("donut_geschwindigkeit_me_material", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("geschwindigkeit_me_icon"),
@@ -328,7 +328,7 @@ klassifikation_ui <- fluidPage(
                             # Donut 4 – Geschwindigkeit pro Auftrag
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_geschwindigkeit_auftrag", height = "160px"),
+                                echarts4rOutput("donut_geschwindigkeit_auftrag_material", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("geschwindigkeit_auftrag_icon"),
@@ -413,7 +413,7 @@ klassifikation_ui <- fluidPage(
                         
                         div(
                             style = "padding: 40px 0 15px 0;",
-                            uiOutput("abweichung_title")
+                            uiOutput("abweichung_title_material")
                         ),
                         
                         fluidRow(
@@ -432,7 +432,7 @@ klassifikation_ui <- fluidPage(
                                             )
                                         ),
                                         br(),
-                                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
+                                        plotly::plotlyOutput("abweichung_time_plot_material", height = "240px"),
                                     ),
                                     
                                     bsPopover(
@@ -462,7 +462,7 @@ klassifikation_ui <- fluidPage(
                                             )
                                         ),
                                         br(),
-                                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
+                                        plotly::plotlyOutput("abweichung_hist_plot_material", height = "240px")
                                     ),
                                     
                                     bsPopover(
@@ -490,7 +490,7 @@ klassifikation_ui <- fluidPage(
                                             )
                                         ),
                                         br(),
-                                        DT::DTOutput("abweichungstabelle")
+                                        DT::DTOutput("abweichungstabelle_material")
                                     ),
                                     
                                     bsPopover(
@@ -538,7 +538,7 @@ klassifikation_server <- function(input, output, session) {
         )
     })
     
-    output$donut_termintreue <- renderEcharts4r({
+    output$donut_termintreue_material <- renderEcharts4r({
         sel <- input$selected_klassifikation
         df_s <- auftraege_lt_unit %>% filter(klassifikation == sel)
         df_o <- auftraege_lt_unit %>% filter(klassifikation != sel)
@@ -599,7 +599,7 @@ klassifikation_server <- function(input, output, session) {
     })
     
     
-    output$donut_liefertreue <- renderEcharts4r({
+    output$donut_liefertreue_material <- renderEcharts4r({
         sel <- input$selected_klassifikation
         df_s <- auftraege_lt_unit %>% filter(klassifikation == sel)
         df_o <- auftraege_lt_unit %>% filter(klassifikation != sel)
@@ -691,7 +691,7 @@ klassifikation_server <- function(input, output, session) {
     
     
     
-    output$donut_geschwindigkeit_me <- renderEcharts4r({
+    output$donut_geschwindigkeit_me_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
         df_sel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lt_ist_order))
@@ -755,7 +755,7 @@ klassifikation_server <- function(input, output, session) {
     })
     
     
-    output$donut_geschwindigkeit_auftrag <- renderEcharts4r({
+    output$donut_geschwindigkeit_auftrag_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
         df_sel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
@@ -817,25 +817,10 @@ klassifikation_server <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
-    output$abweichung_title <- renderUI({
+    output$abweichung_title_material <- renderUI({
         req(input$selected_klassifikation)
         h4(
             paste0("Ansicht Lead Time Abweichung für Material ", input$selected_klassifikation),
-            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
-        )
-    })
-    
-    output$performance_titel <- renderUI({
-        h4(
-            paste0("Ansicht Performance für Material ", input$selected_klassifikation),
-            style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
-        )
-    })
-    
-    output$lt_title <- renderUI({
-        req(input$selected_klassifikation)
-        h4(
-            paste("Lead Time- und Performanceübersicht Material", input$selected_klassifikation), 
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
@@ -856,7 +841,7 @@ klassifikation_server <- function(input, output, session) {
     }
     
     
-    output$livetracker_auftraege <- renderUI({
+    output$livetracker_auftraege_material <- renderUI({
         req(input$selected_klassifikation)
         
         anzahl <- auftraege_lt_unit %>%
@@ -884,7 +869,7 @@ klassifikation_server <- function(input, output, session) {
     })
     
     
-    output$livetracker_servicelevel <- renderUI({
+    output$livetracker_servicelevel_material <- renderUI({
         req(input$selected_klassifikation)
         
         filtered <- auftraege_lt_unit %>%
@@ -935,7 +920,7 @@ klassifikation_server <- function(input, output, session) {
     })
     
     
-    output$livetracker_bottleneck <- renderUI({
+    output$livetracker_bottleneck_material <- renderUI({
         req(input$selected_klassifikation)
         
         bottleneck_info <- auftraege_lt_unit %>%
@@ -996,6 +981,7 @@ klassifikation_server <- function(input, output, session) {
             )
     }
     
+
     annotated_materials <- reactive({
         req(input$selected_klassifikation)
         materialnummer_overview %>%
@@ -1041,7 +1027,7 @@ klassifikation_server <- function(input, output, session) {
     
     
     
-    output$abweichung_time_plot <- renderPlotly({
+    output$abweichung_time_plot_material <- renderPlotly({
         req(input$selected_klassifikation)
         
         df <- auftraege_lt_unit %>%
@@ -1073,7 +1059,7 @@ klassifikation_server <- function(input, output, session) {
             )
     })
     
-    plot_abweichung_histogram <- function(df, selected_klassifikation) {
+    plot_abweichung_histogram_material <- function(df, selected_klassifikation) {
         df_filtered <- df %>%
             filter(klassifikation == selected_klassifikation & !is.na(abweichung))
         
@@ -1095,12 +1081,12 @@ klassifikation_server <- function(input, output, session) {
         ggplotly(p)
     }
     
-    output$abweichung_hist_plot <- renderPlotly({
+    output$abweichung_hist_plot_material <- renderPlotly({
         req(input$selected_klassifikation)
-        plot_abweichung_histogram(vorgaenge_sorted, input$selected_klassifikation)
+        plot_abweichung_histogram_material(vorgaenge_sorted, input$selected_klassifikation)
     })
     
-    abweichung_tabelle <- reactive({
+    abweichung_tabelle_material <- reactive({
         req(input$selected_klassifikation)
         
         df <- auftraege_lt_unit %>%
@@ -1142,8 +1128,8 @@ klassifikation_server <- function(input, output, session) {
             dplyr::select(Kategorie, `Lead Time Abweichung`)
     })
     
-    output$abweichungstabelle <- DT::renderDT({
-        abweichung_tabelle()
+    output$abweichungstabelle_material <- DT::renderDT({
+        abweichung_tabelle_material()
     }, 
     options = list(
         dom = 't',

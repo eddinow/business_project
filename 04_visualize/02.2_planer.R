@@ -87,7 +87,7 @@ planerUI <- function() {
                 div(
                     style = "width: 180px;",
                     selectInput(
-                        inputId = "view_selection",
+                        inputId = "view_selection_planer",
                         label = NULL,
                         choices = c("Workflow", "Linie", "Werk", "A-Material"),
                         selected = "Linie",
@@ -113,7 +113,7 @@ planerUI <- function() {
                 div(
                     class = "white-box",
                     style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_auftraege")
+                    uiOutput("livetracker_auftraege_planer")
                 )
             ),
             column(
@@ -121,7 +121,7 @@ planerUI <- function() {
                 div(
                     class = "white-box",
                     style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_servicelevel")
+                    uiOutput("livetracker_servicelevel_planer")
                 )
             ),
             column(
@@ -129,7 +129,7 @@ planerUI <- function() {
                 div(
                     class = "white-box",
                     style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_bottleneck")
+                    uiOutput("livetracker_bottleneck_planer")
                 )
             )
         ),
@@ -156,7 +156,7 @@ planerUI <- function() {
                             # Donut 1 – Termintreue
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_termintreue", height = "160px"),
+                                echarts4rOutput("donut_termintreue_planer", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("termintreue_icon"),
@@ -178,7 +178,7 @@ planerUI <- function() {
                             # Donut 2 – Liefertreue
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_liefertreue", height = "160px"),
+                                echarts4rOutput("donut_liefertreue_planer", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("liefertreue_icon"),
@@ -201,7 +201,7 @@ planerUI <- function() {
                             # Donut 3 – Geschwindigkeit pro ME
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_geschwindigkeit_me", height = "160px"),
+                                echarts4rOutput("donut_geschwindigkeit_me_planer", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("geschwindigkeit_me_icon"),
@@ -224,7 +224,7 @@ planerUI <- function() {
                             # Donut 4 – Geschwindigkeit pro Auftrag
                             div(
                                 style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_geschwindigkeit_auftrag", height = "160px"),
+                                echarts4rOutput("donut_geschwindigkeit_auftrag_planer", height = "160px"),
                                 div(
                                     style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
                                     uiOutput("geschwindigkeit_auftrag_icon"),
@@ -251,7 +251,7 @@ planerUI <- function() {
         
         
         bsPopover(
-            id = "performance_vgl_info",
+            id = "performance_vgl_planer_info",
             title = "Was wird hier gezeigt?",
             content = "Eddi",
             placement = "right",
@@ -269,7 +269,7 @@ planerUI <- function() {
                         
                         div(
                             style = "padding: 40px 0 15px 0;",
-                            uiOutput("allocation_title")
+                            uiOutput("allocation_title_planer")
                         ),
                         
                         
@@ -285,7 +285,7 @@ planerUI <- function() {
                                             span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(icon("circle-question"), id = "performance_table_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
-                                        DTOutput("delay_table_shared"),
+                                        DTOutput("delay_table_shared_planer"),
                                         
                                         bsPopover(
                                             id = "performance_table_info",
@@ -320,7 +320,7 @@ planerUI <- function() {
                                             trigger = "hover"
                                         ),
                                         
-                                        echarts4rOutput("allocation_pie_shared", height = "300px")
+                                        echarts4rOutput("allocation_pie_shared_planer", height = "300px")
                                     )
                                 )
                             ),
@@ -352,13 +352,13 @@ planerUI <- function() {
                                             # Tab 1: Verzögerungsverteilung mit Lupenbuttons
                                             tabPanel(
                                                 "Verzögerungen",
-                                                DTOutput("delay_quartile_summary")
+                                                DTOutput("delay_quartile_summary_planer")
                                             ),
                                             
                                             # Tab 2: Verfrühungsverteilung mit Lupenbuttons
                                             tabPanel(
                                                 "Verfrühungen",
-                                                DTOutput("early_quartile_summary")
+                                                DTOutput("early_quartile_summary_planer")
                                             )
                                         )
                                     )
@@ -382,7 +382,7 @@ planerUI <- function() {
                         
                         div(
                             style = "padding: 40px 0 15px 0;",
-                            uiOutput("abweichung_title")
+                            uiOutput("abweichung_title_planer")
                         ),
                         
                         fluidRow(
@@ -401,7 +401,7 @@ planerUI <- function() {
                                             )
                                         ),
                                         br(),
-                                        plotly::plotlyOutput("abweichung_time_plot", height = "240px"),
+                                        plotly::plotlyOutput("abweichung_time_plot_planer", height = "240px"),
                                     ),
                                     
                                     bsPopover(
@@ -431,7 +431,7 @@ planerUI <- function() {
                                             )
                                         ),
                                         br(),
-                                        plotly::plotlyOutput("abweichung_hist_plot", height = "240px")
+                                        plotly::plotlyOutput("abweichung_hist_plot_planer", height = "240px")
                                     ),
                                     
                                     bsPopover(
@@ -459,7 +459,7 @@ planerUI <- function() {
                                             )
                                         ),
                                         br(),
-                                        DT::DTOutput("abweichungstabelle")
+                                        DT::DTOutput("abweichungstabelle_planer")
                                     ),
                                     
                                     bsPopover(
@@ -496,7 +496,7 @@ planerServer <- function(input, output, session) {
     })
     
     #Beschränken auf A-Materialien
-    get_filtered_data <- function(df, selected_planer, selected_view) {
+    get_filtered_data_planer <- function(df, selected_planer, selected_view) {
         df_filtered <- df %>%
             filter(planer == selected_planer)
         
@@ -521,7 +521,7 @@ planerServer <- function(input, output, session) {
         )
     })
     
-    output$donut_termintreue <- renderEcharts4r({
+    output$donut_termintreue_planer <- renderEcharts4r({
         sel <- input$selected_planer
         df_s <- auftraege_lt_unit %>% filter(planer == sel)
         df_o <- auftraege_lt_unit %>% filter(planer != sel)
@@ -582,7 +582,7 @@ planerServer <- function(input, output, session) {
     })
     
     
-    output$donut_liefertreue <- renderEcharts4r({
+    output$donut_liefertreue_planer <- renderEcharts4r({
         sel <- input$selected_planer
         df_s <- auftraege_lt_unit %>% filter(planer == sel)
         df_o <- auftraege_lt_unit %>% filter(planer != sel)
@@ -674,7 +674,7 @@ planerServer <- function(input, output, session) {
     
     
     
-    output$donut_geschwindigkeit_me <- renderEcharts4r({
+    output$donut_geschwindigkeit_me_planer <- renderEcharts4r({
         req(input$selected_planer)
         
         df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lt_ist_order))
@@ -738,7 +738,7 @@ planerServer <- function(input, output, session) {
     })
     
     
-    output$donut_geschwindigkeit_auftrag <- renderEcharts4r({
+    output$donut_geschwindigkeit_auftrag_planer <- renderEcharts4r({
         req(input$selected_planer)
         
         df_sel <- auftraege_lt_unit %>% filter(planer == input$selected_planer, !is.na(lead_time_ist))
@@ -801,7 +801,7 @@ planerServer <- function(input, output, session) {
     })
     
     
-    output$performance_vgl <- renderUI({
+    output$performance_vgl_planer <- renderUI({
         sel  <- input$selected_planer
         df_s <- auftraege_lt_unit %>% filter(planer == sel)
         df_o <- auftraege_lt_unit %>% filter(planer != sel)
@@ -863,30 +863,30 @@ planerServer <- function(input, output, session) {
     
     
     
-    output$allocation_title <- renderUI({
-        req(input$selected_planer, input$view_selection)
+    output$allocation_title_planer <- renderUI({
+        req(input$selected_planer, input$view_selection_planer)
         h4(
-            paste0("Ansicht ", input$view_selection, " für Planer ", input$selected_planer),
+            paste0("Ansicht ", input$view_selection_planer, " für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
-    output$abweichung_title <- renderUI({
-        req(input$selected_planer, input$view_selection)
+    output$abweichung_title_planer <- renderUI({
+        req(input$selected_planer, input$view_selection_planer)
         h4(
             paste0("Ansicht Lead Time Abweichung für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
-    output$performance_titel <- renderUI({
+    output$performance_title_planer <- renderUI({
         h4(
             paste0("Ansicht Performance für Planer ", input$selected_planer),
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
     
-    output$lt_title <- renderUI({
+    output$lt_title_planer <- renderUI({
         req(input$selected_planer)
         h4(
             paste("Lead Time- und Performanceübersicht Planer", input$selected_planer), 
@@ -910,15 +910,15 @@ planerServer <- function(input, output, session) {
     }
     
     
-    output$delay_table_shared <- renderDT({
+    output$delay_table_shared_planer <- renderDT({
         req(input$selected_planer)
-        req(input$view_selection)
+        req(input$view_selection_planer)
         
-        col <- lt_map[[input$view_selection]]
+        col <- lt_map[[input$view_selection_planer]]
         
         df <- auftraege_lt_unit %>%
             filter(planer == input$selected_planer) %>%
-            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_planer == "Material") klassifikation == "A" else TRUE) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
             summarise(
@@ -940,7 +940,7 @@ planerServer <- function(input, output, session) {
             ) %>%
             dplyr::select(
                 ampel_color, ampel,
-                !!rlang::sym(input$view_selection) := value,
+                !!rlang::sym(input$view_selection_planer) := value,
                 `Verzögerung [s/ME]`,
                 `Ist-LT [s/ME]`,
                 `Soll-LT [s/ME]`,
@@ -967,16 +967,16 @@ planerServer <- function(input, output, session) {
     })
     
     
-    output$allocation_pie_shared <- renderEcharts4r({
+    output$allocation_pie_shared_planer <- renderEcharts4r({
         req(input$selected_planer)
-        req(input$view_selection)
+        req(input$view_selection_planer)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-        selected_col <- lt_map[[input$view_selection]]
+        selected_col <- lt_map[[input$view_selection_planer]]
         
         df <- auftraege_lt_unit %>%
             dplyr::filter(planer == input$selected_planer) %>%
-            dplyr::filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
+            dplyr::filter(if (input$view_selection_planer == "Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[selected_col]])) %>%
             dplyr::group_by(category = .data[[selected_col]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
@@ -1044,7 +1044,7 @@ planerServer <- function(input, output, session) {
     
     
     
-    output$livetracker_auftraege <- renderUI({
+    output$livetracker_auftraege_planer <- renderUI({
         req(input$selected_planer)
         
         anzahl <- auftraege_lt_unit %>%
@@ -1072,7 +1072,7 @@ planerServer <- function(input, output, session) {
     })
     
     
-    output$livetracker_servicelevel <- renderUI({
+    output$livetracker_servicelevel_planer <- renderUI({
         req(input$selected_planer)
         
         filtered <- auftraege_lt_unit %>%
@@ -1124,16 +1124,16 @@ planerServer <- function(input, output, session) {
     })
     
     
-    output$livetracker_bottleneck <- renderUI({
-        req(input$selected_planer, input$view_selection)
+    output$livetracker_bottleneck_planer <- renderUI({
+        req(input$selected_planer, input$view_selection_planer)
         
         # Spaltenname aus vorhandenem Mapping lt_map
-        selected <- lt_map[[input$view_selection]]
-        label <- input$view_selection  
+        selected <- lt_map[[input$view_selection_planer]]
+        label <- input$view_selection_planer  
         
         bottleneck_info <- auftraege_lt_unit %>%
             filter(planer == input$selected_planer, abweichung > 0) %>%
-            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_planer == "Material") klassifikation == "A" else TRUE) %>%
             filter(!is.na(.data[[selected]])) %>%
             group_by(group = .data[[selected]]) %>%
             summarise(
@@ -1162,16 +1162,16 @@ planerServer <- function(input, output, session) {
         )
     })
     
-    output$top_delay_orders <- renderDT({
+    output$top_delay_orders_planer <- renderDT({
         req(input$selected_planer)
-        req(input$view_selection)
+        req(input$view_selection_planer)
         
         df <- auftraege_lt_unit %>%
             filter(
                 planer == input$selected_planer,
                 !is.na(abweichung_unit)
             ) %>%
-            filter(if (input$view_selection == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_planer == "Material") klassifikation == "A" else TRUE) %>%
             arrange(desc(abweichung_unit)) %>%
             slice_head(n = 200) %>%
             transmute(
@@ -1192,11 +1192,11 @@ planerServer <- function(input, output, session) {
     })
     
     ### 1. Neue Tabelle mit Verzögerungsbereichen erzeugen
-    output$delay_quartile_summary <- renderDT({
+    output$delay_quartile_summary_planer <- renderDT({
         req(input$selected_planer)
-        req(input$view_selection)
+        req(input$view_selection_planer)
         
-        selected_col <- lt_map[[input$view_selection]]
+        selected_col <- lt_map[[input$view_selection_planer]]
         
         df <- auftraege_lt_unit %>%
             filter(
@@ -1204,7 +1204,7 @@ planerServer <- function(input, output, session) {
                 abweichung > 0,
                 !is.na(abweichung),
                 !is.na(.data[[selected_col]]),
-                if (input$view_selection == "Material") klassifikation == "A" else TRUE
+                if (input$view_selection_planer == "Material") klassifikation == "A" else TRUE
             )
         
         labels <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
@@ -1227,10 +1227,10 @@ planerServer <- function(input, output, session) {
                 "</div>"
             ),
             Details = c(
-                as.character(actionButton("btn_q_10", label = NULL, icon = icon("search"))),
-                as.character(actionButton("btn_q_105", label = NULL, icon = icon("search"))),
-                as.character(actionButton("btn_q_53", label = NULL, icon = icon("search"))),
-                as.character(actionButton("btn_q_31", label = NULL, icon = icon("search")))
+                as.character(actionButton("btn_q_10_planer", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_105_planer", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_53_planer", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_q_31_planer", label = NULL, icon = icon("search")))
             )
         )
         
@@ -1254,14 +1254,14 @@ planerServer <- function(input, output, session) {
     })
     
     
-    observeEvent(input$btn_q_10, {
+    observeEvent(input$btn_q_10_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung > 10 Tage",
-            DTOutput("modal_q10"),
+            DTOutput("modal_q10_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_q10 <- renderDT({
+        output$modal_q10_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1278,14 +1278,14 @@ planerServer <- function(input, output, session) {
         })
     })
     
-    observeEvent(input$btn_q_105, {
+    observeEvent(input$btn_q_105_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 5 und 10 Tagen",
-            DTOutput("modal_q105"),
+            DTOutput("modal_q105_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_q105 <- renderDT({
+        output$modal_q105_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1302,14 +1302,14 @@ planerServer <- function(input, output, session) {
         })
     })
     
-    observeEvent(input$btn_q_53, {
+    observeEvent(input$btn_q_53_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 3 und 5 Tagen",
-            DTOutput("modal_q53"),
+            DTOutput("modal_q53_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_q53 <- renderDT({
+        output$modal_q53_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1326,14 +1326,14 @@ planerServer <- function(input, output, session) {
         })
     })
     
-    observeEvent(input$btn_q_31, {
+    observeEvent(input$btn_q_31_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 1 und 3 Tagen",
-            DTOutput("modal_q31"),
+            DTOutput("modal_q31_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_q31 <- renderDT({
+        output$modal_q31_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1351,9 +1351,9 @@ planerServer <- function(input, output, session) {
     })
     
     
-    output$top_early_orders <- renderDT({
+    output$top_early_orders_planer <- renderDT({
         req(input$selected_planer)
-        req(input$view_selection)
+        req(input$view_selection_planer)
         
         df <- auftraege_lt_unit %>%
             filter(
@@ -1383,11 +1383,11 @@ planerServer <- function(input, output, session) {
         )
     })
     
-    output$early_quartile_summary <- renderDT({
+    output$early_quartile_summary_planer <- renderDT({
         req(input$selected_planer)
-        req(input$view_selection)
+        req(input$view_selection_planer)
         
-        selected_col <- lt_map[[input$view_selection]]
+        selected_col <- lt_map[[input$view_selection_planer]]
         
         df <- auftraege_lt_unit %>%
             filter(
@@ -1417,10 +1417,10 @@ planerServer <- function(input, output, session) {
                 "</div>"
             ),
             Details = c(
-                as.character(actionButton("btn_e_10", label = NULL, icon = icon("search"))),
-                as.character(actionButton("btn_e_105", label = NULL, icon = icon("search"))),
-                as.character(actionButton("btn_e_53", label = NULL, icon = icon("search"))),
-                as.character(actionButton("btn_e_31", label = NULL, icon = icon("search")))
+                as.character(actionButton("btn_e_10_planer", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_105_planer", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_53_planer", label = NULL, icon = icon("search"))),
+                as.character(actionButton("btn_e_31_planer", label = NULL, icon = icon("search")))
             )
         )
         
@@ -1442,14 +1442,14 @@ planerServer <- function(input, output, session) {
             )
         )
     })
-    observeEvent(input$btn_e_10, {
+    observeEvent(input$btn_e_10_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verfrühung < -10 Tage",
-            DTOutput("modal_e10"),
+            DTOutput("modal_e10_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_e10 <- renderDT({
+        output$modal_e10_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1465,14 +1465,14 @@ planerServer <- function(input, output, session) {
         })
     })
     
-    observeEvent(input$btn_e_105, {
+    observeEvent(input$btn_e_105_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verfrühung zwischen -10 und -5 Tagen",
-            DTOutput("modal_e105"),
+            DTOutput("modal_e105_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_e105 <- renderDT({
+        output$modal_e105_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1489,14 +1489,14 @@ planerServer <- function(input, output, session) {
         })
     })
     
-    observeEvent(input$btn_e_53, {
+    observeEvent(input$btn_e_53_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verfrühung zwischen -5 und -3 Tagen",
-            DTOutput("modal_e53"),
+            DTOutput("modal_e53_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_e53 <- renderDT({
+        output$modal_e53_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1513,14 +1513,14 @@ planerServer <- function(input, output, session) {
         })
     })
     
-    observeEvent(input$btn_e_31, {
+    observeEvent(input$btn_e_31_planer, {
         showModal(modalDialog(
             title = "Aufträge mit Verfrühung zwischen -3 und -1 Tagen",
-            DTOutput("modal_e31"),
+            DTOutput("modal_e31_planer"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
         
-        output$modal_e31 <- renderDT({
+        output$modal_e31_planer <- renderDT({
             req(input$selected_planer)
             
             df <- auftraege_lt_unit %>%
@@ -1540,7 +1540,7 @@ planerServer <- function(input, output, session) {
     
     
     
-    output$abweichung_time_plot <- renderPlotly({
+    output$abweichung_time_plot_planer <- renderPlotly({
         req(input$selected_planer)
         
         df <- auftraege_lt_unit %>%
@@ -1572,7 +1572,7 @@ planerServer <- function(input, output, session) {
             )
     })
     
-    plot_abweichung_histogram <- function(df, selected_planer) {
+    plot_abweichung_histogram_planer <- function(df, selected_planer) {
         df_filtered <- df %>%
             filter(planer == selected_planer & !is.na(abweichung))
         
@@ -1594,12 +1594,12 @@ planerServer <- function(input, output, session) {
         ggplotly(p)
     }
     
-    output$abweichung_hist_plot <- renderPlotly({
+    output$abweichung_hist_plot_planer <- renderPlotly({
         req(input$selected_planer)
-        plot_abweichung_histogram(vorgaenge_sorted, input$selected_planer)
+        plot_abweichung_histogram_planer(vorgaenge_sorted, input$selected_planer)
     })
     
-    abweichung_tabelle <- reactive({
+    abweichung_tabelle_planer <- reactive({
         req(input$selected_planer)
         
         df <- auftraege_lt_unit %>%
@@ -1641,8 +1641,8 @@ planerServer <- function(input, output, session) {
             dplyr::select(Kategorie, `Lead Time Abweichung`)
     })
     
-    output$abweichungstabelle <- DT::renderDT({
-        abweichung_tabelle()
+    output$abweichungstabelle_planer <- DT::renderDT({
+        abweichung_tabelle_planer()
     }, 
     options = list(
         dom = 't',
