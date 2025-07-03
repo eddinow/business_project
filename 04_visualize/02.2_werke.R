@@ -13,11 +13,26 @@ source("02_model/create_workflows_overview.R")
 source("02_model/kpis_werke.R")
 source("01_transform/create_lt_unit.R")
 
+# Mapping zwischen UI-Label und Datenspalte
+lt_map <- list(
+    "Workflow" = "vorgangsfolge",
+    "Werk"     = "werk",
+    "Linie"    = "klassifikation",
+    "Planer"   = "planer",
+    "Material" = "materialnummer"
+)
 
+#Formel zur Berechnung des Modus
+modus <- function(x) {
+    ux <- unique(x[!is.na(x)])
+    ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Designfunktion für die Plots
 my_theme <- function(base_family = "Inter") {
     theme_minimal(base_family = base_family) +
         theme(
-            # Einheitliche Schriftgröße & Farbe
+            # Schriftgröße & Farbe
             text = element_text(family = base_family, color = "#202124"),
             axis.title = element_text(size = 12),
             axis.text = element_text(size = 10, color = "#5f6368"),
@@ -44,13 +59,13 @@ werkUI <- function() {
     
     # HEAD-Bereich mit Styles
         
-        # Sub-Header direkt darunter (ohne Lücke)
+        # Sub-Header
         div(
             style = "background-color: #f1f3f4; padding: 18px 32px; height: 72px;
          display: flex; align-items: center; justify-content: space-between;
          border-top: 1px solid #e0e0e0;",
             
-            # Linke Seite: Icon + Titel
+            # Icon + Titel
             div(
                 style = "display: flex; align-items: center; gap: 12px;",
                 icon("industry", class = NULL, style = "font-size: 20px; color: #5f6368;"),
@@ -60,11 +75,11 @@ werkUI <- function() {
                 )
             ),
             
-            # Rechte Seite: Linien-Auswahl + zweite Ansichtsauswahl
+            # Werke-Auswahl + zweite Ansichtsauswahl
             div(
                 style = "display: flex; align-items: center; gap: 24px;",
                 
-                # Linie auswählen
+                # 1. Werk auswählen
                 div(
                     style = "display: flex; align-items: center; gap: 8px;",
                     span(
@@ -104,7 +119,7 @@ werkUI <- function() {
         ),
     
     
-    # INHALT: max-width Wrapper
+    # Inhalt
     div(style = "max-width: 1100px; margin: 0 auto;",
         
         div(
@@ -112,7 +127,7 @@ werkUI <- function() {
             uiOutput("werk_title")
         ),
         
-        #KPI Boxen
+        # KPI Boxen (Anzahl Aufträge, Servicelevel, Bottleneck)
         fluidRow(
             column(
                 width = 4,
@@ -139,7 +154,7 @@ werkUI <- function() {
                 )
             )
         ),
-        
+         # Performance-KPIs des ausgewählten Werks
         fluidRow(
             column(
                 width = 12,
@@ -147,19 +162,15 @@ werkUI <- function() {
                     class = "white-box",
                     style = "padding: 40px 32px; background-color: white;",
                     tagList(
-                        
-                        # Box-Überschrift
                         div(
                             style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
                             tags$strong("Performance-Übersicht", 
                                         style = "font-weight: 600; font-size: 16px; color: #202124;")
                         ),
-                        
-                        # Alle 4 Donuts nebeneinander
                         div(
                             style = "display: flex; justify-content: space-between;",
                             
-                            # Donut 1 – Termintreue
+                            # 1. Termintreue
                             div(
                                 style = "text-align: center; width: 24%;",
                                 echarts4rOutput("donut_termintreue_werk", height = "160px"),
@@ -181,7 +192,7 @@ werkUI <- function() {
                                 )
                             ),
                             
-                            # Donut 2 – Liefertreue
+                            # 2. Liefertreue
                             div(
                                 style = "text-align: center; width: 24%;",
                                 echarts4rOutput("donut_liefertreue_werk", height = "160px"),
@@ -204,7 +215,7 @@ werkUI <- function() {
                                 )
                             ),
                             
-                            # Donut 3 – Geschwindigkeit pro ME
+                            # 3. Geschwindigkeit pro ME
                             div(
                                 style = "text-align: center; width: 24%;",
                                 echarts4rOutput("donut_geschwindigkeit_me_werk", height = "160px"),
@@ -227,7 +238,7 @@ werkUI <- function() {
                                 )
                             ),
                             
-                            # Donut 4 – Geschwindigkeit pro Auftrag
+                            # 4. Geschwindigkeit pro Auftrag
                             div(
                                 style = "text-align: center; width: 24%;",
                                 echarts4rOutput("donut_geschwindigkeit_auftrag_werk", height = "160px"),
@@ -255,9 +266,7 @@ werkUI <- function() {
             )
         ),
         
-
-        
-        
+        # KPIs der ausgewählten Ansicht
         fluidRow(
             column(
                 width = 12,
@@ -271,8 +280,7 @@ werkUI <- function() {
                             uiOutput("allocation_title_werk")
                         ),
                         
-                        
-                        
+                        # Übersichtstabelle mit Verzögerungen, Lead Times und Servicelevel
                         fluidRow(
                             column(
                                 width = 12,
@@ -298,7 +306,7 @@ werkUI <- function() {
                             )
                         ),
                         
-                        # Zweite Zeile: Lead Time + Mengen – ebenfalls in eigenen Boxen
+                        # Verteilung der Aufträge
                         fluidRow(
                             column(
                                 width = 6,
@@ -324,6 +332,7 @@ werkUI <- function() {
                                 )
                             ),
                             
+                            # Aufträge mit starken Abweichungen
                             column(
                                 width = 6,
                                 div(
@@ -369,6 +378,7 @@ werkUI <- function() {
             )
         ),
         
+    # Lead Time Übersicht des ausgewählten Werks (ohne Ansicht als zweite Dimension)
         fluidRow(
             column(
                 width = 12,
@@ -382,6 +392,7 @@ werkUI <- function() {
                             uiOutput("abweichung_title_werk")
                         ),
                         
+                        # Lead Time Abweichung im Zeitverlauf
                         fluidRow(
                             column(
                                 width = 12,
@@ -413,6 +424,7 @@ werkUI <- function() {
                         ),
                         
                         fluidRow(
+                            # Lead Time Abweichung absolut
                             column(
                                 width = 6,
                                 div(
@@ -440,6 +452,9 @@ werkUI <- function() {
                                     ),
                                 )
                             ),
+                            
+                            
+                            # Lead Time Abweichung relativ
                             column(
                                 width = 6,
                                 div(
@@ -474,12 +489,12 @@ werkUI <- function() {
             )
         )
     )
-)
-}
+)}
 
 #Server-------------------------------------------------------------------------
 werkServer <- function(input, output, session) {
     
+    # Aufträge nach Werken filtern
     observe({
         werk <- unique(auftraege_lt_unit$werk)
         
@@ -491,6 +506,19 @@ werkServer <- function(input, output, session) {
             server = TRUE
         )
     })
+    
+    # Beschränken auf A-Materialien
+    get_filtered_data_werk <- function(df, selected_werk, selected_view_werk) {
+        df_filtered <- df %>%
+            filter(werk == selected_werk)
+        
+        if (selected_view == "Material") {
+            df_filtered <- df_filtered %>%
+                filter(klassifikation == "A")
+        }
+        
+        return(df_filtered)
+    }
     
     output$werk_title <- renderUI({
         req(input$selected_werk)
@@ -504,11 +532,16 @@ werkServer <- function(input, output, session) {
         )
     })
     
+    
+# KPIs der ausgewählten Ansicht
+    
+    # 1. Termintreue [1]
     output$donut_termintreue_werk <- renderEcharts4r({
         sel <- input$selected_werk
         df_s <- auftraege_lt_unit %>% filter(werk == sel)
         df_o <- auftraege_lt_unit %>% filter(werk != sel)
         
+        # Berechne Mittelwert aller Abweichungen kleiner oder gleich 0 - Anteil pünktlich
         value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
         avg   <- round(df_o %>%
                            group_by(werk) %>%
@@ -516,7 +549,7 @@ werkServer <- function(input, output, session) {
                            pull(rate) %>%
                            mean(na.rm = TRUE) * 100, 1)
         
-        # 👑 oder ⚠️
+        # Vergleich von Performance mit Gesamtperformance
         symbol <- if (value > avg) {
             "👑"
         } else if (value < avg) {
@@ -564,16 +597,17 @@ werkServer <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
-    
+    # 2. Liefertreue [2]
     output$donut_liefertreue_werk <- renderEcharts4r({
         sel <- input$selected_werk
         df_s <- auftraege_lt_unit %>% filter(werk == sel)
         df_o <- auftraege_lt_unit %>% filter(werk != sel)
         
+        # Berechne Mittelwert aller gelieferten Mengen größer oder gleich 0 - Anteil Mengentreue
         value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
         avg   <- round(mean(df_o$gelieferte_menge >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
         
-        # Entscheidungssymbol & Farbe
+        # Vergleich von Performance mit Gesamtperformance
         symbol <- if (value > avg) {
             "👑"
         } else if (value < avg) {
@@ -656,18 +690,19 @@ werkServer <- function(input, output, session) {
     })
     
     
-    
+    # 3. Geschwindigkeit pro ME [3]
     output$donut_geschwindigkeit_me_werk <- renderEcharts4r({
         req(input$selected_werk)
         
         df_sel <- auftraege_lt_unit %>% filter(werk == input$selected_werk, !is.na(lt_ist_order))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
         
+        # Berechne Mittelwert aller Istzeiten und rechne in min um
         geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
         geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
-        
         rel_diff <- geschw_all - geschw_sel
         
+        # Vergleich Performance mit Gesamtperformance
         symbol <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
@@ -721,17 +756,19 @@ werkServer <- function(input, output, session) {
     })
     
     
+    # 4. Geschwindigkeit pro Auftrag [4]
     output$donut_geschwindigkeit_auftrag_werk <- renderEcharts4r({
         req(input$selected_werk)
         
         df_sel <- auftraege_lt_unit %>% filter(werk == input$selected_werk, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
+        # Berechne den Median aller Istzeiten
         geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
         geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
-        
         rel_diff <- geschw_all - geschw_sel
         
+        # Vergleich Performance mit Gesamtperformance
         symbol <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
@@ -748,6 +785,7 @@ werkServer <- function(input, output, session) {
             "#cfcfcf"
         }
         
+        # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
         prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
         prozent <- max(min(prozent, 100), 0)
         
@@ -783,68 +821,127 @@ werkServer <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
+# KPI-Boxen
     
-    output$performance_vgl_werk <- renderUI({
-        sel  <- input$selected_werk
-        df_s <- auftraege_lt_unit %>% filter(werk == sel)
-        df_o <- auftraege_lt_unit %>% filter(werk != sel)
+    # 1. Anzahl Aufträge für ausgewähltes Werk
+    output$livetracker_auftraege_werk <- renderUI({
+        req(input$selected_werk)
         
-        # KPI-Werte berechnen (vereinfacht hier)
-        kpis <- tibble::tibble(
-            label = c("Pünktlichkeitsrate", "Ø Verzögerung (Tage)", "Ø Workflows/Auftrag", "Anzahl Aufträge"),
-            value = c(
-                mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100,
-                median(df_s$abweichung_unit[df_s$abweichung_unit > 0], na.rm = TRUE),
-                df_s %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
-                nrow(df_s)
+        anzahl <- auftraege_lt_unit %>%
+            filter(werk == input$selected_werk) %>%
+            summarise(n = n_distinct(auftragsnummer)) %>%
+            pull(n)
+        
+        tags$div(
+            style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
+            tags$span(
+                style = "font-weight: 600; font-size: 22px; color: #202124;",
+                anzahl
             ),
-            avg = c(
-                df_o %>% group_by(werk) %>% summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>% pull(rate) %>% mean(na.rm = TRUE) * 100,
-                df_o %>% filter(abweichung_unit > 0) %>% group_by(werk) %>% summarise(avg = median(abweichung_unit, na.rm = TRUE)) %>% pull(avg) %>% mean(na.rm = TRUE),
-                df_o %>% mutate(ops = str_count(vorgangsfolge, "→") + 1) %>% summarise(avg = mean(ops, na.rm = TRUE)) %>% pull(avg),
-                df_o %>% group_by(werk) %>% summarise(n = n()) %>% pull(n) %>% mean(na.rm = TRUE)
+            tags$span(
+                style = "font-size: 14px; color: #5f6368;",
+                "# Aufträge"
             )
-        )
-        
-        # Hilfsfunktion für ein KPI-Feld
-        kpi_box <- function(value, avg, label) {
-            diff <- value - avg
-            icon <- if (round(diff, 1) > 0) {
-                "<span style='color:green;font-size:24px'>&uarr;</span>"
-            } else if (round(diff, 1) < 0) {
-                "<span style='color:red;font-size:24px'>&darr;</span>"
-            } else {
-                "<span style='color:black;font-size:24px'>&rarr;</span>"
-            }
-            
-            div(style = "
-        background:white;
-        border:1px solid #e0e0e0;
-        border-radius:10px;
-        padding:15px;
-        margin:5px;
-        text-align:center;
-        width: 23%;
-        box-shadow: 0px 2px 5px rgba(0,0,0,0.05);
-        ",
-                HTML(icon),
-                div(style = "font-size:20px;font-weight:bold;margin-top:5px;", sprintf("%.1f", value)),
-                div(style = "font-size:13px;color:#555;margin-top:2px;", label)
-            )
-        }
-        
-        # Vier Boxen nebeneinander anzeigen
-        fluidRow(
-            lapply(1:4, function(i) {
-                column(
-                    width = 3,
-                    kpi_box(kpis$value[i], kpis$avg[i], kpis$label[i])
-                )
-            })
         )
     })
     
+    # Servicelevel gesamt
+    overall_servicelevel <- reactive({
+        sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
+            sum(!is.na(auftraege_lt_unit$auftragsnummer))
+    })
     
+    # 2. Servicelevel
+    output$livetracker_servicelevel_werk <- renderUI({
+        req(input$selected_werk)
+        
+        filtered <- auftraege_lt_unit %>%
+            filter(werk == input$selected_werk)
+        
+        if (nrow(filtered) == 0) {
+            return(
+                div(
+                    style = "display: flex; flex-direction: column;",
+                    span(style = "font-weight: 600; font-size: 24px; color: #9e9e9e;", "–"),
+                    span("Servicelevel", style = "color: #5f6368; font-size: 14px;")
+                )
+            )
+        }
+        
+        # Ermittle den Anteil aller Abweichungen kleiner oder gleich null (zu früh oder JIT)
+        sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(filtered$auftragsnummer))
+        overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
+            sum(!is.na(auftraege_lt_unit$auftragsnummer))
+        
+        sl_percent <- paste0(round(sl * 100), "%")
+        overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
+        
+        # Vergleich Performance mit Gesamtperformance
+        if (sl > overall_sl) {
+            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
+            popover_text <- paste("Overperformance |", overall_text)
+        } else {
+            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #ea4335; margin-right: 6px;'>⚠️</span>"
+            popover_text <- paste("Underperformance |", overall_text)
+        }
+        
+        tagList(
+            HTML(paste0(
+                "<div style='display: flex; align-items: center;'>",
+                icon_tag,
+                "<span style='font-weight: 600; font-size: 24px; color: #202124;'>", sl_percent, "</span>",
+                "</div>"
+            )),
+            span("Servicelevel", style = "font-size: 14px; color: #5f6368; margin-top: 4px;"),
+            bsPopover(
+                id = "servicelevel_icon",
+                title = "Servicelevel-Vergleich",
+                content = popover_text,
+                placement = "top",
+                trigger = "hover"
+            )
+        )
+    })
+    
+    # 3. Bottleneck der ausgewählten Ansicht
+    output$livetracker_bottleneck_werk <- renderUI({
+        req(input$selected_werk, input$view_selection_werk)
+        selected <- lt_map[[input$view_selection_werk]]
+        label <- input$view_selection_werk  
+        
+        # Ermittle Entität mit der höchsten mittleren Abweichung (Median) unter den verspäteten Aufträgen
+        bottleneck_info <- auftraege_lt_unit %>%
+            filter(werk == input$selected_werk, abweichung > 0) %>%
+            filter(if (input$view_selection_werk == "Material") klassifikation == "A" else TRUE) %>%
+            filter(!is.na(.data[[selected]])) %>%
+            group_by(group = .data[[selected]]) %>%
+            summarise(
+                median_abweichung = median(abweichung, na.rm = TRUE),
+                .groups = "drop"
+            ) %>%
+            arrange(desc(median_abweichung)) %>%
+            slice(1)
+        
+        if (nrow(bottleneck_info) == 0 || is.na(bottleneck_info$group)) {
+            wert <- "–"
+        } else {
+            wert <- paste0(label, " ", bottleneck_info$group, " | ", round(bottleneck_info$median_abweichung, 1), " Tage")
+        }
+        
+        tags$div(
+            style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
+            tags$span(
+                style = "font-weight: 600; font-size: 22px; color: #202124;",
+                wert
+            ),
+            tags$span(
+                style = "font-size: 14px; color: #5f6368;",
+                paste("Bottleneck | Verzögerung absolut")
+            )
+        )
+    })
+
     
     output$allocation_title_werk <- renderUI({
         req(input$selected_werk, input$view_selection_werk)
@@ -868,22 +965,6 @@ werkServer <- function(input, output, session) {
             style = "margin-bottom: 48px; font-weight: 600; color: #202124; font-size: 20px;"
         )
     })
-
-    
-    # Mapping zwischen UI-Label und Datenspalte
-    lt_map <- list(
-        "Workflow" = "vorgangsfolge",
-        "Werk"     = "werk",
-        "Linie"    = "fertigungslinie",
-        "Planer"   = "planer",
-        "A-Material" = "materialnummer"
-    )
-    
-    #Formel zur Berechnung des Modus
-    modus <- function(x) {
-        ux <- unique(x[!is.na(x)])
-        ux[which.max(tabulate(match(x, ux)))]
-    }
     
     
     output$delay_table_shared_werk <- renderDT({
@@ -1018,124 +1099,7 @@ werkServer <- function(input, output, session) {
     })
     
     
-    
-    
-    output$livetracker_auftraege_werk <- renderUI({
-        req(input$selected_werk)
-        
-        anzahl <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk) %>%
-            summarise(n = n_distinct(auftragsnummer)) %>%
-            pull(n)
-        
-        tags$div(
-            style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
-            tags$span(
-                style = "font-weight: 600; font-size: 22px; color: #202124;",
-                anzahl
-            ),
-            tags$span(
-                style = "font-size: 14px; color: #5f6368;",
-                "# Aufträge"
-            )
-        )
-    })
-    
-    
-    overall_servicelevel <- reactive({
-        sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
-            sum(!is.na(auftraege_lt_unit$auftragsnummer))
-    })
-    
-    
-    output$livetracker_servicelevel_werk <- renderUI({
-        req(input$selected_werk)
-        
-        filtered <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk)
-        
-        if (nrow(filtered) == 0) {
-            return(
-                div(
-                    style = "display: flex; flex-direction: column;",
-                    span(style = "font-weight: 600; font-size: 24px; color: #9e9e9e;", "–"),
-                    span("Servicelevel", style = "color: #5f6368; font-size: 14px;")
-                )
-            )
-        }
-        
-        sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
-            sum(!is.na(filtered$auftragsnummer))
-        overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
-            sum(!is.na(auftraege_lt_unit$auftragsnummer))
-        
-        sl_percent <- paste0(round(sl * 100), "%")
-        overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
-        
-        if (sl > overall_sl) {
-            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
-            popover_text <- paste("Overperformance |", overall_text)
-        } else {
-            icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #ea4335; margin-right: 6px;'>⚠️</span>"
-            popover_text <- paste("Underperformance |", overall_text)
-        }
-        
-        tagList(
-            HTML(paste0(
-                "<div style='display: flex; align-items: center;'>",
-                icon_tag,
-                "<span style='font-weight: 600; font-size: 24px; color: #202124;'>", sl_percent, "</span>",
-                "</div>"
-            )),
-            span("Servicelevel", style = "font-size: 14px; color: #5f6368; margin-top: 4px;"),
-            bsPopover(
-                id = "servicelevel_icon",
-                title = "Servicelevel-Vergleich",
-                content = popover_text,
-                placement = "top",
-                trigger = "hover"
-            )
-        )
-    })
-    
-    
-    output$livetracker_bottleneck_werk <- renderUI({
-        req(input$selected_werk, input$view_selection_werk)
-        
-        # Spaltenname aus vorhandenem Mapping lt_map
-        selected <- lt_map[[input$view_selection_werk]]
-        label <- input$view_selection_werk  
-        
-        bottleneck_info <- auftraege_lt_unit %>%
-            filter(werk == input$selected_werk, abweichung > 0) %>%
-            filter(if (input$view_selection_werk == "Material") klassifikation == "A" else TRUE) %>%
-            filter(!is.na(.data[[selected]])) %>%
-            group_by(group = .data[[selected]]) %>%
-            summarise(
-                median_abweichung = median(abweichung, na.rm = TRUE),
-                .groups = "drop"
-            ) %>%
-            arrange(desc(median_abweichung)) %>%
-            slice(1)
-        
-        if (nrow(bottleneck_info) == 0 || is.na(bottleneck_info$group)) {
-            wert <- "–"
-        } else {
-            wert <- paste0(label, " ", bottleneck_info$group, " | ", round(bottleneck_info$median_abweichung, 1), " Tage")
-        }
-        
-        tags$div(
-            style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
-            tags$span(
-                style = "font-weight: 600; font-size: 22px; color: #202124;",
-                wert
-            ),
-            tags$span(
-                style = "font-size: 14px; color: #5f6368;",
-                paste("Bottleneck | Verzögerung absolut")
-            )
-        )
-    })
+
     
     output$top_delay_orders_werk <- renderDT({
         req(input$selected_werk)
@@ -1513,9 +1477,14 @@ werkServer <- function(input, output, session) {
         })
     })
     
+# Übersicht Lead Time Abweichung
+    
+    # 1. Abweichung im Zeitverlauf
     output$abweichung_time_plot_werk <- renderPlotly({
         req(input$selected_werk)
         
+        # Sortiere nach tatsächlichem Starttermin, aber berücksichige nur jeden 
+        # 10. Wert (aus Darstellungsgründen)
         df <- auftraege_lt_unit %>%
             filter(werk == input$selected_werk) %>%
             arrange(starttermin_ist) %>%
@@ -1545,24 +1514,25 @@ werkServer <- function(input, output, session) {
             )
     })
     
+    # 2. Lead Time Abweichung absolut
     plot_abweichung_histogram_werk <- function(df, selected_werk) {
         df_filtered <- df %>%
             filter(werk == selected_werk & !is.na(abweichung))
         
         if (nrow(df_filtered) == 0) return(NULL)
         
-        # Dynamische Grenzen anhand 1% und 99% Quantil
+        # Dynamische Grenzen lhne obere und untere 2,5% (v.a. aus Darstellungsgründen)
         x_min <- quantile(df_filtered$abweichung, 0.025)
         x_max <- quantile(df_filtered$abweichung, 0.975)
         
         p <- ggplot(df_filtered, aes(x = abweichung)) +
             geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
             labs(
-                x = "Abweichung (Ist - Soll) [Tage]",
-                y = "Häufigkeit"
+                x = "Lead-Time-Abweichung [Tage]",
+                y = "Anzahl Aufträge"
             ) +
             scale_x_continuous(limits = c(x_min, x_max)) +
-            my_theme()  # 👈 Google-Stil hier anwenden
+            my_theme() 
         
         ggplotly(p)
     }
@@ -1572,12 +1542,16 @@ werkServer <- function(input, output, session) {
         plot_abweichung_histogram_werk(vorgaenge_sorted, input$selected_werk)
     })
     
+    
+    # 3. Lead Time Abweichung relativ
     abweichung_tabelle_werk <- reactive({
         req(input$selected_werk)
         
         df <- auftraege_lt_unit %>%
             filter(werk == input$selected_werk) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
+            
+            # Setze Abweichung ins Verhältnis zur Sollzeit und klassifiziere die Aufträge
             mutate(
                 abw_rel = (lt_ist_order - lt_soll_order) / lt_soll_order,
                 kategorie = case_when(
@@ -1627,7 +1601,5 @@ werkServer <- function(input, output, session) {
     rownames = FALSE,
     class = "hover"
     )
-    
-    
 }
 

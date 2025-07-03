@@ -13,11 +13,27 @@ source("02_model/create_workflows_overview.R")
 source("02_model/kpis_werke.R")
 source("01_transform/create_lt_unit.R")
 
+# Mapping zwischen UI-Label und Datenspalte
+lt_map <- list(
+    "Workflow" = "vorgangsfolge",
+    "Werk"     = "werk",
+    "Linie"    = "klassifikation",
+    "Planer"   = "planer",
+    "Material" = "materialnummer"
+)
 
+
+#Formel zur Berechnung des Modus
+modus <- function(x) {
+    ux <- unique(x[!is.na(x)])
+    ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Designfunktion für die Plots
 my_theme <- function(base_family = "Inter") {
     theme_minimal(base_family = base_family) +
         theme(
-            # Einheitliche Schriftgröße & Farbe
+            # Schriftgröße & Farbe
             text = element_text(family = base_family, color = "#202124"),
             axis.title = element_text(size = 12),
             axis.text = element_text(size = 10, color = "#5f6368"),
@@ -41,15 +57,14 @@ my_theme <- function(base_family = "Inter") {
 #UI-----------------------------------------------------------------------------
 klassifikationUI <- function() {
     tagList(
-    
         
-        # Sub-Header direkt darunter (ohne Lücke)
+        # Main-Header mit Navigation
         div(
             style = "background-color: #f1f3f4; padding: 18px 32px; height: 72px;
          display: flex; align-items: center; justify-content: space-between;
          border-top: 1px solid #e0e0e0;",
             
-            # Linke Seite: Icon + Titel
+            # Icon + Titel
             div(
                 style = "display: flex; align-items: center; gap: 12px;",
                 icon("arrow-right", class = NULL, style = "font-size: 20px; color: #5f6368;"),
@@ -59,11 +74,11 @@ klassifikationUI <- function() {
                 )
             ),
             
-            # Rechte Seite: Linien-Auswahl + zweite Ansichtsauswahl
+            # Material-Auswahl + Ansichtsauswahl
             div(
                 style = "display: flex; align-items: center; gap: 24px;",
                 
-                # Linie auswählen
+                # 1. Material auswählen
                 div(
                     style = "display: flex; align-items: center; gap: 8px;",
                     span(
@@ -83,305 +98,299 @@ klassifikationUI <- function() {
                 )
             )
         ),
-    
-    
-    # INHALT: max-width Wrapper
-    div(style = "max-width: 1100px; margin: 0 auto;",
         
-        div(
-            style = "padding: 48px 0 12px 0;",  # Abstand oben und unten
-            uiOutput("klassifikation_title")
-        ),
         
-        #KPI Boxen
-        fluidRow(
-            column(
-                width = 4,
-                div(
-                    class = "white-box",
-                    style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_auftraege_material")
+        # Inhalt
+        div(style = "max-width: 1100px; margin: 0 auto;",
+            
+            div(
+                style = "padding: 48px 0 12px 0;",  # Abstand oben und unten
+                uiOutput("klassifikation_title")
+            ),
+            
+            # KPI Boxen (Anzahl Aufträge, Servicelevel, Bottleneck)
+            fluidRow(
+                column(
+                    width = 4,
+                    div(
+                        class = "white-box",
+                        style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                        uiOutput("livetracker_auftraege_material")
+                    )
+                ),
+                column(
+                    width = 4,
+                    div(
+                        class = "white-box",
+                        style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                        uiOutput("livetracker_servicelevel_material")
+                    )
+                ),
+                column(
+                    width = 4,
+                    div(
+                        class = "white-box",
+                        style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
+                        uiOutput("livetracker_bottleneck_material")
+                    )
                 )
             ),
-            column(
-                width = 4,
-                div(
-                    class = "white-box",
-                    style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_servicelevel_material")
-                )
-            ),
-            column(
-                width = 4,
-                div(
-                    class = "white-box",
-                    style = "height: 60px; display: flex; justify-content: flex-start; align-items: center; padding-left: 68px; padding-right: 16px; margin-bottom: 20px;",
-                    uiOutput("livetracker_bottleneck_material")
-                )
-            )
-        ),
-        
-        fluidRow(
-            column(
-                width = 12,
-                div(
-                    class = "white-box",
-                    style = "padding: 40px 32px; background-color: white;",
-                    tagList(
-                        
-                        # Box-Überschrift
-                        div(
-                            style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
-                            tags$strong("Performance-Übersicht", 
-                                        style = "font-weight: 600; font-size: 16px; color: #202124;")
-                        ),
-                        
-                        # Alle 4 Donuts nebeneinander
-                        div(
-                            style = "display: flex; justify-content: space-between;",
-                            
-                            # Donut 1 – Termintreue
+            
+            # Performance-KPIs des ausgewählten Materials
+            fluidRow(
+                column(
+                    width = 12,
+                    div(
+                        class = "white-box",
+                        style = "padding: 40px 32px; background-color: white;",
+                        tagList(
                             div(
-                                style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_termintreue_material", height = "160px"),
-                                div(
-                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
-                                    uiOutput("termintreue_icon"),
-                                    span(
-                                        style = "display: flex; align-items: center; gap: 6px;",
-                                        "Termintreue",
-                                        tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                    ),
-                                    bsPopover(
-                                        id = "termintreue_info",
-                                        title = "Termintreue",
-                                        content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
-                                        placement = "top",
-                                        trigger = "hover"
-                                    )
-                                )
+                                style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;",
+                                tags$strong("Performance-Übersicht", 
+                                            style = "font-weight: 600; font-size: 16px; color: #202124;")
                             ),
-                            
-                            # Donut 2 – Liefertreue
                             div(
-                                style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_liefertreue_material", height = "160px"),
+                                style = "display: flex; justify-content: space-between;",
+                                
+                                # 1. Termintreue
                                 div(
-                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
-                                    uiOutput("liefertreue_icon"),
-                                    span(
-                                        style = "display: flex; align-items: center; gap: 6px;",
-                                        "Liefertreue",
-                                        tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                    ),
-                                    
-                                    bsPopover(
-                                        id = "liefertreue_info",
-                                        title = "Liefertreue",
-                                        content = "Asli Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
-                                        placement = "top",
-                                        trigger = "hover"
+                                    style = "text-align: center; width: 24%;",
+                                    echarts4rOutput("donut_termintreue_material", height = "160px"),
+                                    div(
+                                        style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                        uiOutput("termintreue_icon"),
+                                        span(
+                                            style = "display: flex; align-items: center; gap: 6px;",
+                                            "Termintreue",
+                                            tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        bsPopover(
+                                            id = "termintreue_info",
+                                            title = "Termintreue",
+                                            content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        )
                                     )
-                                )
-                            ),
-                            
-                            # Donut 3 – Geschwindigkeit pro ME
-                            div(
-                                style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_geschwindigkeit_me_material", height = "160px"),
+                                ),
+                                
+                                # 2. Liefertreue
                                 div(
-                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
-                                    uiOutput("geschwindigkeit_me_icon"),
-                                    span(
-                                        style = "display: flex; align-items: center; gap: 6px;",
-                                        "Geschwindigkeit pro ME",
-                                        tags$span(icon("circle-question"), id = "geschwindigkeit_me_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                    ),
-                                    
-                                    bsPopover(
-                                        id = "geschwindigkeit_me_info",
-                                        title = "Geschwindigkeit/ME [s]",
-                                        content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
-                                        placement = "top",
-                                        trigger = "hover"
+                                    style = "text-align: center; width: 24%;",
+                                    echarts4rOutput("donut_liefertreue_material", height = "160px"),
+                                    div(
+                                        style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                        uiOutput("liefertreue_icon"),
+                                        span(
+                                            style = "display: flex; align-items: center; gap: 6px;",
+                                            "Liefertreue",
+                                            tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        
+                                        bsPopover(
+                                            id = "liefertreue_info",
+                                            title = "Liefertreue",
+                                            content = "Asli Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        )
                                     )
-                                )
-                            ),
-                            
-                            # Donut 4 – Geschwindigkeit pro Auftrag
-                            div(
-                                style = "text-align: center; width: 24%;",
-                                echarts4rOutput("donut_geschwindigkeit_auftrag_material", height = "160px"),
+                                ),
+                                
+                                # 3. Geschwindigkeit pro ME
                                 div(
-                                    style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
-                                    uiOutput("geschwindigkeit_auftrag_icon"),
-                                    span(
-                                        style = "display: flex; align-items: center; gap: 6px;",
-                                        "Geschwindigkeit pro Auftrag",
-                                        tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
-                                    ),
-                                    
-                                    bsPopover(
-                                        id = "geschwindigkeit_auftrag_info",
-                                        title = "Geschwindigkeit/Auftrag [Tage]",
-                                        content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
-                                        placement = "top",
-                                        trigger = "hover"
+                                    style = "text-align: center; width: 24%;",
+                                    echarts4rOutput("donut_geschwindigkeit_me_material", height = "160px"),
+                                    div(
+                                        style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                        uiOutput("geschwindigkeit_me_icon"),
+                                        span(
+                                            style = "display: flex; align-items: center; gap: 6px;",
+                                            "Geschwindigkeit pro ME",
+                                            tags$span(icon("circle-question"), id = "geschwindigkeit_me_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        
+                                        bsPopover(
+                                            id = "geschwindigkeit_me_info",
+                                            title = "Geschwindigkeit/ME [s]",
+                                            content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        )
+                                    )
+                                ),
+                                
+                                # 4. Geschwindigkeit pro Auftrag
+                                div(
+                                    style = "text-align: center; width: 24%;",
+                                    echarts4rOutput("donut_geschwindigkeit_auftrag_material", height = "160px"),
+                                    div(
+                                        style = "display: flex; justify-content: center; align-items: center; font-size: 13px; color: #555; margin-top: 4px;",
+                                        uiOutput("geschwindigkeit_auftrag_icon"),
+                                        span(
+                                            style = "display: flex; align-items: center; gap: 6px;",
+                                            "Geschwindigkeit pro Auftrag",
+                                            tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        ),
+                                        
+                                        bsPopover(
+                                            id = "geschwindigkeit_auftrag_info",
+                                            title = "Geschwindigkeit/Auftrag [Tage]",
+                                            content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
+                                            placement = "top",
+                                            trigger = "hover"
+                                        )
                                     )
                                 )
                             )
                         )
                     )
                 )
-            )
-        ),
-        
-        
-        bsPopover(
-            id = "performance_vgl_info",
-            title = "Was wird hier gezeigt?",
-            content = "Eddi",
-            placement = "right",
-            trigger = "hover"
-        ),
-        
-        fluidRow(
-            column(
-                width = 12,
-                div(
-                    class = "white-box",
-                    tagList(
-                        div(
-                            style = "display: flex; align-items: center; justify-content: space-between;",
+            ),
+            
+            # Alert-Übersicht des ausgewählten Materials mit Filterfunktion
+            fluidRow(
+                column(
+                    width = 12,
+                    div(
+                        class = "white-box",
+                        tagList(
                             div(
-                                style = "display: flex; align-items: center;",
-                                span("Alerts", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                tags$span(
-                                    icon("circle-question"),
-                                    id = "alerts_info",
-                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                style = "display: flex; align-items: center; justify-content: space-between;",
+                                div(
+                                    style = "display: flex; align-items: center;",
+                                    span("Alerts", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                    tags$span(
+                                        icon("circle-question"),
+                                        id = "alerts_info",
+                                        style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                    )
+                                ),
+                                selectInput(
+                                    inputId = "alert_filter",
+                                    label = NULL,
+                                    choices = c("Alle", "Servicelevel unter Durchschnitt", "Ø‑Abweichung unter Durchschnitt", "Ø‑LT unter Durchschnitt"),
+                                    selected = "Alle",
+                                    width = "220px"
                                 )
+                                
                             ),
-                            selectInput(
-                                inputId = "alert_filter",
-                                label = NULL,
-                                choices = c("Alle", "Servicelevel unter Durchschnitt", "Ø‑Abweichung unter Durchschnitt", "Ø‑LT unter Durchschnitt"),
-                                selected = "Alle",
-                                width = "220px"
-                            )
-                            
+                            br(),
+                            DTOutput("alert_table")
                         ),
-                        br(),
-                        DTOutput("alert_table")
-                    ),
-                    bsPopover(
-                        id = "alerts_info",
-                        title = "Was wird hier gezeigt?",
-                        content = "Kaspar",
-                        placement = "right",
-                        trigger = "hover"
+                        bsPopover(
+                            id = "alerts_info",
+                            title = "Was wird hier gezeigt?",
+                            content = "Kaspar",
+                            placement = "right",
+                            trigger = "hover"
+                        )
                     )
                 )
-            )
-        ),
-        
-        
-        fluidRow(
-            column(
-                width = 12,
-                div(
-                    class = "white-box",
-                    style = "background-color: rgba(255, 255, 255, 0.3);",
-                    tagList(
-                        
-                        div(
-                            style = "padding: 40px 0 15px 0;",
-                            uiOutput("abweichung_title_material")
-                        ),
-                        
-                        fluidRow(
-                            column(
-                                width = 12,
-                                div(
-                                    class = "white-box",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center;",
-                                            span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(
-                                                icon("circle-question"),
-                                                id = "abw_zeit_info",
-                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                                            )
+            ),
+            
+            # Lead Time Übersicht des ausgewählten Materials (ohne Ansicht als zweite Dimension)
+            fluidRow(
+                column(
+                    width = 12,
+                    div(
+                        class = "white-box",
+                        style = "background-color: rgba(255, 255, 255, 0.3);",
+                        tagList(
+                            
+                            div(
+                                style = "padding: 40px 0 15px 0;",
+                                uiOutput("abweichung_title_material")
+                            ),
+                            
+                            # Lead Time Abweichung im Zeitverlauf
+                            fluidRow(
+                                column(
+                                    width = 12,
+                                    div(
+                                        class = "white-box",
+                                        tagList(
+                                            div(
+                                                style = "display: flex; align-items: center;",
+                                                span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                                tags$span(
+                                                    icon("circle-question"),
+                                                    id = "abw_zeit_info",
+                                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                                )
+                                            ),
+                                            br(),
+                                            plotly::plotlyOutput("abweichung_time_plot_material", height = "240px"),
                                         ),
-                                        br(),
-                                        plotly::plotlyOutput("abweichung_time_plot_material", height = "240px"),
-                                    ),
-                                    
-                                    bsPopover(
-                                        id = "abw_zeit_info",
-                                        title = "Was wird hier gezeigt?",
-                                        content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
-                                        placement = "right",
-                                        trigger = "hover"
-                                    ),
-                                )
-                            )
-                        ),
-                        
-                        fluidRow(
-                            column(
-                                width = 6,
-                                div(
-                                    class = "white-box",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center;",
-                                            span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(
-                                                icon("circle-question"),
-                                                id = "abw_abs_info",
-                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                                            )
+                                        
+                                        bsPopover(
+                                            id = "abw_zeit_info",
+                                            title = "Was wird hier gezeigt?",
+                                            content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
+                                            placement = "right",
+                                            trigger = "hover"
                                         ),
-                                        br(),
-                                        plotly::plotlyOutput("abweichung_hist_plot_material", height = "240px")
-                                    ),
-                                    
-                                    bsPopover(
-                                        id = "abw_abs_info",
-                                        title = "Was wird hier gezeigt?",
-                                        content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
-                                        placement = "right",
-                                        trigger = "hover"
-                                    ),
+                                    )
                                 )
                             ),
-                            column(
-                                width = 6,
-                                div(
-                                    class = "white-box",
-                                    style = "min-height: 410px",
-                                    tagList(
-                                        div(
-                                            style = "display: flex; align-items: center;",
-                                            span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(
-                                                icon("circle-question"),
-                                                id = "abw_rel_info",
-                                                style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
-                                            )
+                            
+                            fluidRow(
+                                column(
+                                    # Lead Time Abweichung absolut
+                                    width = 6,
+                                    div(
+                                        class = "white-box",
+                                        tagList(
+                                            div(
+                                                style = "display: flex; align-items: center;",
+                                                span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                                tags$span(
+                                                    icon("circle-question"),
+                                                    id = "abw_abs_info",
+                                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                                )
+                                            ),
+                                            br(),
+                                            plotly::plotlyOutput("abweichung_hist_plot_material", height = "240px")
                                         ),
-                                        br(),
-                                        DT::DTOutput("abweichungstabelle_material")
-                                    ),
-                                    
-                                    bsPopover(
-                                        id = "abw_rel_info",
-                                        title = "Was wird hier gezeigt?",
-                                        content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
-                                        placement = "right",
-                                        trigger = "hover"
+                                        
+                                        bsPopover(
+                                            id = "abw_abs_info",
+                                            title = "Was wird hier gezeigt?",
+                                            content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
+                                            placement = "right",
+                                            trigger = "hover"
+                                        ),
+                                    )
+                                ),
+                                
+                                # Lead Time Abweichung relativ
+                                column(
+                                    width = 6,
+                                    div(
+                                        class = "white-box",
+                                        style = "min-height: 410px",
+                                        tagList(
+                                            div(
+                                                style = "display: flex; align-items: center;",
+                                                span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
+                                                tags$span(
+                                                    icon("circle-question"),
+                                                    id = "abw_rel_info",
+                                                    style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
+                                                )
+                                            ),
+                                            br(),
+                                            DT::DTOutput("abweichungstabelle_material")
+                                        ),
+                                        
+                                        bsPopover(
+                                            id = "abw_rel_info",
+                                            title = "Was wird hier gezeigt?",
+                                            content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
+                                            placement = "right",
+                                            trigger = "hover"
+                                        )
                                     )
                                 )
                             )
@@ -390,13 +399,12 @@ klassifikationUI <- function() {
                 )
             )
         )
-    )
-)
-}
+    )}
 
 #Server-------------------------------------------------------------------------
 klassifikationServer <- function(input, output, session) {
     
+    # Aufträge nach A,B,C-Material filtern
     observe({
         klassifikation <- unique(auftraege_lt_unit$klassifikation)
         
@@ -421,11 +429,15 @@ klassifikationServer <- function(input, output, session) {
         )
     })
     
+    # KPIs der ausgewählten Ansicht
+    
+    # 1. Termintreue [1]
     output$donut_termintreue_material <- renderEcharts4r({
         sel <- input$selected_klassifikation
         df_s <- auftraege_lt_unit %>% filter(klassifikation == sel)
         df_o <- auftraege_lt_unit %>% filter(klassifikation != sel)
         
+        # Berechne Mittelwert aller Abweichungen kleiner oder gleich 0 - Anteil pünktlich
         value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
         avg   <- round(df_o %>%
                            group_by(klassifikation) %>%
@@ -433,7 +445,7 @@ klassifikationServer <- function(input, output, session) {
                            pull(rate) %>%
                            mean(na.rm = TRUE) * 100, 1)
         
-        # 👑 oder ⚠️
+        # Vergleich von Performance mit Gesamtperformance
         symbol <- if (value > avg) {
             "👑"
         } else if (value < avg) {
@@ -482,15 +494,17 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
+    # 2. Liefertreue [2]
     output$donut_liefertreue_material <- renderEcharts4r({
         sel <- input$selected_klassifikation
         df_s <- auftraege_lt_unit %>% filter(klassifikation == sel)
         df_o <- auftraege_lt_unit %>% filter(klassifikation != sel)
         
+        # Berechne Mittelwert aller gelieferten Mengen größer oder gleich 0 - Anteil Mengentreue
         value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
         avg   <- round(mean(df_o$gelieferte_menge >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
         
-        # Entscheidungssymbol & Farbe
+        # Vergleich von Performance mit Gesamtperformance
         symbol <- if (value > avg) {
             "👑"
         } else if (value < avg) {
@@ -573,18 +587,19 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
-    
+    # 3. Geschwindigkeit pro ME [3]
     output$donut_geschwindigkeit_me_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
         df_sel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lt_ist_order))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
         
+        # Berechne Mittelwert aller Istzeiten und rechne in min um
         geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
         geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
-        
         rel_diff <- geschw_all - geschw_sel
         
+        # Vergleich Performance mit Gesamtperformance
         symbol <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
@@ -638,17 +653,19 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
+    # 4. Geschwindigkeit pro Auftrag [4]
     output$donut_geschwindigkeit_auftrag_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
         df_sel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
+        # Berechne den Median aller Istzeiten
         geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
         geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
-        
         rel_diff <- geschw_all - geschw_sel
         
+        # Vergleich Performance mit Gesamtperformance
         symbol <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
@@ -665,6 +682,7 @@ klassifikationServer <- function(input, output, session) {
             "#cfcfcf"
         }
         
+        # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
         prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
         prozent <- max(min(prozent, 100), 0)
         
@@ -700,6 +718,8 @@ klassifikationServer <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
+    
+    
     output$abweichung_title_material <- renderUI({
         req(input$selected_klassifikation)
         h4(
@@ -708,22 +728,9 @@ klassifikationServer <- function(input, output, session) {
         )
     })
     
-    # Mapping zwischen UI-Label und Datenspalte
-    lt_map <- list(
-        "Workflow" = "vorgangsfolge",
-        "Werk"     = "werk",
-        "Linie"    = "klassifikation",
-        "Planer"   = "planer",
-        "Material" = "materialnummer"
-    )
+    # KPI-Boxen
     
-    #Formel zur Berechnung des Modus
-    modus <- function(x) {
-        ux <- unique(x[!is.na(x)])
-        ux[which.max(tabulate(match(x, ux)))]
-    }
-    
-    
+    # 1. Anzahl Aufträge für ausgewähltes Material
     output$livetracker_auftraege_material <- renderUI({
         req(input$selected_klassifikation)
         
@@ -745,13 +752,13 @@ klassifikationServer <- function(input, output, session) {
         )
     })
     
-    
+    # Servicelevel gesamt
     overall_servicelevel <- reactive({
         sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) /
             sum(!is.na(auftraege_lt_unit$auftragsnummer))
     })
     
-    
+    # 2. Servicelevel ausgewähltes Material
     output$livetracker_servicelevel_material <- renderUI({
         req(input$selected_klassifikation)
         
@@ -768,6 +775,7 @@ klassifikationServer <- function(input, output, session) {
             )
         }
         
+        # Ermittle den Anteil aller Abweichungen kleiner oder gleich null (zu früh oder JIT)
         sl <- sum(filtered$abweichung_unit <= 0, na.rm = TRUE) / 
             sum(!is.na(filtered$auftragsnummer))
         overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
@@ -776,6 +784,7 @@ klassifikationServer <- function(input, output, session) {
         sl_percent <- paste0(round(sl * 100), "%")
         overall_text <- paste0("Overall Servicelevel = ", round(overall_sl * 100), "%")
         
+        # Vergleich Performance mit Gesamtperformance
         if (sl > overall_sl) {
             icon_tag <- "<span id='servicelevel_icon' style='font-size: 24px; color: #34a853; margin-right: 6px;'>👑</span>"
             popover_text <- paste("Overperformance |", overall_text)
@@ -802,10 +811,11 @@ klassifikationServer <- function(input, output, session) {
         )
     })
     
-    
+    # 3. Bottleneck ausgewählte Ansicht
     output$livetracker_bottleneck_material <- renderUI({
         req(input$selected_klassifikation)
         
+        # Ermittle Entität mit der höchsten mittleren Abweichung (Median) unter den verspäteten Aufträgen
         bottleneck_info <- auftraege_lt_unit %>%
             filter(klassifikation == input$selected_klassifikation, abweichung > 0) %>%
             group_by(materialnummer) %>%
@@ -837,9 +847,10 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
-    # Hilfsfunktion zur Alert-Klassifikation KASPAR ÄNDERN
+    # Alert-Übersicht
+    
     classify_outliers <- function(df) {
-        # Mittelwerte berechnen
+        # KASPAR BITTE KOMMENTIEREN
         mean_sl    <- mean(df$Anteil_pünktlich, na.rm = TRUE)
         mean_delay <- mean(df$Ø_Abweichung,     na.rm = TRUE)
         mean_lt    <- mean(df$Ø_LT_pro_Unit,    na.rm = TRUE)
@@ -864,7 +875,7 @@ klassifikationServer <- function(input, output, session) {
             )
     }
     
-
+    
     annotated_materials <- reactive({
         req(input$selected_klassifikation)
         materialnummer_overview %>%
@@ -909,10 +920,14 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
+    # Übersicht Lead Time Abweichung
     
+    # 1. Abweichung im Zeitverlauf
     output$abweichung_time_plot_material <- renderPlotly({
         req(input$selected_klassifikation)
         
+        # Sortiere nach tatsächlichem Starttermin, aber berücksichige nur jeden 
+        # 10. Wert (aus Darstellungsgründen)
         df <- auftraege_lt_unit %>%
             filter(klassifikation == input$selected_klassifikation) %>%
             arrange(starttermin_ist) %>%
@@ -942,24 +957,25 @@ klassifikationServer <- function(input, output, session) {
             )
     })
     
+    # 2. Lead Time Abweichung absolut
     plot_abweichung_histogram_material <- function(df, selected_klassifikation) {
         df_filtered <- df %>%
             filter(klassifikation == selected_klassifikation & !is.na(abweichung))
         
         if (nrow(df_filtered) == 0) return(NULL)
         
-        # Dynamische Grenzen anhand 1% und 99% Quantil
+        # Dynamische Grenzen ohne obere und untere 2,5% (v.a. aus Darstellungsgründen)
         x_min <- quantile(df_filtered$abweichung, 0.025)
         x_max <- quantile(df_filtered$abweichung, 0.975)
         
         p <- ggplot(df_filtered, aes(x = abweichung)) +
             geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
             labs(
-                x = "Abweichung (Ist - Soll) [Tage]",
-                y = "Häufigkeit"
+                x = "Lead-Time-Abweichung [Tage]",
+                y = "Anzahl Aufträge"
             ) +
             scale_x_continuous(limits = c(x_min, x_max)) +
-            my_theme()  # 👈 Google-Stil hier anwenden
+            my_theme() 
         
         ggplotly(p)
     }
@@ -969,12 +985,16 @@ klassifikationServer <- function(input, output, session) {
         plot_abweichung_histogram_material(vorgaenge_sorted, input$selected_klassifikation)
     })
     
+    
+    # 3. Lead Time Abweichung relativ
     abweichung_tabelle_material <- reactive({
         req(input$selected_klassifikation)
         
         df <- auftraege_lt_unit %>%
             filter(klassifikation == input$selected_klassifikation) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
+            
+            # Setze Abweichung ins Verhältnis zur Sollzeit und klassifiziere die Aufträge
             mutate(
                 abw_rel = (lt_ist_order - lt_soll_order) / lt_soll_order,
                 kategorie = case_when(
@@ -1024,6 +1044,5 @@ klassifikationServer <- function(input, output, session) {
     rownames = FALSE,
     class = "hover"
     )
-    
     
 }
