@@ -512,7 +512,7 @@ werkServer <- function(input, output, session) {
         df_filtered <- df %>%
             filter(werk == selected_werk)
         
-        if (selected_view == "Material") {
+        if (selected_view_werk == "A-Material") {
             df_filtered <- df_filtered %>%
                 filter(klassifikation == "A")
         }

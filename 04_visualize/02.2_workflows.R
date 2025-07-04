@@ -20,9 +20,9 @@ lt_map <- list(
     "Werk"     = "werk",
     "Linie"    = "klassifikation",
     "Planer"   = "planer",
-    "A-Material" = "materialnummer",
-    "Arbeitsschritte" = "vorgangsnummer" gibt es nicht
-    "Arbeitsplatz" = gibt es nicht
+    "A-Material" = "materialnummer"
+    #"Arbeitsschritte" = "vorgangsnummer" gibt es nicht
+    #"Arbeitsplatz" = gibt es nicht
 )
 
 #Formel zur Berechnung des Modus
@@ -576,11 +576,11 @@ vorgangsfolgeServer <- function(input, output, session) {
     })
     
     # Beschränken auf A-Materialien
-    get_filtered_data_workflow <- function(df, selected_vorgangsfolge, selected_view) {
+    get_filtered_data_workflow <- function(df, selected_vorgangsfolge, selected_view_vorgangsfolge) {
         df_filtered <- df %>%
             filter(vorgangsfolge == selected_vorgangsfolge)
         
-        if (selected_view == "Material") {
+        if (selected_view_vorgangsfolge == "A-Material") {
             df_filtered <- df_filtered %>%
                 filter(klassifikation == "A")
         }

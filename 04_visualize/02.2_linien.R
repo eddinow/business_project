@@ -18,8 +18,7 @@ lt_map <- list(
     "Workflow" = "vorgangsfolge",
     "Werk"     = "werk",
     "Linie"    = "klassifikation",
-    "Planer"   = "planer",
-    "A-Material" = "materialnummer"
+    "Planer"   = "planer"
 )
 
 #Formel zur Berechnung des Modus
@@ -508,10 +507,11 @@ fertigungslinieServer <- function(input, output, session) {
     
     # Beschränken auf A-Materialien
     get_filtered_data_fertigungslinie <- function(df, selected_fertigungslinie, selected_view_fertigungslinie) {
+        
         df_filtered <- df %>%
             filter(fertigungslinie == selected_fertigungslinie)
         
-        if (selected_view == "Material") {
+        if (selected_view_fertigungslinie == "A-Material") {
             df_filtered <- df_filtered %>%
                 filter(klassifikation == "A")
         }
@@ -909,6 +909,7 @@ fertigungslinieServer <- function(input, output, session) {
     # 3. Bottleneck der ausgewählten Ansicht
     output$livetracker_bottleneck_fertigungslinie <- renderUI({
         req(input$selected_fertigungslinie, input$view_selection_fertigungslinie)
+
         selected <- lt_map[[input$view_selection_fertigungslinie]]
         label <- input$view_selection_fertigungslinie  
         

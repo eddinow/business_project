@@ -505,11 +505,11 @@ planerServer <- function(input, output, session) {
     })
     
     # Beschränken auf A-Materialien
-    get_filtered_data_planer <- function(df, selected_planer, selected_view) {
+    get_filtered_data_planer <- function(df, selected_planer, selected_view_planer) {
         df_filtered <- df %>%
             filter(planer == selected_planer)
         
-        if (selected_view == "Material") {
+        if (selected_view_planer == "A-Material") {
             df_filtered <- df_filtered %>%
                 filter(klassifikation == "A")
         }
@@ -755,7 +755,7 @@ planerServer <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
-    # 4. Geschwindigkeit pro Auftrag [4]
+    # 4. Geschwindigkeit pro Auftrag
     output$donut_geschwindigkeit_auftrag_planer <- renderEcharts4r({
         req(input$selected_planer)
         
@@ -821,13 +821,16 @@ planerServer <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
+    
+    
+    
  # KPI-Boxen 
 
     # 1. Anzahl Aufträge für ausgewählten Planer
     output$livetracker_auftraege_planer <- renderUI({
         req(input$selected_planer)
         
-        anzahl <- auftraege_lt_unit %>%
+        anzahl_planer <- auftraege_lt_unit %>%
             filter(planer == input$selected_planer) %>%
             summarise(n = n_distinct(auftragsnummer)) %>%
             pull(n)
@@ -836,7 +839,7 @@ planerServer <- function(input, output, session) {
             style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
             tags$span(
                 style = "font-weight: 600; font-size: 22px; color: #202124;",
-                anzahl
+                anzahl_planer
             ),
             tags$span(
                 style = "font-size: 14px; color: #5f6368;",
