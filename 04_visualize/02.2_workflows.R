@@ -987,7 +987,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         # Ermittle Entität mit der höchsten mittleren Abweichung (Median) unter den verspäteten Aufträgen
         bottleneck_info <- vorgaenge_sorted %>%
             filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung > 0) %>%
-            filter(if (input$view_selection_workflow == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
             filter(!is.na(.data[[selected]])) %>%
             group_by(group = .data[[selected]]) %>%
             summarise(
@@ -1050,7 +1050,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         
         df <- vorgaenge_sorted %>%
             filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
-            filter(if (input$view_selection_workflow == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
             summarise(
@@ -1108,7 +1108,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         
         df <- vorgaenge_sorted %>%
             dplyr::filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
-            dplyr::filter(if (input$view_selection_workflow == "Material") klassifikation == "A" else TRUE) %>%
+            dplyr::filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[selected_col]])) %>%
             dplyr::group_by(category = .data[[selected_col]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
@@ -1182,7 +1182,7 @@ vorgangsfolgeServer <- function(input, output, session) {
                 vorgangsfolge == input$selected_vorgangsfolge,
                 !is.na(abweichung_unit)
             ) %>%
-            filter(if (input$view_selection_workflow == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
             arrange(desc(abweichung_unit)) %>%
             slice_head(n = 200) %>%
             transmute(
@@ -1215,7 +1215,7 @@ vorgangsfolgeServer <- function(input, output, session) {
                 abweichung > 0,
                 !is.na(abweichung),
                 !is.na(.data[[selected_col]]),
-                if (input$view_selection_workflow == "Material") klassifikation == "A" else TRUE
+                if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE
             )
         
         labels <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")

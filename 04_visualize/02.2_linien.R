@@ -916,7 +916,7 @@ fertigungslinieServer <- function(input, output, session) {
         # Ermittle Entität mit der höchsten mittleren Abweichung (Median) unter den verspäteten Aufträgen
         bottleneck_info <- auftraege_lt_unit %>%
             filter(fertigungslinie == input$selected_fertigungslinie, abweichung > 0) %>%
-            filter(if (input$view_selection_fertigungslinie == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_fertigungslinie == "A-Material") klassifikation == "A" else TRUE) %>%
             filter(!is.na(.data[[selected]])) %>%
             group_by(group = .data[[selected]]) %>%
             summarise(
@@ -986,7 +986,7 @@ fertigungslinieServer <- function(input, output, session) {
         
         df <- auftraege_lt_unit %>%
             filter(fertigungslinie == input$selected_fertigungslinie) %>%
-            filter(if (input$view_selection_fertigungslinie == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_fertigungslinie == "A-Material") klassifikation == "A" else TRUE) %>%
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
             group_by(value = .data[[col]]) %>%
             summarise(
@@ -1044,7 +1044,7 @@ fertigungslinieServer <- function(input, output, session) {
         
         df <- auftraege_lt_unit %>%
             dplyr::filter(fertigungslinie == input$selected_fertigungslinie) %>%
-            dplyr::filter(if (input$view_selection_fertigungslinie == "Material") klassifikation == "A" else TRUE) %>%
+            dplyr::filter(if (input$view_selection_fertigungslinie == "A-Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[selected_col]])) %>%
             dplyr::group_by(category = .data[[selected_col]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
@@ -1119,7 +1119,7 @@ fertigungslinieServer <- function(input, output, session) {
                 fertigungslinie == input$selected_fertigungslinie,
                 !is.na(abweichung_unit)
             ) %>%
-            filter(if (input$view_selection_fertigungslinie == "Material") klassifikation == "A" else TRUE) %>%
+            filter(if (input$view_selection_fertigungslinie == "A-Material") klassifikation == "A" else TRUE) %>%
             arrange(desc(abweichung_unit)) %>%
             slice_head(n = 200) %>%
             transmute(
@@ -1152,7 +1152,7 @@ fertigungslinieServer <- function(input, output, session) {
                 abweichung > 0,
                 !is.na(abweichung),
                 !is.na(.data[[selected_col]]),
-                if (input$view_selection_fertigungslinie == "Material") klassifikation == "A" else TRUE
+                if (input$view_selection_fertigungslinie == "A-Material") klassifikation == "A" else TRUE
             )
         
         labels <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
