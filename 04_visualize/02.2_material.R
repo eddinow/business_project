@@ -438,37 +438,38 @@ klassifikationServer <- function(input, output, session) {
         data_remaining <- auftraege_lt_unit %>% filter(klassifikation != sel)
         
         # Berechne Mittelwert aller Abweichungen kleiner oder gleich 0 - Anteil pünktlich
-        value <- round(mean(data_selected$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
-        avg   <- round(data_remaining %>%
+        termintreue_selected <- round(mean(data_selected$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
+        termintreue_avg   <- round(data_remaining %>%
                            group_by(klassifikation) %>%
                            summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
                            pull(rate) %>%
                            mean(na.rm = TRUE) * 100, 1)
         
         # Vergleich von Performance mit Gesamtperformance
-        symbol <- if (value > avg) {
+        symbol_performance_vgl <- if (termintreue_selected > termintreue_avg) {
             "👑"
-        } else if (value < avg) {
+        } else if (termintreue_selected < termintreue_avg) {
             "⚠️"
         } else {
             ""
         }
         
-        df <- tibble::tibble(
+        # Ablegen der Werte zum plotten
+        df_termintreue <- tibble::tibble(
             category = c("Termintreu", "Verspätet"),
-            count = c(value, 100 - value)
+            count = c(termintreue_selected, 100 - termintreue_selected)
         )
         
-        farbe <- if (symbol == "⚠️") {
+        farbe_performance_vgl <- if (symbol_performance_vgl == "⚠️") {
             "#E57373"  # rot
-        } else if (symbol == "👑") {
+        } else if (symbol_performance_vgl == "👑") {
             "#81C784"  # grün
         } else {
             "#cfcfcf"  # grau
         }
-        farben <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df %>%
+        df_termintreue %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -479,12 +480,12 @@ klassifikationServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
-                text = paste0(symbol, " ", value, "%"),
+                text = paste0(symbol_performance_vgl, " ", termintreue_selected, "%"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
@@ -501,42 +502,43 @@ klassifikationServer <- function(input, output, session) {
         data_remaining <- auftraege_lt_unit %>% filter(klassifikation != sel)
         
         # Berechne Mittelwert aller gelieferten Mengen größer oder gleich 0 - Anteil Mengentreue
-        value <- round(mean(data_selected$gelieferte_menge >= data_selected$sollmenge, na.rm = TRUE) * 100, 1)
-        avg   <- round(mean(data_remaining$gelieferte_menge >= data_remaining$sollmenge, na.rm = TRUE) * 100, 1)
+        liefertreue_selected <- round(mean(data_selected$gelieferte_menge >= data_selected$sollmenge, na.rm = TRUE) * 100, 1)
+        liefertreue_avg   <- round(mean(data_remaining$gelieferte_menge >= data_remaining$sollmenge, na.rm = TRUE) * 100, 1)
         
         # Vergleich von Performance mit Gesamtperformance
-        symbol <- if (value > avg) {
+        symbol_performance_vgl <- if (liefertreue_selected > liefertreue_avg) {
             "👑"
-        } else if (value < avg) {
+        } else if (liefertreue_selected < liefertreue_avg) {
             "⚠️"
         } else {
             ""
         }
         
-        tooltip_text <- if (value > avg) {
-            paste0("Overperformance, durchschn. Liefertreue derzeit ", avg, "%")
-        } else if (value < avg) {
-            paste0("Underperformance, durchschn. Liefertreue derzeit ", avg, "%")
+        tooltip_text <- if (liefertreue_selected > liefertreue_avg) {
+            paste0("Overperformance, durchschn. Liefertreue derzeit ", liefertreue_avg, "%")
+        } else if (liefertreue_selected < liefertreue_avg) {
+            paste0("Underperformance, durchschn. Liefertreue derzeit ", liefertreue_avg, "%")
         } else {
             ""
         }
         
-        farbe <- if (symbol == "⚠️") {
+        farbe_performance_vgl <- if (symbol_performance_vgl == "⚠️") {
             "#E57373"
-        } else if (symbol == "👑") {
+        } else if (symbol_performance_vgl == "👑") {
             "#81C784"
         } else {
             "#cfcfcf"
         }
         
-        farben <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df <- tibble::tibble(
+        # Ablegen der Werte zum plotten
+        df_liefertreue <- tibble::tibble(
             category = c("Liefertreu", "Unvollständig"),
-            count = c(value, 100 - value)
+            count = c(liefertreue_selected, 100 - liefertreue_selected)
         )
         
-        df %>%
+        df_liefertreue %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -547,13 +549,13 @@ klassifikationServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
                 text = sprintf(
-                    "{a|%s} {b|%s%%}", symbol, value
+                    "{a|%s} {b|%s%%}", symbol_performance_vgl, liefertreue_selected
                 ),
                 left = "center",
                 top = "center",
@@ -591,16 +593,16 @@ klassifikationServer <- function(input, output, session) {
     output$donut_geschwindigkeit_me_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
-        data_selectedel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lt_ist_order))
-        df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
+        data_selected <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lt_ist_order))
+        df_selected_valid <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
         
         # Berechne Mittelwert aller Istzeiten und rechne in min um
         geschw_sel <- round(mean(data_selectedel$lt_ist_order / 60, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
+        geschw_all <- round(mean(df_selected_valid$lt_ist_order / 60, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
         # Vergleich Performance mit Gesamtperformance
-        symbol <- if (rel_diff > 0) {
+        symbol_performance_vgl <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
             "⚠️"
@@ -608,7 +610,7 @@ klassifikationServer <- function(input, output, session) {
             ""
         }
         
-        farbe <- if (rel_diff > 0) {
+        farbe_performance_vgl <- if (rel_diff > 0) {
             "#81C784"  # grün
         } else if (rel_diff < 0) {
             "#E57373"  # rot
@@ -625,7 +627,7 @@ klassifikationServer <- function(input, output, session) {
             count = c(prozent, 100 - prozent)
         )
         
-        farben <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
         df %>%
             e_charts(category) %>%
@@ -638,12 +640,12 @@ klassifikationServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
-                text = paste0(symbol, " ", geschw_sel, " min"),
+                text = paste0(symbol_performance_vgl, " ", geschw_sel, " min"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
@@ -658,15 +660,15 @@ klassifikationServer <- function(input, output, session) {
         req(input$selected_klassifikation)
         
         data_selectedel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
-        df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
+        df_selected_valid <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
         # Berechne den Median aller Istzeiten
         geschw_sel <- round(median(data_selectedel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(median(df_selected_valid$lead_time_ist, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
         # Vergleich Performance mit Gesamtperformance
-        symbol <- if (rel_diff > 0) {
+        symbol_performance_vgl <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
             "⚠️"
@@ -674,7 +676,7 @@ klassifikationServer <- function(input, output, session) {
             ""
         }
         
-        farbe <- if (rel_diff > 0) {
+        farbe_performance_vgl <- if (rel_diff > 0) {
             "#81C784"
         } else if (rel_diff < 0) {
             "#E57373"
@@ -691,7 +693,7 @@ klassifikationServer <- function(input, output, session) {
             count = c(prozent, 100 - prozent)
         )
         
-        farben <- c(farbe, "#f0f0f0")
+        farben <- c(farbe_performance_vgl, "#f0f0f0")
         
         df %>%
             e_charts(category) %>%
@@ -709,7 +711,7 @@ klassifikationServer <- function(input, output, session) {
                 )
             ) %>%
             e_title(
-                text = paste0(symbol, " ", geschw_sel, " T"),
+                text = paste0(symbol_performance_vgl, " ", geschw_sel, " T"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
