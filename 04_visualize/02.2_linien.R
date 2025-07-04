@@ -17,7 +17,7 @@ source("01_transform/create_lt_unit.R")
 lt_map <- list(
     "Workflow" = "vorgangsfolge",
     "Werk"     = "werk",
-    "Linie"    = "klassifikation",
+    "A-Material"    = "materialnummer",
     "Planer"   = "planer"
 )
 

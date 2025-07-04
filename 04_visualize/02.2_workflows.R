@@ -18,7 +18,7 @@ source("01_transform/create_est_lt_per_workflow.R")
 lt_map <- list(
     "Workflow" = "vorgangsfolge",
     "Werk"     = "werk",
-    "Linie"    = "klassifikation",
+    "Linie"    = "fertigungslinie",
     "Planer"   = "planer",
     "A-Material" = "materialnummer"
     #"Arbeitsschritte" = "vorgangsnummer" gibt es nicht
