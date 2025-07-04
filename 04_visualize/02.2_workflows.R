@@ -406,7 +406,7 @@ vorgangsfolgeUI <- function() {
                     bsPopover(
                         id = "liegezeiten_info",
                         title = "Was wird hier gezeigt?",
-                        content = "Zeigt die Ist-Lead Times inklusive Liegezeiten als kumulierte Werte. Der blaue Anteil symbolisiert dabei die Lead Time des jeweiligen Prozessschrittes. Diese genaue Dauer steht als Wert ablesbar auch über den Balken. User kriegen so einen Eindruck, ob und in welchem Umfang Liegezeiten die Bearbeitung eines Auftrags treiben. Ausgangspunkt für qualitative Ursachenanalysen.",
+                        content = "Zeigt die Ist-Lead Times inklusive Liegezeiten als kumulierte Werte. Der blaue Anteil symbol_performance_vglisiert dabei die Lead Time des jeweiligen Prozessschrittes. Diese genaue Dauer steht als Wert ablesbar auch über den Balken. User kriegen so einen Eindruck, ob und in welchem Umfang Liegezeiten die Bearbeitung eines Auftrags treiben. Ausgangspunkt für qualitative Ursachenanalysen.",
                         placement = "right",
                         trigger = "hover"
                     ),
@@ -604,41 +604,42 @@ vorgangsfolgeServer <- function(input, output, session) {
     # 1. Termintreue [1]
     output$donut_termintreue_workflow <- renderEcharts4r({
         sel <- input$selected_vorgangsfolge
-        df_s <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
-        df_o <- vorgaenge_sorted %>% filter(vorgangsfolge != sel)
+        data_selected <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
+        data_remaining <- vorgaenge_sorted %>% filter(vorgangsfolge != sel)
         
         # Berechne Mittelwert aller Abweichungen kleiner oder gleich 0 - Anteil pünktlich
-        value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
-        avg   <- round(df_o %>%
+        termintreue_selected <- round(mean(data_selected$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
+        termintreue_avg   <- round(data_remaining %>%
                            group_by(vorgangsfolge) %>%
                            summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
                            pull(rate) %>%
                            mean(na.rm = TRUE) * 100, 1)
         
         # Vergleich von Performance mit Gesamtperformance
-        symbol <- if (value > avg) {
+        symbol_performance_vgl <- if (termintreue_selected > termintreue_avg) {
             "👑"
-        } else if (value < avg) {
+        } else if (termintreue_selected < termintreue_avg) {
             "⚠️"
         } else {
             ""
         }
         
-        df <- tibble::tibble(
+        # Ablegen der Daten zum plotten
+        df_termintreue <- tibble::tibble(
             category = c("Termintreu", "Verspätet"),
-            count = c(value, 100 - value)
+            count = c(termintreue_selected, 100 - termintreue_selected)
         )
         
-        farbe <- if (symbol == "⚠️") {
+        farbe_performance_vgl <- if (symbol_performance_vgl == "⚠️") {
             "#E57373"  # rot
-        } else if (symbol == "👑") {
-            "#81C784"  # grün
+        } else if (symbol_performance_vgl == "👑") {
+            "#81C784"  
         } else {
-            "#cfcfcf"  # grau
+            "#cfcfcf"  
         }
-        farben <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df %>%
+        df_termintreue %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -649,12 +650,12 @@ vorgangsfolgeServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
-                text = paste0(symbol, " ", value, "%"),
+                text = paste0(symbol_performance_vgl, " ", termintreue_selected, "%"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
@@ -666,46 +667,47 @@ vorgangsfolgeServer <- function(input, output, session) {
     # 2. Liefertreue [2]
     output$donut_liefertreue_workflow <- renderEcharts4r({
         sel <- input$selected_vorgangsfolge
-        df_s <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
-        df_o <- vorgaenge_sorted %>% filter(vorgangsfolge != sel)
+        data_selected <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
+        data_remaining <- vorgaenge_sorted %>% filter(vorgangsfolge != sel)
         
         # Berechne Mittelwert aller gelieferten Mengen größer oder gleich 0 - Anteil Mengentreue
-        value <- round(mean(df_s$`Gutmenge Vorgang` >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
-        avg   <- round(mean(df_o$`Gutmenge Vorgang` >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
+        liefertreue_selected <- round(mean(data_selected$`Gutmenge Vorgang` >= data_selected$sollmenge, na.rm = TRUE) * 100, 1)
+        liefertreue_avg   <- round(mean(data_remaining$`Gutmenge Vorgang` >= data_remaining$sollmenge, na.rm = TRUE) * 100, 1)
         
         # Vergleich von Performance mit Gesamtperformance
-        symbol <- if (value > avg) {
+        symbol_performance_vgl <- if (liefertreue_selected > liefertreue_avg) {
             "👑"
-        } else if (value < avg) {
+        } else if (liefertreue_selected < liefertreue_avg) {
             "⚠️"
         } else {
             ""
         }
         
-        tooltip_text <- if (value > avg) {
-            paste0("Overperformance, durchschn. Liefertreue derzeit ", avg, "%")
-        } else if (value < avg) {
-            paste0("Underperformance, durchschn. Liefertreue derzeit ", avg, "%")
+        tooltip_text <- if (liefertreue_selected > liefertreue_avg) {
+            paste0("Overperformance, durchschn. Liefertreue derzeit ", liefertreue_avg, "%")
+        } else if (liefertreue_selected < liefertreue_avg) {
+            paste0("Underperformance, durchschn. Liefertreue derzeit ", liefertreue_avg, "%")
         } else {
             ""
         }
         
-        farbe <- if (symbol == "⚠️") {
+        farbe_performance_vgl <- if (symbol_performance_vgl == "⚠️") {
             "#E57373"
-        } else if (symbol == "👑") {
+        } else if (symbol_performance_vgl == "👑") {
             "#81C784"
         } else {
             "#cfcfcf"
         }
         
-        farben <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df <- tibble::tibble(
+        # Ablegen der Daten zum plotten
+        df_liefertreue <- tibble::tibble(
             category = c("Liefertreu", "Unvollständig"),
-            count = c(value, 100 - value)
+            count = c(liefertreue_selected, 100 - liefertreue_selected)
         )
         
-        df %>%
+        df_liefertreue %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -716,13 +718,13 @@ vorgangsfolgeServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
                 text = sprintf(
-                    "{a|%s} {b|%s%%}", symbol, value
+                    "{a|%s} {b|%s%%}", symbol_performance_vgl, liefertreue_selected
                 ),
                 left = "center",
                 top = "center",
@@ -760,16 +762,16 @@ vorgangsfolgeServer <- function(input, output, session) {
     output$donut_geschwindigkeit_me_workflow <- renderEcharts4r({
         req(input$selected_vorgangsfolge)
         
-        df_sel <- vorgaenge_sorted %>% filter(vorgangsfolge == input$selected_vorgangsfolge, !is.na(lt_ist_order))
-        df_all <- vorgaenge_sorted %>% filter(!is.na(lt_ist_order))
+        data_selected <- vorgaenge_sorted %>% filter(vorgangsfolge == input$selected_vorgangsfolge, !is.na(lt_ist_order))
+        data_selected_valid <- vorgaenge_sorted %>% filter(!is.na(lt_ist_order))
         
         # Berechne Mittelwert aller Istzeiten und rechne in min um
-        geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
+        geschw_sel <- round(mean(data_selected$lt_ist_order / 60, na.rm = TRUE), 1)
+        geschw_all <- round(mean(data_selected_valid$lt_ist_order / 60, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
         # Vergleich Performance mit Gesamtperformance
-        symbol <- if (rel_diff > 0) {
+        symbol_performance_vgl <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
             "⚠️"
@@ -777,26 +779,27 @@ vorgangsfolgeServer <- function(input, output, session) {
             ""
         }
         
-        farbe <- if (rel_diff > 0) {
+        farbe_performance_vgl <- if (rel_diff > 0) {
             "#81C784"  # grün
         } else if (rel_diff < 0) {
-            "#E57373"  # rot
+            "#E57373"  
         } else {
-            "#cfcfcf"  # grau
+            "#cfcfcf"
         }
         
         # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
-        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
-        prozent <- max(min(prozent, 100), 0)
+        donut_fill <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        donut_fill <- max(min(donut_fill, 100), 0)
         
-        df <- tibble::tibble(
+        # Ablegen der Daten zum plotten
+        df_geschwindigkeit_me <- tibble::tibble(
             category = c("Aktueller Wert", "Rest"),
-            count = c(prozent, 100 - prozent)
+            count = c(donut_fill, 100 - donut_fill)
         )
         
-        farben <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df %>%
+        df_geschwindigkeit_me %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -807,12 +810,12 @@ vorgangsfolgeServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
-                text = paste0(symbol, " ", geschw_sel, " min"),
+                text = paste0(symbol_performance_vgl, " ", geschw_sel, " min"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
@@ -826,16 +829,16 @@ vorgangsfolgeServer <- function(input, output, session) {
     output$donut_geschwindigkeit_auftrag_workflow <- renderEcharts4r({
         req(input$selected_vorgangsfolge)
         
-        df_sel <- vorgaenge_sorted %>% filter(vorgangsfolge == input$selected_vorgangsfolge, !is.na(istdauer))
-        df_all <- vorgaenge_sorted %>% filter(!is.na(istdauer))
+        data_selected <- vorgaenge_sorted %>% filter(vorgangsfolge == input$selected_vorgangsfolge, !is.na(istdauer))
+        data_selected_valid <- vorgaenge_sorted %>% filter(!is.na(istdauer))
         
         # Berechne den Median aller Istzeiten
-        geschw_sel <- round(median(df_sel$istdauer, na.rm = TRUE), 1)
-        geschw_all <- round(median(df_all$istdauer, na.rm = TRUE), 1)
+        geschw_sel <- round(median(data_selected$istdauer, na.rm = TRUE), 1)
+        geschw_all <- round(median(data_selected_valid$istdauer, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
         # Vergleich Performance mit Gesamtperformance
-        symbol <- if (rel_diff > 0) {
+        symbol_performance_vgl <- if (rel_diff > 0) {
             "👑"
         } else if (rel_diff < 0) {
             "⚠️"
@@ -843,7 +846,7 @@ vorgangsfolgeServer <- function(input, output, session) {
             ""
         }
         
-        farbe <- if (rel_diff > 0) {
+        farbe_performance_vgl <- if (rel_diff > 0) {
             "#81C784"
         } else if (rel_diff < 0) {
             "#E57373"
@@ -852,17 +855,18 @@ vorgangsfolgeServer <- function(input, output, session) {
         }
         
         # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
-        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
-        prozent <- max(min(prozent, 100), 0)
+        donut_fill <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        donut_fill <- max(min(donut_fill, 100), 0)
         
-        df <- tibble::tibble(
+        # Ablegen der Daten zum plotten
+        df_geschwindigkeit_auftrag <- tibble::tibble(
             category = c("Aktueller Wert", "Rest"),
-            count = c(prozent, 100 - prozent)
+            count = c(donut_fill, 100 - donut_fill)
         )
         
-        farben <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df %>%
+        df_geschwindigkeit:auftrag %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -873,12 +877,12 @@ vorgangsfolgeServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
             e_title(
-                text = paste0(symbol, " ", geschw_sel, " T"),
+                text = paste0(symbol_performance_vgl, " ", geschw_sel, " T"),
                 left = "center",
                 top = "center",
                 textStyle = list(fontSize = 20, fontWeight = "bold")
@@ -1110,12 +1114,12 @@ vorgangsfolgeServer <- function(input, output, session) {
             dplyr::arrange(desc(share))
         
         df_main <- df %>% dplyr::filter(share >= 0.05)
-        df_other <- df %>% dplyr::filter(share < 0.05)
+        data_remainingther <- df %>% dplyr::filter(share < 0.05)
         
-        if (nrow(df_other) > 0) {
-            other_total <- sum(df_other$count)
+        if (nrow(data_remainingther) > 0) {
+            other_total <- sum(data_remainingther$count)
             other_label <- "Restliche"
-            other_tooltip <- paste(df_other$category, collapse = ", ")
+            other_tooltip <- paste(data_remainingther$category, collapse = ", ")
             
             df_main <- dplyr::bind_rows(
                 df_main,

@@ -440,10 +440,10 @@ klassifikationServer <- function(input, output, session) {
         # Berechne Mittelwert aller Abweichungen kleiner oder gleich 0 - Anteil pünktlich
         termintreue_selected <- round(mean(data_selected$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
         termintreue_avg   <- round(data_remaining %>%
-                           group_by(klassifikation) %>%
-                           summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
-                           pull(rate) %>%
-                           mean(na.rm = TRUE) * 100, 1)
+                                       group_by(klassifikation) %>%
+                                       summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
+                                       pull(rate) %>%
+                                       mean(na.rm = TRUE) * 100, 1)
         
         # Vergleich von Performance mit Gesamtperformance
         symbol_performance_vgl <- if (termintreue_selected > termintreue_avg) {
@@ -501,7 +501,8 @@ klassifikationServer <- function(input, output, session) {
         data_selected <- auftraege_lt_unit %>% filter(klassifikation == sel)
         data_remaining <- auftraege_lt_unit %>% filter(klassifikation != sel)
         
-        # Berechne Mittelwert aller gelieferten Mengen größer oder gleich 0 - Anteil Mengentreue
+        # Berechne Mittelwert aller gelieferten Mengen des gewählten Materials und 
+        # aller Materialien größer oder gleich 0 - Anteil Mengentreue
         liefertreue_selected <- round(mean(data_selected$gelieferte_menge >= data_selected$sollmenge, na.rm = TRUE) * 100, 1)
         liefertreue_avg   <- round(mean(data_remaining$gelieferte_menge >= data_remaining$sollmenge, na.rm = TRUE) * 100, 1)
         
@@ -589,16 +590,16 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
-    # 3. Geschwindigkeit pro ME [3]
+    # 3. Geschwindigkeit pro ME
     output$donut_geschwindigkeit_me_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
         data_selected <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lt_ist_order))
-        df_selected_valid <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
+        data_selected_valid <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
         
-        # Berechne Mittelwert aller Istzeiten und rechne in min um
-        geschw_sel <- round(mean(data_selectedel$lt_ist_order / 60, na.rm = TRUE), 1)
-        geschw_all <- round(mean(df_selected_valid$lt_ist_order / 60, na.rm = TRUE), 1)
+        # Berechne Mittelwert aller Istzeiten für gewähltes Material und alle Materialien und rechne in min um
+        geschw_sel <- round(mean(data_selected$lt_ist_order / 60, na.rm = TRUE), 1)
+        geschw_all <- round(mean(data_selected_valid$lt_ist_order / 60, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
         # Vergleich Performance mit Gesamtperformance
@@ -611,25 +612,26 @@ klassifikationServer <- function(input, output, session) {
         }
         
         farbe_performance_vgl <- if (rel_diff > 0) {
-            "#81C784"  # grün
+            "#81C784" 
         } else if (rel_diff < 0) {
-            "#E57373"  # rot
+            "#E57373"  
         } else {
-            "#cfcfcf"  # grau
+            "#cfcfcf" 
         }
         
         # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
-        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
-        prozent <- max(min(prozent, 100), 0)
+        donut_fill <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        donut_fill <- max(min(donut_fill, 100), 0)
         
-        df <- tibble::tibble(
+        # Ablegen der Werte zum plotten
+        df_geschwindigkeit_me <- tibble::tibble(
             category = c("Aktueller Wert", "Rest"),
-            count = c(prozent, 100 - prozent)
+            count = c(donut_fill, 100 - donut_fill)
         )
         
         farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df %>%
+        df_geschwindigkeit_me %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -655,16 +657,16 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
-    # 4. Geschwindigkeit pro Auftrag [4]
+    # 4. Geschwindigkeit pro Auftrag
     output$donut_geschwindigkeit_auftrag_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
-        data_selectedel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
-        df_selected_valid <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
+        data_selected <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
+        data_selected_valid <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
-        # Berechne den Median aller Istzeiten
-        geschw_sel <- round(median(data_selectedel$lead_time_ist, na.rm = TRUE), 1)
-        geschw_all <- round(median(df_selected_valid$lead_time_ist, na.rm = TRUE), 1)
+        # Berechne den Median aller Istzeiten für gewähltes Material und für alle Materialien
+        geschw_sel <- round(median(data_selected$lead_time_ist, na.rm = TRUE), 1)
+        geschw_all <- round(median(data_selected_valid$lead_time_ist, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
         # Vergleich Performance mit Gesamtperformance
@@ -685,17 +687,18 @@ klassifikationServer <- function(input, output, session) {
         }
         
         # Prozentfüllung basierend auf +/- 8-fachem Durchschnitt
-        prozent <- (1 - (geschw_sel / (8 * geschw_all))) * 100
-        prozent <- max(min(prozent, 100), 0)
+        donut_fill <- (1 - (geschw_sel / (8 * geschw_all))) * 100
+        donut_fill <- max(min(donut_fill, 100), 0)
         
-        df <- tibble::tibble(
+        # Ablegen der Werte zum plotten
+        df_geschwindigkeit_auftrag <- tibble::tibble(
             category = c("Aktueller Wert", "Rest"),
-            count = c(prozent, 100 - prozent)
+            count = c(donut_fill, 100 - donut_fill)
         )
         
-        farben <- c(farbe_performance_vgl, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df %>%
+        df_geschwindigkeit_auftrag %>%
             e_charts(category) %>%
             e_pie(
                 count,
@@ -706,7 +709,7 @@ klassifikationServer <- function(input, output, session) {
                         "function(params) {
                         let colors = %s;
                         return colors[params.dataIndex %% colors.length];
-                    }", jsonlite::toJSON(farben, auto_unbox = TRUE)
+                    }", jsonlite::toJSON(farben_performance_vgl, auto_unbox = TRUE)
                     ))
                 )
             ) %>%
@@ -730,13 +733,14 @@ klassifikationServer <- function(input, output, session) {
         )
     })
     
+    
     # KPI-Boxen
     
     # 1. Anzahl Aufträge für ausgewähltes Material
     output$livetracker_auftraege_material <- renderUI({
         req(input$selected_klassifikation)
         
-        anzahl <- auftraege_lt_unit %>%
+        anzahl_auftraege <- auftraege_lt_unit %>%
             filter(klassifikation == input$selected_klassifikation) %>%
             summarise(n = n_distinct(auftragsnummer)) %>%
             pull(n)
@@ -745,7 +749,7 @@ klassifikationServer <- function(input, output, session) {
             style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
             tags$span(
                 style = "font-weight: 600; font-size: 22px; color: #202124;",
-                anzahl
+                anzahl_auftraege
             ),
             tags$span(
                 style = "font-size: 14px; color: #5f6368;",
@@ -795,6 +799,7 @@ klassifikationServer <- function(input, output, session) {
             popover_text <- paste("Underperformance |", overall_text)
         }
         
+        # User kann avg Servicelevel sehen, wenn er über das Icon hovert
         tagList(
             HTML(paste0(
                 "<div style='display: flex; align-items: center;'>",
@@ -828,7 +833,7 @@ klassifikationServer <- function(input, output, session) {
             arrange(desc(median_abweichung)) %>%
             slice(1)
         
-        wert <- if (nrow(bottleneck_info) == 0 || is.na(bottleneck_info$materialnummer)) {
+        bottleneck_wert <- if (nrow(bottleneck_info) == 0 || is.na(bottleneck_info$materialnummer)) {
             "–"
         } else {
             paste0("Material ", bottleneck_info$materialnummer, " | ",
@@ -839,7 +844,7 @@ klassifikationServer <- function(input, output, session) {
             style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
             tags$span(
                 style = "font-weight: 600; font-size: 22px; color: #202124;",
-                wert
+                bottleneck_wert
             ),
             tags$span(
                 style = "font-size: 14px; color: #5f6368;",
@@ -930,12 +935,12 @@ klassifikationServer <- function(input, output, session) {
         
         # Sortiere nach tatsächlichem Starttermin, aber berücksichige nur jeden 
         # 10. Wert (aus Darstellungsgründen)
-        df <- auftraege_lt_unit %>%
+        df_abw_time_plot <- auftraege_lt_unit %>%
             filter(klassifikation == input$selected_klassifikation) %>%
             arrange(starttermin_ist) %>%
             slice(seq(1, n(), by = 10))
         
-        p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
+        abw_time_plot <- ggplot(df_abw_time_plot, aes(x = starttermin_ist, y = abweichung)) +
             geom_smooth(
                 method = "loess", se = FALSE, span = 0.2, color = "#6495ED", size = 0.7
             ) +
@@ -943,9 +948,9 @@ klassifikationServer <- function(input, output, session) {
                 x = "Ist-Starttermin",
                 y = "Abweichung von Soll-LT [d]"
             ) +
-            app_theme()  # 👈 hier deine Theme-Funktion
+            app_theme()
         
-        ggplotly(p, tooltip = c("x", "y")) %>%
+        ggplotly(abw_time_plot, tooltip = c("x", "y")) %>%
             layout(
                 font = list(family = "Inter", size = 10, color = "#5f6368"),
                 xaxis = list(
@@ -970,7 +975,7 @@ klassifikationServer <- function(input, output, session) {
         x_min <- quantile(df_filtered$abweichung, 0.025)
         x_max <- quantile(df_filtered$abweichung, 0.975)
         
-        p <- ggplot(df_filtered, aes(x = abweichung)) +
+        abw_abs_plot <- ggplot(df_filtered, aes(x = abweichung)) +
             geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
             labs(
                 x = "Lead-Time-Abweichung [Tage]",
@@ -979,7 +984,7 @@ klassifikationServer <- function(input, output, session) {
             scale_x_continuous(limits = c(x_min, x_max)) +
             app_theme() 
         
-        ggplotly(p)
+        ggplotly(abw_abs_plot)
     }
     
     output$abweichung_hist_plot_material <- renderPlotly({
@@ -992,7 +997,7 @@ klassifikationServer <- function(input, output, session) {
     abweichung_tabelle_material <- reactive({
         req(input$selected_klassifikation)
         
-        df <- auftraege_lt_unit %>%
+        df_abw_rel <- auftraege_lt_unit %>%
             filter(klassifikation == input$selected_klassifikation) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
             
