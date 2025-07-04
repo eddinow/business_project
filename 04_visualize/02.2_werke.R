@@ -19,7 +19,7 @@ lt_map <- list(
     "Werk"     = "werk",
     "Linie"    = "klassifikation",
     "Planer"   = "planer",
-    "Material" = "materialnummer"
+    "A-Material" = "materialnummer"
 )
 
 #Formel zur Berechnung des Modus
@@ -550,7 +550,7 @@ werkServer <- function(input, output, session) {
                            mean(na.rm = TRUE) * 100, 1)
         
         # Vergleich von Performance mit Gesamtperformance
-        symbol_performance_vgl_performance_vgl <- if (termintreue_selected > termintreue_avg) {
+        symbol_performance_vgl <- if (termintreue_selected > termintreue_avg) {
             "👑"
         } else if (termintreue_selected < termintreue_avg) {
             "⚠️"

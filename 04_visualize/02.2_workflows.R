@@ -20,7 +20,9 @@ lt_map <- list(
     "Werk"     = "werk",
     "Linie"    = "klassifikation",
     "Planer"   = "planer",
-    "Material" = "materialnummer"
+    "A-Material" = "materialnummer",
+    "Arbeitsschritte" = "vorgangsnummer" gibt es nicht
+    "Arbeitsplatz" = gibt es nicht
 )
 
 #Formel zur Berechnung des Modus
@@ -866,7 +868,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         
         farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
-        df_geschwindigkeit:auftrag %>%
+        df_geschwindigkeit_auftrag %>%
             e_charts(category) %>%
             e_pie(
                 count,

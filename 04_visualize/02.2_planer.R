@@ -19,7 +19,7 @@ lt_map <- list(
     "Werk"     = "werk",
     "Linie"    = "klassifikation",
     "Planer"   = "planer",
-    "Material" = "materialnummer"
+    "A-Material" = "materialnummer"
 )
 
 #Formel zur Berechnung des Modus
@@ -568,7 +568,7 @@ planerServer <- function(input, output, session) {
         } else {
             "#cfcfcf"  
         }
-        farben_performance_vgl_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
         df_termintreue %>%
             e_charts(category) %>%
@@ -689,7 +689,7 @@ planerServer <- function(input, output, session) {
     })
     
     
-    # 3. Geschwindigkeit pro ME [3]
+    # 3. Geschwindigkeit pro ME 
     output$donut_geschwindigkeit_me_planer <- renderEcharts4r({
         req(input$selected_planer)
         
@@ -728,7 +728,7 @@ planerServer <- function(input, output, session) {
             count = c(donut_fill, 100 - donut_fill)
         )
         
-        farben_performance_vgl <- c(farbe, "#f0f0f0")
+        farben_performance_vgl <- c(farbe_performance_vgl, "#f0f0f0")
         
         df_geschwindigkeit_me %>%
             e_charts(category) %>%

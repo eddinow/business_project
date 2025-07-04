@@ -19,7 +19,7 @@ lt_map <- list(
     "Werk"     = "werk",
     "Linie"    = "klassifikation",
     "Planer"   = "planer",
-    "Material" = "materialnummer"
+    "A-Material" = "materialnummer"
 )
 
 #Formel zur Berechnung des Modus
