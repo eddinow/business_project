@@ -30,7 +30,7 @@ modus <- function(x) {
 }
 
 # Designfunktion für die Plots
-my_theme <- function(base_family = "Inter") {
+app_theme <- function(base_family = "Inter") {
     theme_minimal(base_family = base_family) +
         theme(
             # Schriftgröße & Farbe
@@ -1590,7 +1590,7 @@ vorgangsfolgeServer <- function(input, output, session) {
                 x = "Vorgang / Liegezeit",
                 y = "Ist-LT [d]"
             ) +
-            my_theme()
+            app_theme()
     })
     
     
@@ -1619,7 +1619,7 @@ vorgangsfolgeServer <- function(input, output, session) {
                 x = "Ist-Starttermin",
                 y = "Abweichung von Soll-LT [d]"
             ) +
-            my_theme()  # 👈 hier deine Theme-Funktion
+            app_theme()  # 👈 hier deine Theme-Funktion
         
         ggplotly(p, tooltip = c("x", "y")) %>%
             layout(
@@ -1653,7 +1653,7 @@ vorgangsfolgeServer <- function(input, output, session) {
                 y = "Anzahl Aufträge"
             ) +
             scale_x_continuous(limits = c(x_min, x_max)) +
-            my_theme() 
+            app_theme() 
         
         ggplotly(p)
     }

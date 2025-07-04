@@ -30,7 +30,7 @@ modus <- function(x) {
 }
 
 # Designfunktion für die Plots
-my_theme <- function(base_family = "Inter") {
+app_theme <- function(base_family = "Inter") {
     theme_minimal(base_family = base_family) +
         theme(
             # Schriftgröße & Farbe
@@ -434,12 +434,12 @@ klassifikationServer <- function(input, output, session) {
     # 1. Termintreue [1]
     output$donut_termintreue_material <- renderEcharts4r({
         sel <- input$selected_klassifikation
-        df_s <- auftraege_lt_unit %>% filter(klassifikation == sel)
-        df_o <- auftraege_lt_unit %>% filter(klassifikation != sel)
+        data_selected <- auftraege_lt_unit %>% filter(klassifikation == sel)
+        data_remaining <- auftraege_lt_unit %>% filter(klassifikation != sel)
         
         # Berechne Mittelwert aller Abweichungen kleiner oder gleich 0 - Anteil pünktlich
-        value <- round(mean(df_s$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
-        avg   <- round(df_o %>%
+        value <- round(mean(data_selected$abweichung_unit <= 0, na.rm = TRUE) * 100, 1)
+        avg   <- round(data_remaining %>%
                            group_by(klassifikation) %>%
                            summarise(rate = mean(abweichung_unit <= 0, na.rm = TRUE)) %>%
                            pull(rate) %>%
@@ -497,12 +497,12 @@ klassifikationServer <- function(input, output, session) {
     # 2. Liefertreue [2]
     output$donut_liefertreue_material <- renderEcharts4r({
         sel <- input$selected_klassifikation
-        df_s <- auftraege_lt_unit %>% filter(klassifikation == sel)
-        df_o <- auftraege_lt_unit %>% filter(klassifikation != sel)
+        data_selected <- auftraege_lt_unit %>% filter(klassifikation == sel)
+        data_remaining <- auftraege_lt_unit %>% filter(klassifikation != sel)
         
         # Berechne Mittelwert aller gelieferten Mengen größer oder gleich 0 - Anteil Mengentreue
-        value <- round(mean(df_s$gelieferte_menge >= df_s$sollmenge, na.rm = TRUE) * 100, 1)
-        avg   <- round(mean(df_o$gelieferte_menge >= df_o$sollmenge, na.rm = TRUE) * 100, 1)
+        value <- round(mean(data_selected$gelieferte_menge >= data_selected$sollmenge, na.rm = TRUE) * 100, 1)
+        avg   <- round(mean(data_remaining$gelieferte_menge >= data_remaining$sollmenge, na.rm = TRUE) * 100, 1)
         
         # Vergleich von Performance mit Gesamtperformance
         symbol <- if (value > avg) {
@@ -591,11 +591,11 @@ klassifikationServer <- function(input, output, session) {
     output$donut_geschwindigkeit_me_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
-        df_sel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lt_ist_order))
+        data_selectedel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lt_ist_order))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lt_ist_order))
         
         # Berechne Mittelwert aller Istzeiten und rechne in min um
-        geschw_sel <- round(mean(df_sel$lt_ist_order / 60, na.rm = TRUE), 1)
+        geschw_sel <- round(mean(data_selectedel$lt_ist_order / 60, na.rm = TRUE), 1)
         geschw_all <- round(mean(df_all$lt_ist_order / 60, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
@@ -657,11 +657,11 @@ klassifikationServer <- function(input, output, session) {
     output$donut_geschwindigkeit_auftrag_material <- renderEcharts4r({
         req(input$selected_klassifikation)
         
-        df_sel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
+        data_selectedel <- auftraege_lt_unit %>% filter(klassifikation == input$selected_klassifikation, !is.na(lead_time_ist))
         df_all <- auftraege_lt_unit %>% filter(!is.na(lead_time_ist))
         
         # Berechne den Median aller Istzeiten
-        geschw_sel <- round(median(df_sel$lead_time_ist, na.rm = TRUE), 1)
+        geschw_sel <- round(median(data_selectedel$lead_time_ist, na.rm = TRUE), 1)
         geschw_all <- round(median(df_all$lead_time_ist, na.rm = TRUE), 1)
         rel_diff <- geschw_all - geschw_sel
         
@@ -941,7 +941,7 @@ klassifikationServer <- function(input, output, session) {
                 x = "Ist-Starttermin",
                 y = "Abweichung von Soll-LT [d]"
             ) +
-            my_theme()  # 👈 hier deine Theme-Funktion
+            app_theme()  # 👈 hier deine Theme-Funktion
         
         ggplotly(p, tooltip = c("x", "y")) %>%
             layout(
@@ -975,7 +975,7 @@ klassifikationServer <- function(input, output, session) {
                 y = "Anzahl Aufträge"
             ) +
             scale_x_continuous(limits = c(x_min, x_max)) +
-            my_theme() 
+            app_theme() 
         
         ggplotly(p)
     }
