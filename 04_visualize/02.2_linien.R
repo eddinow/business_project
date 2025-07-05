@@ -13,13 +13,6 @@ source("02_model/create_workflows_overview.R")
 source("02_model/kpis_werke.R")
 source("01_transform/create_lt_unit.R")
 
-# Mapping zwischen UI-Label und Datenspalte
-lt_map <- list(
-    "Workflow" = "vorgangsfolge",
-    "Werk"     = "werk",
-    "A-Material"    = "materialnummer",
-    "Planer"   = "planer"
-)
 
 #Formel zur Berechnung des Modus
 modus <- function(x) {
@@ -976,7 +969,7 @@ fertigungslinieServer <- function(input, output, session) {
         )
     })
 
-    
+    print(names(lt_map))
     
     output$delay_table_shared_fertigungslinie <- renderDT({
         req(input$selected_fertigungslinie)

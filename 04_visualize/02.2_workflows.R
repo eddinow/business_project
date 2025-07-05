@@ -14,16 +14,6 @@ source("02_model/kpis_workflow_liegezeit.R")
 source("01_transform/create_lt_unit.R")
 source("01_transform/create_est_lt_per_workflow.R")
 
-# Mapping zwischen UI-Label und Datenspalte
-lt_map <- list(
-    "Workflow" = "vorgangsfolge",
-    "Werk"     = "werk",
-    "Linie"    = "fertigungslinie",
-    "Planer"   = "planer",
-    "A-Material" = "materialnummer"
-    #"Arbeitsschritte" = "vorgangsnummer" gibt es nicht
-    #"Arbeitsplatz" = gibt es nicht
-)
 
 #Formel zur Berechnung des Modus
 modus <- function(x) {

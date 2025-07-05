@@ -13,6 +13,14 @@ source("04_visualize/02.2_linien.R")
 source("04_visualize/02.2_workflows.R")
 source("04_visualize/02.2_material.R")
 
+# Mapping zwischen UI-Label und Datenspalte
+lt_map <- list(
+    "Workflow" = "vorgangsfolge",
+    "Werk"     = "werk",
+    "A-Material"    = "materialnummer",
+    "Planer"   = "planer"
+)
+
 # UI -----------------------------------------------------------------------------
 start_ui <- fluidPage(
     useShinyjs(),             # shinyjs initialisieren

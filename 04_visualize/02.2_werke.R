@@ -508,11 +508,11 @@ werkServer <- function(input, output, session) {
     })
     
     # Beschränken auf A-Materialien
-    get_filtered_data_werk <- function(df, selected_werk, selected_view_werk) {
+    get_filtered_data_werk <- function(df, selected_werk, view_selection_werk) {
         df_filtered <- df %>%
             filter(werk == selected_werk)
         
-        if (selected_view_werk == "A-Material") {
+        if (view__selection_werk == "A-Material") {
             df_filtered <- df_filtered %>%
                 filter(klassifikation == "A")
         }
