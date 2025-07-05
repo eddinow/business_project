@@ -14,6 +14,13 @@ source("02_model/kpis_workflow_liegezeit.R")
 source("01_transform/create_lt_unit.R")
 source("01_transform/create_est_lt_per_workflow.R")
 
+# Eigenes Mapping für Workflows, weil Daten aus anderem DF gesourced werden, als 
+# bei den anderen Seiten. 
+lt_map_workflow <- list(
+    "Arbeitsschritte" = "Vorgangsnummer",
+    "Arbeitsplatz"     = "Arbeitsplatz",
+    "A-Material"    = "materialnummer"
+)
 
 #Formel zur Berechnung des Modus
 modus <- function(x) {
@@ -971,7 +978,7 @@ vorgangsfolgeServer <- function(input, output, session) {
     output$livetracker_bottleneck_workflow <- renderUI({
         req(input$selected_vorgangsfolge, input$view_selection_workflow)
         
-        selected <- lt_map[[input$view_selection_workflow]]
+        selected <- lt_map_workflow[[input$view_selection_workflow]]
         label <- input$view_selection_workflow  
         
         # Ermittle Entität mit der höchsten mittleren Abweichung (Median) unter den verspäteten Aufträgen
@@ -1036,7 +1043,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         req(input$selected_vorgangsfolge)
         req(input$view_selection_workflow)
         
-        col <- lt_map[[input$view_selection_workflow]]
+        col <- lt_map_workflow[[input$view_selection_workflow]]
         
         df <- vorgaenge_sorted %>%
             filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
@@ -1094,7 +1101,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         req(input$view_selection_workflow)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-        selected_col <- lt_map[[input$view_selection_workflow]]
+        selected_col <- lt_map_workflow[[input$view_selection_workflow]]
         
         df <- vorgaenge_sorted %>%
             dplyr::filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
@@ -1197,7 +1204,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         req(input$selected_vorgangsfolge)
         req(input$view_selection_workflow)
         
-        selected_col <- lt_map[[input$view_selection_workflow]]
+        selected_col <- lt_map_workflow[[input$view_selection_workflow]]
         
         df <- vorgaenge_sorted %>%
             filter(
@@ -1388,7 +1395,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         req(input$selected_vorgangsfolge)
         req(input$view_selection_workflow)
         
-        selected_col <- lt_map[[input$view_selection_workflow]]
+        selected_col <- lt_map_workflow[[input$view_selection_workflow]]
         
         df <- vorgaenge_sorted %>%
             filter(

@@ -17,8 +17,9 @@ source("04_visualize/02.2_material.R")
 lt_map <- list(
     "Workflow" = "vorgangsfolge",
     "Werk"     = "werk",
-    "A-Material"    = "materialnummer",
-    "Planer"   = "planer"
+    "Linie"    = "fertigungslinie",
+    "Planer"   = "planer",
+    "A-Material" = "materialnummer"
 )
 
 # UI -----------------------------------------------------------------------------
