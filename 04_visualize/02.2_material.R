@@ -271,7 +271,7 @@ klassifikationUI <- function() {
                         bsPopover(
                             id = "alerts_info",
                             title = "Was wird hier gezeigt?",
-                            content = "Kaspar",
+                            content = "„Die Tabelle zeigt alle Materialien, die in mindestens einem der drei Bereiche unterdurchschnittlich abschneiden: Servicelevel, mittlere Abweichung zur Soll-Lead Time oder durchschnittliche Lead Time pro Einheit. Je mehr Kriterien betroffen sind, desto höher die Priorität des Alerts. So können besonders kritische Materialien schnell identifiziert werden.“",
                             placement = "right",
                             trigger = "hover"
                         )
@@ -847,11 +847,12 @@ klassifikationServer <- function(input, output, session) {
 # Alert-Übersicht
     
     classify_outliers <- function(df) {
-        # KASPAR BITTE KOMMENTIEREN
+        # Berechne Durchschnittswerte für Servicelevel, Abweichung und Lead Time pro Einheit
         mean_sl    <- mean(df$Anteil_pünktlich, na.rm = TRUE)
         mean_delay <- mean(df$Ø_Abweichung,     na.rm = TRUE)
         mean_lt    <- mean(df$Ø_LT_pro_Unit,    na.rm = TRUE)
         
+        # Klassifiziere Materialien, die in einem oder mehreren Bereichen unterdurchschnittlich sind
         df %>%
             mutate(
                 flag_sl    = Anteil_pünktlich < mean_sl,
@@ -859,6 +860,8 @@ klassifikationServer <- function(input, output, session) {
                 flag_lt    = Ø_LT_pro_Unit    < mean_lt,
                 Alert      = flag_sl | flag_delay | flag_lt,
                 Priority   = (flag_sl * 3) + (flag_delay * 2) + flag_lt,
+                
+                # Generiere Textbeschreibung, warum das Material als auffällig gilt
                 Alert_Grund = (
                     paste(
                         ifelse(flag_sl,    "Servicelevel unter Durchschnitt", ""),
