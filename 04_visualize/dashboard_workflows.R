@@ -9,7 +9,7 @@ library(echarts4r)
 library(plotly)
 library(ggbreak)
 
-source("02_model/create_workflows_overview.R")
+source("02_model/create_overview_tables.R")
 source("02_model/kpis_workflow_liegezeit.R")
 source("01_transform/create_lt_unit.R")
 source("01_transform/create_est_lt_per_workflow.R")
