@@ -30,8 +30,9 @@ source("01_transform/create_lt_unit.R")
 # Lead Times der Workflows auf Vorgangsebene-------
 #Um wieder die Lead Times auf Vorgangs- und Arbeitsplatzebene sehen zu können, 
 # müssen die sap_vorgaenge cleanen und dann pro Vorgang u Arbeitsplatz wieder die LT
-# ermitteln. Wir ermitteln außerdem die Liegezeiten als Differenz zwischen Enddatum
-# Vorgang 1 und Startdatum Folgevorgang. Wir ermitteln LT/Unit!
+# ermitteln (statt pro Auftrag, 1 Auftrag kann mehrere Vorgänge enthalten). 
+# Wir ermitteln außerdem die Liegezeiten als Differenz zwischen Enddatum
+# Vorgang 1 und Startdatum Folgevorgangs. Wir ermitteln LT/Unit (statt LT/Auftrag)
 
 # Um die Liegezeiten zu ermitteln, werden die Endtermine jedes Vorgangs n mit den
 # Startterminen des Vorgangs n+1 verglichen. Differenzen werden dann als Liegezeit
@@ -115,6 +116,7 @@ liegezeit_u_auftragszeit <- auftrags_dauer %>%
 # Workflows zuordnen zu können. Hier nutzen wir Median Werte für Liegezeit und
 # Bearbeitungszeit
 
+# Datensatz erweitern mit Vorgangsfolge
 liegezeiten_df_erweitert <- liegezeit_u_auftragszeit %>%
     left_join(
         vorgaenge_cleaned %>% dplyr::select(Auftragsnummer, vorgangsfolge) %>% distinct(),
@@ -122,6 +124,7 @@ liegezeiten_df_erweitert <- liegezeit_u_auftragszeit %>%
     )
 
 
+# Gruppieren und Medianbildung für alle Vorgangsfolgen
 vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
     group_by(vorgangsfolge) %>%
     summarise(across(
@@ -130,10 +133,12 @@ vorgaenge_lz_bz <- liegezeiten_df_erweitert %>%
         .names = "{.col}_median"
     )) 
 
-df <- vorgaenge_lz_bz
 
+#df <- vorgaenge_lz_bz
+
+# Aufbereiten der Daten in einem neuen df zur Vorbereitung auf Visualisierung
 transform_row_to_long <- function(row) {
-    row <- as_tibble(row)  # 🔧 Liste zu Tibble umwandeln
+    row <- as_tibble(row) 
     id <- row$vorgangsfolge
     row_long <- row %>%
         dplyr::select(ends_with("_median")) %>%
@@ -150,11 +155,11 @@ transform_row_to_long <- function(row) {
     return(row_long)
 }
 
-# Visualize
-plot_workflow_structure <- function(df) {
-    if (nrow(df) == 0) return(NULL)
+# Visualisieren der Zeiten
+plot_workflow_structure <- function(vorgaenge_lz_bz) {
+    if (nrow(vorgaenge_lz_bz) == 0) return(NULL)
     
-    df_long <- df %>%
+    vorgaenge_lz_bz_long <- vorgaenge_lz_bz %>%
         pivot_longer(
             cols = ends_with("_median"),
             names_to = "Step",
@@ -187,13 +192,13 @@ plot_workflow_structure <- function(df) {
         "Avg. Delay" = "#f5f7fa"
     )
     
-    p <- ggplot(df_long) +
+    plot_workflow_lz_bz <- ggplot(vorgaenge_lz_bz_long) +
         geom_rect(
             aes(xmin = xmin, xmax = xmax, ymin = 0, ymax = 1, fill = Step, text = label),
             color = NA
         ) +
         geom_text(
-            data = df_long %>% filter(pct > 0.05),
+            data = vorgaenge_lz_bz_long %>% filter(pct > 0.05),
             aes(x = (xmin + xmax) / 2, y = 0.5, label = Step, color = text_color),
             size = 3.5,
             show.legend = FALSE
@@ -207,81 +212,5 @@ plot_workflow_structure <- function(df) {
             strip.text = element_text(hjust = 0.5, face = "bold")
         )
     
-    ggplotly(p, tooltip = "text")
-}
-
-
-
-# Häufigkeitsverteilung LT-Abweichungen-----------------------------------------
-
-plot_abweichung_histogram <- function(df, selected_workflow) {
-    df_filtered <- df %>%
-        filter(vorgangsfolge == selected_workflow & !is.na(abweichung))
-    
-    if (nrow(df_filtered) == 0) return(NULL)
-    
-    # Dynamische Grenzen anhand 1% und 99% Quantil
-    x_min <- quantile(df_filtered$abweichung, 0.025)
-    x_max <- quantile(df_filtered$abweichung, 0.975)
-    
-    p <- ggplot(df_filtered, aes(x = abweichung)) +
-        geom_histogram(binwidth = 1, fill = "#002366", color = "white", boundary = 0) +
-        labs(
-            x = "Abweichung (Ist - Soll) [Tage]",
-            y = "Häufigkeit"
-        ) +
-        scale_x_continuous(limits = c(x_min, x_max)) +
-        theme_minimal(base_family = "Inter") +
-        theme(
-            plot.title = element_text(size = 14, face = "bold"),
-            axis.title = element_text(size = 12),
-            axis.text = element_text(size = 11)
-        )
-    
-    ggplotly(p)
-}
-
-plot_ist_vs_soll_comparison <- function(vorgaenge_df, selected_workflow) {
-    # Filter auf gewählten Workflow
-    df_filtered <- vorgaenge_df %>%
-        filter(vorgangsfolge == selected_workflow) %>%
-        mutate(soll_dauer = as.numeric(difftime(endtermin_soll, starttermin_soll, units = "days")),
-               ist_dauer  = as.numeric(difftime(`Istende Vorgang`, `Iststart Vorgang`, units = "days"))) %>%
-        filter(!is.na(soll_dauer) & !is.na(ist_dauer))
-    
-    if (nrow(df_filtered) == 0) return(NULL)
-    
-    # Berechne Median pro Vorgangsnummer
-    df_summary <- df_filtered %>%
-        group_by(Vorgangsnummer) %>%
-        summarise(
-            Soll = median(soll_dauer, na.rm = TRUE),
-            Ist  = median(ist_dauer, na.rm = TRUE),
-            .groups = "drop"
-        ) %>%
-        pivot_longer(cols = c("Soll", "Ist"), names_to = "Typ", values_to = "Dauer")
-    
-    # Balkendiagramm
-    p <- ggplot(df_summary, aes(x = Vorgangsnummer, y = Dauer, fill = Typ)) +
-        geom_col(data = subset(df_summary, Typ == "Soll"),
-                 position = position_identity(),
-                 width = 0.6,
-                 fill = "lightgrey") +
-        geom_col(data = subset(df_summary, Typ == "Ist"),
-                 position = position_identity(),
-                 width = 0.4,
-                 fill = "#002366") +
-        labs(
-            x = "Vorgang",
-            y = "Median Dauer [Tage]"
-        ) +
-        theme_minimal(base_family = "Inter") +
-        theme(
-            plot.title = element_text(size = 14, face = "bold"),
-            axis.title = element_text(size = 12),
-            axis.text = element_text(size = 11),
-            legend.position = "none"
-        )
-    
-    ggplotly(p)
+    ggplotly(plot_workflow_lz_bz, tooltip = "text")
 }

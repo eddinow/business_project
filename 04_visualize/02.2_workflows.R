@@ -1642,7 +1642,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         abw_min <- quantile(df_filtered$abweichung, 0.025)
         abw_max <- quantile(df_filtered$abweichung, 0.975)
         
-        plot_abweichung_histogram() <- ggplot(df_filtered, aes(x = abweichung)) +
+        plot_abweichung_histogram <- ggplot(df_filtered, aes(x = abweichung)) +
             geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
             labs(
                 x = "Lead-Time-Abweichung [Tage]",
@@ -1651,7 +1651,7 @@ vorgangsfolgeServer <- function(input, output, session) {
             scale_x_continuous(limits = c(abw_min, abw_max)) +
             app_theme() 
         
-        ggplotly(plot_abweichung_histogram())
+        ggplotly(plot_abweichung_histogram)
     }
     
     output$abweichung_hist_plot_workflow <- renderPlotly({

@@ -10,7 +10,6 @@ library(plotly)
 library(ggbreak)
 
 source("02_model/create_workflows_overview.R")
-source("02_model/kpis_werke.R")
 source("01_transform/create_lt_unit.R")
 
 

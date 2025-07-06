@@ -39,8 +39,6 @@ workflows_overview <- auftraege_lt_unit %>%
             sum(!is.na(abweichung_unit)),
         .groups = "drop"
     ) %>%
-    
-    # Visualize --------------------------------------------------------------------
 
 mutate(
     `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
@@ -79,8 +77,6 @@ linien_overview <- vorgaenge_lt_unit %>%
         .groups = "drop"
     ) %>%
     
-    # Visualize --------------------------------------------------------------------
-
 mutate(
     `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
     ampel_color = case_when(
@@ -101,6 +97,7 @@ mutate(
     ) %>%
     arrange(desc(`# Orders`))
 
+
 #Werke--------------------------------------------------------------------------
 werke_overview <- auftraege_lt_unit %>%
     filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
@@ -116,8 +113,6 @@ werke_overview <- auftraege_lt_unit %>%
             sum(!is.na(abweichung_unit)),
         .groups = "drop"
     ) %>%
-    
-    # Visualize --------------------------------------------------------------------
 
 mutate(
     `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
@@ -139,9 +134,6 @@ mutate(
     ) %>%
     arrange(desc(`# Orders`))
 
-
-
-
 #Planer---------------------------------------------------------------
 
 planer_overview <- auftraege_lt_unit %>%
@@ -159,8 +151,6 @@ planer_overview <- auftraege_lt_unit %>%
         .groups = "drop"
     ) %>%
     
-    # Visualize --------------------------------------------------------------------
-
 mutate(
     `Servicelevel` = paste0(round(servicelevel_numeric * 100, 0), "%"),
     ampel_color = case_when(
@@ -181,7 +171,11 @@ mutate(
     ) %>%
     arrange(desc(`# Orders`))
 
-# Material
+
+# Material----------------------------------------------------------------------
+
+# Wir bilden nicht alle Materialnummern einzeln ab, sondern gruppieren die Materialien
+# in A,B,C-Materialien. Für die Klassifikation erstellen wir dann die Übersicht.
 
 material_overview <- auftraege_lt_unit %>%
     filter(!is.na(lt_ist_order), !is.na(lt_soll_order)) %>%
