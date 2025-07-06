@@ -845,7 +845,7 @@ klassifikationServer <- function(input, output, session) {
     })
     
     
-    # Alert-Übersicht
+# Alert-Übersicht
     
     classify_outliers <- function(df) {
         # KASPAR BITTE KOMMENTIEREN

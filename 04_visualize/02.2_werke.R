@@ -962,18 +962,22 @@ werkServer <- function(input, output, session) {
         )
     })
     
+ 
+# Zweidimensionale KPIs (Werk + ausgewählte Ansicht)
     
+    # 1. Tabelle mit aktuellen Verzögerungen, LTs, Servicelevel, # Aufträge
     output$delay_table_shared_werk <- renderDT({
         req(input$selected_werk)
         req(input$view_selection_werk)
         
-        col <- lt_map[[input$view_selection_werk]]
+        col_delay_table <- lt_map[[input$view_selection_werk]]
         
-        df <- auftraege_lt_unit %>%
+        df_delay_table <- auftraege_lt_unit %>%
             filter(werk == input$selected_werk) %>%
             filter(if (input$view_selection_werk == "A-Material") klassifikation == "A" else TRUE) %>%
+            # Nur positive Abweichungen als Verzögerung bewerten, sonst NA
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
-            group_by(value = .data[[col]]) %>%
+            group_by(value = .data[[col_delay_table]]) %>%
             summarise(
                 `Ist-LT [s/ME]` = round(median(lt_ist_order, na.rm = TRUE), 2),
                 `Soll-LT [s/ME]` = round(as.numeric(modus(lt_soll_order)), 2),
@@ -1001,7 +1005,7 @@ werkServer <- function(input, output, session) {
             )
         
         datatable(
-            df,
+            df_delay_table,
             escape = FALSE,
             options = list(
                 pageLength = 6,
@@ -1020,39 +1024,43 @@ werkServer <- function(input, output, session) {
     })
     
     
+    # 2. Kuchendiagramm mit Verteilung der Aufträge 
     output$allocation_pie_shared_werk <- renderEcharts4r({
         req(input$selected_werk)
         req(input$view_selection_werk)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-        selected_col <- lt_map[[input$view_selection_werk]]
+        col_allocation_pie <- lt_map[[input$view_selection_werk]]
         
-        df <- auftraege_lt_unit %>%
+        df_allocation_pie <- auftraege_lt_unit %>%
             dplyr::filter(werk == input$selected_werk) %>%
             dplyr::filter(if (input$view_selection_werk == "A-Material") klassifikation == "A" else TRUE) %>%
-            dplyr::filter(!is.na(.data[[selected_col]])) %>%
-            dplyr::group_by(category = .data[[selected_col]]) %>%
+            dplyr::filter(!is.na(.data[[col_allocation_pie]])) %>%
+            dplyr::group_by(category = .data[[col_allocation_pie]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
             dplyr::mutate(share = count / sum(count)) %>%
             dplyr::arrange(desc(share))
         
-        df_main <- df %>% dplyr::filter(share >= 0.05)
-        df_other <- df %>% dplyr::filter(share < 0.05)
+        # Splitten der Daten in Gruppen: Jede Linie, Workflow usw. dessen Anteil am 
+        # Gesamtanteil aller Aufträge über 5% ausmacht wird einzeln abgebildet, alle 
+        # anderen, die unter 5% ausmachen werden in einer Gruppe zusammengefasst
+        df_main_groups <- df_allocation_pie %>% dplyr::filter(share >= 0.05)
+        df_small_groups <- df_allocation_pie %>% dplyr::filter(share < 0.05)
         
-        if (nrow(df_other) > 0) {
-            other_total <- sum(df_other$count)
-            other_label <- "Restliche"
-            other_tooltip <- paste(df_other$category, collapse = ", ")
+        if (nrow(df_small_groups) > 0) {
+            small_groups_total <- sum(df_small_groups$count)
+            small_groups_label <- "Restliche"
+            small_groups_tooltip <- paste(df_small_groups$category, collapse = ", ")
             
-            df_main <- dplyr::bind_rows(
-                df_main,
-                tibble::tibble(category = other_label, count = other_total, share = other_total / sum(df$count))
+            df_main_groups <- dplyr::bind_rows(
+                df_main_groups,
+                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df$count))
             )
         } else {
-            other_tooltip <- NULL
+            small_groups_tooltip <- NULL
         }
         
-        tooltip_formatter <- if (!is.null(other_tooltip)) {
+        tooltip_formatter <- if (!is.null(small_groups_tooltip)) {
             htmlwidgets::JS(sprintf(
                 "function(params) {
          if(params.name === 'Restliche') {
@@ -1060,13 +1068,13 @@ werkServer <- function(input, output, session) {
          } else {
            return params.name + ': ' + params.value;
          }
-       }", other_tooltip
+       }", small_groups_tooltip
             ))
         } else {
             htmlwidgets::JS("function(params) { return params.name + ': ' + params.value; }")
         }
         
-        df_main %>%
+        df_main_groups %>%
             echarts4r::e_charts(category) %>%
             echarts4r::e_pie(
                 count,
@@ -1096,68 +1104,74 @@ werkServer <- function(input, output, session) {
     
     
 
+# 3. Top 200 Aufträge mit Abweichung
     
-    output$top_delay_orders_werk <- renderDT({
-        req(input$selected_werk)
-        req(input$view_selection_werk)
-        
-        df <- auftraege_lt_unit %>%
-            filter(
-                werk == input$selected_werk,
-                !is.na(abweichung_unit)
-            ) %>%
-            filter(if (input$view_selection_werk == "A-Material") klassifikation == "A" else TRUE) %>%
-            arrange(desc(abweichung_unit)) %>%
-            slice_head(n = 200) %>%
-            transmute(
-                `Auftragsnummer`     = auftragsnummer,
-                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
-            )
-        
-        datatable(
-            df,
-            options = list(
-                pageLength = 10,
-                dom = 'tip',
-                ordering = TRUE
-            ),
-            rownames = FALSE,
-            class = "hover"
-        )
-    })
+    # 3.1 Detailtabelle Verzögerung
+    # output$top_delay_orders_werk <- renderDT({
+    #     req(input$selected_werk)
+    #     req(input$view_selection_werk)
+    #     
+    #     df_top_delay_orders <- auftraege_lt_unit %>%
+    #         filter(
+    #             werk == input$selected_werk,
+    #             !is.na(abweichung_unit)
+    #         ) %>%
+    #         filter(if (input$view_selection_werk == "A-Material") klassifikation == "A" else TRUE) %>%
+    #         # Sortiere absteigend nach Abweichung und nimm die ersten 200 Aufträge mit der größten Verspätung
+    #         arrange(desc(abweichung_unit)) %>%
+    #         slice_head(n = 200) %>%
+    #         # Bauen der Detail-Tabelle, die sich durch Klick auf die Detaillupe öffnet
+    #         transmute(
+    #             `Auftragsnummer`     = auftragsnummer,
+    #             `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
+    #         )
+    #     
+    #     datatable(
+    #         df_top_delay_orders,
+    #         options = list(
+    #             pageLength = 10,
+    #             dom = 'tip',
+    #             ordering = TRUE
+    #         ),
+    #         rownames = FALSE,
+    #         class = "hover"
+    #     )
+    # })
     
-    ### 1. Neue Tabelle mit Verzögerungsbereichen erzeugen
+    # 3.2 Übersicht Verteilung der Verzögerungen
     output$delay_quartile_summary_werk <- renderDT({
         req(input$selected_werk)
         req(input$view_selection_werk)
         
-        selected_col <- lt_map[[input$view_selection_werk]]
+        col_delay_quartile_summary <- lt_map[[input$view_selection_werk]]
         
-        df <- auftraege_lt_unit %>%
+        df_delay_quartile_summary <- auftraege_lt_unit %>%
             filter(
                 werk == input$selected_werk,
                 abweichung > 0,
                 !is.na(abweichung),
-                !is.na(.data[[selected_col]]),
+                !is.na(.data[[col_delay_quartile_summary]]),
                 if (input$view_selection_werk == "A-Material") klassifikation == "A" else TRUE
             )
         
-        labels <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
-        counts <- c(
-            sum(df$abweichung > 10),
-            sum(df$abweichung <= 10 & df$abweichung > 5),
-            sum(df$abweichung <= 5 & df$abweichung > 3),
-            sum(df$abweichung <= 3 & df$abweichung > 1)
+        # Einteilen der verzögerten Aufträge nach Stärke der Abweichung
+        labels_delay_quartile_summary <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
+        counts_delay_quartile_summary <- c(
+            sum(df_delay_quartile_summary$abweichung > 10),
+            sum(df_delay_quartile_summary$abweichung <= 10 & df_delay_quartile_summary$abweichung > 5),
+            sum(df_delay_quartile_summary$abweichung <= 5 & df_delay_quartile_summary$abweichung > 3),
+            sum(df_delay_quartile_summary$abweichung <= 3 & df_delay_quartile_summary$abweichung > 1)
         )
-        pcts <- round(counts / sum(counts) * 100, 1)
         
-        summary_df <- tibble(
-            `Verzögerung [T]` = labels,
+        share_delay_quartile_summary <- round(counts_delay_quartile_summary / sum(counts_delay_quartile_summary) * 100, 1)
+        
+        summary_delay_quartile_summary <- tibble(
+            `Verzögerung [T]` = labels_delay_quartile_summary,
             `Anteil [%]` = paste0(
                 "<div style='display: flex; align-items: center; gap: 8px;'>",
-                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", share_delay_quartile_summary, "%</span>",
                 "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
-                "<div style='width:", pcts, "%; background-color: #4285F4; height: 100%;'></div>",
+                "<div style='width:", share_delay_quartile_summary, "%; background-color: #4285F4; height: 100%;'></div>",
                 "</div>",
                 "</div>"
             ),
@@ -1170,7 +1184,7 @@ werkServer <- function(input, output, session) {
         )
         
         datatable(
-            summary_df,
+            summary_delay_quartile_summary,
             escape = FALSE,
             rownames = FALSE,
             selection = 'none',
@@ -1188,7 +1202,9 @@ werkServer <- function(input, output, session) {
         )
     })
     
+    # 3.3 Detail-Icons, die zu Tabellen führen
     
+    # Verzögerung > 10 Tage
     observeEvent(input$btn_q_10_werk, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung > 10 Tage",
@@ -1199,7 +1215,7 @@ werkServer <- function(input, output, session) {
         output$modal_q10_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_10t_verz <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung > 10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1209,10 +1225,11 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_10t_verz, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verzögerung 5-10 Tage
     observeEvent(input$btn_q_105_werk, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 5 und 10 Tagen",
@@ -1223,7 +1240,7 @@ werkServer <- function(input, output, session) {
         output$modal_q105_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_5_10t_verz <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung_unit <= 10 & abweichung_unit > 5) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1233,10 +1250,11 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_5_10t_verz, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verzögerung 3-5 Tage
     observeEvent(input$btn_q_53_werk, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 3 und 5 Tagen",
@@ -1247,7 +1265,7 @@ werkServer <- function(input, output, session) {
         output$modal_q53_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_3_5t_verz <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung_unit <= 5 & abweichung_unit > 3) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1257,10 +1275,11 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_3_5t_verz, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verzögerung 1-3 Tage
     observeEvent(input$btn_q_31_werk, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 1 und 3 Tagen",
@@ -1271,7 +1290,7 @@ werkServer <- function(input, output, session) {
         output$modal_q31_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_1_3t_verz <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung_unit <= 3 & abweichung_unit > 1) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1281,7 +1300,7 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_1_3t_verz, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
@@ -1322,17 +1341,17 @@ werkServer <- function(input, output, session) {
         req(input$selected_werk)
         req(input$view_selection_werk)
         
-        selected_col <- lt_map[[input$view_selection_werk]]
+        col_early_quartile_summary <- lt_map[[input$view_selection_werk]]
         
         df <- auftraege_lt_unit %>%
             filter(
                 werk == input$selected_werk,
                 abweichung_unit < 0,
                 !is.na(abweichung_unit),
-                !is.na(.data[[selected_col]])
+                !is.na(.data[[col_early_quartile_summary]])
             )
         
-        labels <- c("< -10", "-10 bis -5", "-5 bis -3", "-3 bis -1")
+        labels_early_quartile_summary <- c("< -10", "-10 bis -5", "-5 bis -3", "-3 bis -1")
         counts <- c(
             sum(df$abweichung_unit < -10),
             sum(df$abweichung_unit >= -10 & df$abweichung_unit < -5),
@@ -1342,7 +1361,7 @@ werkServer <- function(input, output, session) {
         pcts <- round(counts / sum(counts) * 100, 1)
         
         summary_df <- tibble(
-            `Verfrühung [T]` = labels,
+            `Verfrühung [T]` = labels_early_quartile_summary,
             `Anteil [%]` = paste0(
                 "<div style='display: flex; align-items: center; gap: 8px;'>",
                 "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",

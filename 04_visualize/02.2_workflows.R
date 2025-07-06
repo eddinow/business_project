@@ -1039,17 +1039,21 @@ vorgangsfolgeServer <- function(input, output, session) {
     })
 
     
+# Zweidimensionale KPIs (Linie + ausgewählte Ansicht)
+    
+    # 1. Tabelle mit aktuellen Verzögerungen, LTs, Servicelevel, # Aufträge
     output$delay_table_shared_workflow <- renderDT({
         req(input$selected_vorgangsfolge)
         req(input$view_selection_workflow)
         
-        col <- lt_map_workflow[[input$view_selection_workflow]]
+        col_delay_table <- lt_map_workflow[[input$view_selection_workflow]]
         
-        df <- vorgaenge_sorted %>%
+        df_delay_table <- vorgaenge_sorted %>%
             filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
             filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
+            # Nur positive Abweichungen als Verzögerung bewerten, sonst NA
             mutate(delay_capped = ifelse(abweichung_unit < 0, NA, abweichung_unit)) %>%
-            group_by(value = .data[[col]]) %>%
+            group_by(value = .data[[col_delay_table]]) %>%
             summarise(
                 `Ist-LT [s/ME]` = round(median(lt_ist_order, na.rm = TRUE), 2),
                 `Soll-LT [s/ME]` = round(as.numeric(modus(lt_soll_order)), 2),
@@ -1077,7 +1081,7 @@ vorgangsfolgeServer <- function(input, output, session) {
             )
         
         datatable(
-            df,
+            df_delay_table,
             escape = FALSE,
             options = list(
                 pageLength = 6,
@@ -1101,34 +1105,37 @@ vorgangsfolgeServer <- function(input, output, session) {
         req(input$view_selection_workflow)
         
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
-        selected_col <- lt_map_workflow[[input$view_selection_workflow]]
+        col_allocation_pie <- lt_map_workflow[[input$view_selection_workflow]]
         
-        df <- vorgaenge_sorted %>%
+        df_allocation_pie <- vorgaenge_sorted %>%
             dplyr::filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
             dplyr::filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
-            dplyr::filter(!is.na(.data[[selected_col]])) %>%
-            dplyr::group_by(category = .data[[selected_col]]) %>%
+            dplyr::filter(!is.na(.data[[col_allocation_pie]])) %>%
+            dplyr::group_by(category = .data[[col_allocation_pie]]) %>%
             dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
             dplyr::mutate(share = count / sum(count)) %>%
             dplyr::arrange(desc(share))
         
-        df_main <- df %>% dplyr::filter(share >= 0.05)
-        data_remainingther <- df %>% dplyr::filter(share < 0.05)
+        # Splitten der Daten in Gruppen: Jede Linie, Workflow usw. dessen Anteil am 
+        # Gesamtanteil aller Aufträge über 5% ausmacht wird einzeln abgebildet, alle 
+        # anderen, die unter 5% ausmachen werden in einer Gruppe zusammengefasst
+        df_main_groups <- df_allocation_pie %>% dplyr::filter(share >= 0.05)
+        df_small_groups <- df_allocation_pie %>% dplyr::filter(share < 0.05)
         
-        if (nrow(data_remainingther) > 0) {
-            other_total <- sum(data_remainingther$count)
-            other_label <- "Restliche"
-            other_tooltip <- paste(data_remainingther$category, collapse = ", ")
+        if (nrow(df_small_groups) > 0) {
+            small_groups_total <- sum(df_small_groups$count)
+            small_groups_label <- "Restliche"
+            small_groups_tooltip <- paste(df_small_groups$category, collapse = ", ")
             
-            df_main <- dplyr::bind_rows(
-                df_main,
-                tibble::tibble(category = other_label, count = other_total, share = other_total / sum(df$count))
+            df_main_groups <- dplyr::bind_rows(
+                df_main_groups,
+                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df$count))
             )
         } else {
-            other_tooltip <- NULL
+            small_groups_tooltip <- NULL
         }
         
-        tooltip_formatter <- if (!is.null(other_tooltip)) {
+        tooltip_formatter <- if (!is.null(small_groups_tooltip)) {
             htmlwidgets::JS(sprintf(
                 "function(params) {
          if(params.name === 'Restliche') {
@@ -1136,13 +1143,13 @@ vorgangsfolgeServer <- function(input, output, session) {
          } else {
            return params.name + ': ' + params.value;
          }
-       }", other_tooltip
+       }", small_groups_tooltip
             ))
         } else {
             htmlwidgets::JS("function(params) { return params.name + ': ' + params.value; }")
         }
         
-        df_main %>%
+        df_main_groups %>%
             echarts4r::e_charts(category) %>%
             echarts4r::e_pie(
                 count,
