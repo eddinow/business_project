@@ -600,7 +600,7 @@ vorgangsfolgeServer <- function(input, output, session) {
     
 # KPIs der ausgewählten Ansicht
     
-    # 1. Termintreue [1]
+    # 1. Termintreue
     output$donut_termintreue_workflow <- renderEcharts4r({
         sel <- input$selected_vorgangsfolge
         data_selected <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
@@ -663,7 +663,7 @@ vorgangsfolgeServer <- function(input, output, session) {
             e_legend(show = FALSE)
     })
     
-    # 2. Liefertreue [2]
+    # 2. Liefertreue 
     output$donut_liefertreue_workflow <- renderEcharts4r({
         sel <- input$selected_vorgangsfolge
         data_selected <- vorgaenge_sorted %>% filter(vorgangsfolge == sel)
@@ -757,7 +757,7 @@ vorgangsfolgeServer <- function(input, output, session) {
     })
     
     
-    # 3. Geschwindigkeit pro ME [3]
+    # 3. Geschwindigkeit pro ME
     output$donut_geschwindigkeit_me_workflow <- renderEcharts4r({
         req(input$selected_vorgangsfolge)
         
@@ -824,7 +824,7 @@ vorgangsfolgeServer <- function(input, output, session) {
     })
     
     
-    # 4. Geschwindigkeit pro Auftrag [4]
+    # 4. Geschwindigkeit pro Auftrag
     output$donut_geschwindigkeit_auftrag_workflow <- renderEcharts4r({
         req(input$selected_vorgangsfolge)
         
@@ -1099,7 +1099,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         )
     })
     
-    
+    # 2. Kuchendiagramm mit Verteilung der Aufträge 
     output$allocation_pie_shared_workflow <- renderEcharts4r({
         req(input$selected_vorgangsfolge)
         req(input$view_selection_workflow)
@@ -1177,67 +1177,42 @@ vorgangsfolgeServer <- function(input, output, session) {
             )
     })
     
-    output$top_delay_orders_workflow <- renderDT({
-        req(input$selected_vorgangsfolge)
-        req(input$view_selection_workflow)
-        
-        df <- vorgaenge_sorted %>%
-            filter(
-                vorgangsfolge == input$selected_vorgangsfolge,
-                !is.na(abweichung_unit)
-            ) %>%
-            filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
-            arrange(desc(abweichung_unit)) %>%
-            slice_head(n = 200) %>%
-            transmute(
-                `Auftragsnummer`     = Auftragsnummer,
-                `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
-            )
-        
-        datatable(
-            df,
-            options = list(
-                pageLength = 10,
-                dom = 'tip',
-                ordering = TRUE
-            ),
-            rownames = FALSE,
-            class = "hover"
-        )
-    })
+
+    # 3.1 Verspätungen
     
-    ### 1. Neue Tabelle mit Verzögerungsbereichen erzeugen
+    # 3.1.1 Übersichtstabelle Verteilung der Verzögerungen
     output$delay_quartile_summary_workflow <- renderDT({
         req(input$selected_vorgangsfolge)
         req(input$view_selection_workflow)
         
-        selected_col <- lt_map_workflow[[input$view_selection_workflow]]
+        col_delay_quartile_summary <- lt_map_workflow[[input$view_selection_workflow]]
         
-        df <- vorgaenge_sorted %>%
+        df_delay_quartile_summary <- vorgaenge_sorted %>%
             filter(
                 vorgangsfolge == input$selected_vorgangsfolge,
                 abweichung > 0,
                 !is.na(abweichung),
-                !is.na(.data[[selected_col]]),
+                !is.na(.data[[col_delay_quartile_summary]]),
                 if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE
             )
         
-        labels <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
-        counts <- c(
-            sum(df$abweichung > 10),
-            sum(df$abweichung <= 10 & df$abweichung > 5),
-            sum(df$abweichung <= 5 & df$abweichung > 3),
-            sum(df$abweichung <= 3 & df$abweichung > 1)
+        # Einteilen der verspäteten Aufträge nach Stärke der Abweichung
+        labels_delay_quartile_summary <- c("> 10", "10 bis 5", "5 bis 3", "3 bis 1")
+        counts_delay_quartile_summary <- c(
+            sum(df_delay_quartile_summary$abweichung > 10),
+            sum(df_delay_quartile_summary$abweichung <= 10 & df_delay_quartile_summary$abweichung > 5),
+            sum(df_delay_quartile_summary$abweichung <= 5 & df_delay_quartile_summary$abweichung > 3),
+            sum(df_delay_quartile_summary$abweichung <= 3 & df_delay_quartile_summary$abweichung > 1)
         )
-        pcts <- round(counts / sum(counts) * 100, 1)
+        share_delay_quartile_summary <- round(counts_delay_quartile_summary / sum(counts_delay_quartile_summary) * 100, 1)
         
-        summary_df <- tibble(
-            `Verzögerung [T]` = labels,
+        summary_delay_quartile_summary <- tibble(
+            `Verzögerung [T]` = labels_delay_quartile_summary,
             `Anteil [%]` = paste0(
                 "<div style='display: flex; align-items: center; gap: 8px;'>",
-                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", share_delay_quartile_summary, "%</span>",
                 "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
-                "<div style='width:", pcts, "%; background-color: #4285F4; height: 100%;'></div>",
+                "<div style='width:", share_delay_quartile_summary, "%; background-color: #4285F4; height: 100%;'></div>",
                 "</div>",
                 "</div>"
             ),
@@ -1250,7 +1225,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         )
         
         datatable(
-            summary_df,
+            summary_delay_quartile_summary,
             escape = FALSE,
             rownames = FALSE,
             selection = 'none',
@@ -1268,7 +1243,9 @@ vorgangsfolgeServer <- function(input, output, session) {
         )
     })
     
+    # 3.1.2 Detail-Icons, die zu Detailtabellen führen
     
+    # Verspätung über 10 Tage
     observeEvent(input$btn_q_10_workflow, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung > 10 Tage",
@@ -1279,7 +1256,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_q10_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_10t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung > 10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1289,10 +1266,11 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_10t_versp, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verspätung 5-10 Tage
     observeEvent(input$btn_q_105_workflow, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 5 und 10 Tagen",
@@ -1303,7 +1281,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_q105_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_5_10t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 10 & abweichung_unit > 5) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1313,10 +1291,11 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_5_10t_versp, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verspätung 3-5 Tage
     observeEvent(input$btn_q_53_workflow, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 3 und 5 Tagen",
@@ -1327,7 +1306,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_q53_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_3_5t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 5 & abweichung_unit > 3) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1337,10 +1316,11 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_3_5t_versp, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verspätung 1-3 Tage
     observeEvent(input$btn_q_31_workflow, {
         showModal(modalDialog(
             title = "Aufträge mit Verzögerung zwischen 1 und 3 Tagen",
@@ -1351,7 +1331,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_q31_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_1_3t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 3 & abweichung_unit > 1) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1361,73 +1341,46 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_1_3t_versp, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
     
-    output$top_early_orders_workflow <- renderDT({
-        req(input$selected_vorgangsfolge)
-        req(input$view_selection_workflow)
-        
-        df <- vorgaenge_sorted %>%
-            filter(
-                vorgangsfolge == input$selected_vorgangsfolge,
-                !is.na(abweichung_unit),
-                abweichung_unit < 0  # nur zu frühe
-            ) %>%
-            arrange(abweichung_unit) %>%  # früheste oben
-            slice_head(n = 200) %>%
-            transmute(
-                Auftragsnummer     = auftragsnummer,
-                Materialnummer     = materialnummer,
-                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                `Abweichung [T/Auftr.]` = round(abweichung, 2)
-            )
-        
-        datatable(
-            df,
-            options = list(
-                pageLength = 10,
-                dom = 'tip',
-                ordering = TRUE
-            ),
-            rownames = FALSE,
-            class = "hover"
-        )
-    })
+
+    # 3.2 Verfrühungen
     
+    # 3.2.1 Übersichtstabelle Verteilung der Verzögerungen
     output$early_quartile_summary_workflow <- renderDT({
         req(input$selected_vorgangsfolge)
         req(input$view_selection_workflow)
         
-        selected_col <- lt_map_workflow[[input$view_selection_workflow]]
+        col_early_quartile_summary <- lt_map_workflow[[input$view_selection_workflow]]
         
-        df <- vorgaenge_sorted %>%
+        df_early_quartile_summary <- vorgaenge_sorted %>%
             filter(
                 vorgangsfolge == input$selected_vorgangsfolge,
                 abweichung_unit < 0,
                 !is.na(abweichung_unit),
-                !is.na(.data[[selected_col]])
+                !is.na(.data[[col_early_quartile_summary]])
             )
         
-        labels <- c("< -10", "-10 bis -5", "-5 bis -3", "-3 bis -1")
-        counts <- c(
-            sum(df$abweichung_unit < -10),
-            sum(df$abweichung_unit >= -10 & df$abweichung_unit < -5),
-            sum(df$abweichung_unit >= -5 & df$abweichung_unit < -3),
-            sum(df$abweichung_unit >= -3 & df$abweichung_unit < -1)
+        # Einteilen der verfrühten Aufträge nach Stärke der Abweichung
+        labels_early_quartile_summary <- c("< -10", "-10 bis -5", "-5 bis -3", "-3 bis -1")
+        counts_early_quartile_summary <- c(
+            sum(df_early_quartile_summary$abweichung_unit < -10),
+            sum(df_early_quartile_summary$abweichung_unit >= -10 & df_early_quartile_summary$abweichung_unit < -5),
+            sum(df_early_quartile_summary$abweichung_unit >= -5 & df_early_quartile_summary$abweichung_unit < -3),
+            sum(df_early_quartile_summary$abweichung_unit >= -3 & df_early_quartile_summary$abweichung_unit < -1)
         )
-        pcts <- round(counts / sum(counts) * 100, 1)
+        share_early_quartile_summary <- round(counts_early_quartile_summary / sum(counts_early_quartile_summary) * 100, 1)
         
-        summary_df <- tibble(
-            `Verfrühung [T]` = labels,
+        summary_early_quartile_summary <- tibble(
+            `Verfrühung [T]` = labels_early_quartile_summary,
             `Anteil [%]` = paste0(
                 "<div style='display: flex; align-items: center; gap: 8px;'>",
-                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", share_early_quartile_summary, "%</span>",
                 "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
-                "<div style='width:", pcts, "%; background-color: #4285F4; height: 100%;'></div>",
+                "<div style='width:", share_early_quartile_summary, "%; background-color: #4285F4; height: 100%;'></div>",
                 "</div>",
                 "</div>"
             ),
@@ -1440,7 +1393,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         )
         
         datatable(
-            summary_df,
+            summary_early_quartile_summary,
             escape = FALSE,
             rownames = FALSE,
             selection = 'none',
@@ -1457,9 +1410,14 @@ vorgangsfolgeServer <- function(input, output, session) {
             )
         )
     })
+    
+    
+    # 3.2.2 Detail-Icons, die zu Detailtabellen führen
+    
+    # Verfrühung über 10 Tage
     observeEvent(input$btn_e_10_workflow, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung < -10 Tage",
+            title = "Aufträge mit Verfrühung über 10 Tage",
             DTOutput("modal_e10_workflow"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1467,7 +1425,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_e10_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_10t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit < -10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1477,13 +1435,14 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_10t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verfrühung 5-10 Tage
     observeEvent(input$btn_e_105_workflow, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung zwischen -10 und -5 Tagen",
+            title = "Aufträge mit Verfrühung von 5-10 Tagen",
             DTOutput("modal_e105_workflow"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1491,7 +1450,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_e105_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_5_10t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -10 & abweichung_unit < -5) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1501,13 +1460,14 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_5_10t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verfrühung 3-5 Tage
     observeEvent(input$btn_e_53_workflow, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung zwischen -5 und -3 Tagen",
+            title = "Aufträge mit Verfrühung von 3-5 Tagen",
             DTOutput("modal_e53_workflow"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1515,7 +1475,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_e53_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_3_5t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -5 & abweichung_unit < -3) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1525,13 +1485,14 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_3_5t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verfrühung 1-3 Tage
     observeEvent(input$btn_e_31_workflow, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung zwischen -3 und -1 Tagen",
+            title = "Aufträge mit Verfrühung von 1-3 Tagen",
             DTOutput("modal_e31_workflow"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1539,7 +1500,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         output$modal_e31_workflow <- renderDT({
             req(input$selected_vorgangsfolge)
             
-            df <- vorgaenge_sorted %>%
+            df_order_1_3t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -3 & abweichung_unit < -1) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1549,11 +1510,13 @@ vorgangsfolgeServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_1_3t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
-    # # Liegezeiten
+    
+    
+# Plot Bearbeitungs- und Liegezeiten
     data_input <- reactive({
         ausgabe_df %>%
             filter(!is.na(vorgangsfolge))
@@ -1585,10 +1548,9 @@ vorgangsfolgeServer <- function(input, output, session) {
         
         ggplot(df_plot, aes(x = Vorgangsnummer, y = dauer, fill = farbe)) +
             geom_col(width = 0.3) +
-            # Textlabels nur über den blauen Segmenten
             geom_text(
                 data = df_plot %>% filter(farbe == "blauanteil"),
-                aes(label = round(dauer, 1), y = cumsum(dauer)),  # Höhe = Oberkante des blauen Teils
+                aes(label = round(dauer, 1), y = cumsum(dauer)), 
                 vjust = -0.3,
                 size = 3
             ) +
@@ -1604,7 +1566,31 @@ vorgangsfolgeServer <- function(input, output, session) {
     })
     
     
+ # Plot Sollmengenabhängige Lead Times
     
+    est_plot_obj <- reactive({
+        req(input$selected_vorgangsfolge)
+        create_est_lt_combined(vorgaenge_sorted, input$selected_vorgangsfolge, session = session)
+    })
+    
+    output$workflow_plot <- plotly::renderPlotly({
+        result <- est_plot_obj()
+        req(result)
+        
+        plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color")) %>%
+            plotly::layout(
+                legend = list(
+                    traceorder = "normal",
+                    title = list(text = "Variante")
+                )
+            ) %>%
+            plotly::style(
+                name = "Lead Time Ist", traces = 1
+            ) %>%
+            plotly::style(
+                name = "Lead Time Soll", traces = 2
+            )
+    })
     
     
     
@@ -1616,12 +1602,12 @@ vorgangsfolgeServer <- function(input, output, session) {
         
         # Sortiere nach tatsächlichem Starttermin, aber berücksichige nur jeden 
         # 10. Wert (aus Darstellungsgründen)
-        df <- vorgaenge_sorted %>%
+        df_abweichung_time_plot <- vorgaenge_sorted %>%
             filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
             arrange(`Iststart Vorgang`) %>%
             slice(seq(1, n(), by = 10))
         
-        p <- ggplot(df, aes(x = `Iststart Vorgang`, y = abweichung)) +
+        plot_abweichung_time <- ggplot(df_abweichung_time_plot, aes(x = `Iststart Vorgang`, y = abweichung)) +
             geom_smooth(
                 method = "loess", se = FALSE, span = 0.2, color = "#6495ED", size = 0.7
             ) +
@@ -1629,9 +1615,9 @@ vorgangsfolgeServer <- function(input, output, session) {
                 x = "Ist-Starttermin",
                 y = "Abweichung von Soll-LT [d]"
             ) +
-            app_theme()  # 👈 hier deine Theme-Funktion
+            app_theme()  
         
-        ggplotly(p, tooltip = c("x", "y")) %>%
+        ggplotly(plot_abweichung_time, tooltip = c("x", "y")) %>%
             layout(
                 font = list(family = "Inter", size = 10, color = "#5f6368"),
                 xaxis = list(
@@ -1653,26 +1639,31 @@ vorgangsfolgeServer <- function(input, output, session) {
         if (nrow(df_filtered) == 0) return(NULL)
         
         # Dynamische Grenzen ohne obere und untere 2,5% (v.a. aus Darstellungsgründen)
-        x_min <- quantile(df_filtered$abweichung, 0.025)
-        x_max <- quantile(df_filtered$abweichung, 0.975)
+        abw_min <- quantile(df_filtered$abweichung, 0.025)
+        abw_max <- quantile(df_filtered$abweichung, 0.975)
         
-        p <- ggplot(df_filtered, aes(x = abweichung)) +
+        plot_abweichung_histogram() <- ggplot(df_filtered, aes(x = abweichung)) +
             geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
             labs(
                 x = "Lead-Time-Abweichung [Tage]",
                 y = "Anzahl Aufträge"
             ) +
-            scale_x_continuous(limits = c(x_min, x_max)) +
+            scale_x_continuous(limits = c(abw_min, abw_max)) +
             app_theme() 
         
-        ggplotly(p)
+        ggplotly(plot_abweichung_histogram())
     }
+    
+    output$abweichung_hist_plot_workflow <- renderPlotly({
+        req(input$selected_vorgangsfolge)
+        plot_abweichung_histogram_workflow(vorgaenge_sorted, input$selected_vorgangsfolge)
+    })
     
     # 3. Lead Time Abweichung relativ
     abweichung_tabelle_workflow <- reactive({
         req(input$selected_vorgangsfolge)
         
-        df <- vorgaenge_sorted %>%
+        df_abw_rel <- vorgaenge_sorted %>%
             filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
             
@@ -1726,37 +1717,4 @@ vorgangsfolgeServer <- function(input, output, session) {
     rownames = FALSE,
     class = "hover"
     )
-    
-    est_plot_obj <- reactive({
-        req(input$selected_vorgangsfolge)
-        create_est_lt_combined(vorgaenge_sorted, input$selected_vorgangsfolge, session = session)
-    })
-    
-    output$workflow_plot <- plotly::renderPlotly({
-        result <- est_plot_obj()
-        req(result)
-        
-        plotly::ggplotly(result$plot, tooltip = c("x", "y", "fill", "color")) %>%
-            plotly::layout(
-                legend = list(
-                    traceorder = "normal",
-                    title = list(text = "Variante")
-                )
-            ) %>%
-            plotly::style(
-                name = "Lead Time Ist", traces = 1
-            ) %>%
-            plotly::style(
-                name = "Lead Time Soll", traces = 2
-            )
-    })
-    
-    
-    output$abweichung_hist_plot_workflow <- renderPlotly({
-        req(input$selected_vorgangsfolge)
-        plot_abweichung_histogram_workflow(vorgaenge_sorted, input$selected_vorgangsfolge)
-    })
-    
-    
-    
 }

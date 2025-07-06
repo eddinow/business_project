@@ -1105,40 +1105,11 @@ werkServer <- function(input, output, session) {
     
 
 # 3. Top 200 Aufträge mit Abweichung
+
     
-    # 3.1 Detailtabelle Verzögerung
-    # output$top_delay_orders_werk <- renderDT({
-    #     req(input$selected_werk)
-    #     req(input$view_selection_werk)
-    #     
-    #     df_top_delay_orders <- auftraege_lt_unit %>%
-    #         filter(
-    #             werk == input$selected_werk,
-    #             !is.na(abweichung_unit)
-    #         ) %>%
-    #         filter(if (input$view_selection_werk == "A-Material") klassifikation == "A" else TRUE) %>%
-    #         # Sortiere absteigend nach Abweichung und nimm die ersten 200 Aufträge mit der größten Verspätung
-    #         arrange(desc(abweichung_unit)) %>%
-    #         slice_head(n = 200) %>%
-    #         # Bauen der Detail-Tabelle, die sich durch Klick auf die Detaillupe öffnet
-    #         transmute(
-    #             `Auftragsnummer`     = auftragsnummer,
-    #             `Abweichung [min/ME]`  = round(abweichung_unit, 2)/60
-    #         )
-    #     
-    #     datatable(
-    #         df_top_delay_orders,
-    #         options = list(
-    #             pageLength = 10,
-    #             dom = 'tip',
-    #             ordering = TRUE
-    #         ),
-    #         rownames = FALSE,
-    #         class = "hover"
-    #     )
-    # })
+    # 3.1 Verzögerungen
     
-    # 3.2 Übersicht Verteilung der Verzögerungen
+    # 3.1.1 Übersichtstabelle Verteilung der Verzögerungen
     output$delay_quartile_summary_werk <- renderDT({
         req(input$selected_werk)
         req(input$view_selection_werk)
@@ -1202,7 +1173,7 @@ werkServer <- function(input, output, session) {
         )
     })
     
-    # 3.3 Detail-Icons, die zu Tabellen führen
+    # 3.1.2 Detail-Icons, die zu Detailtabellen führen
     
     # Verzögerung > 10 Tage
     observeEvent(input$btn_q_10_werk, {
@@ -1305,45 +1276,16 @@ werkServer <- function(input, output, session) {
     })
     
     
-    output$top_early_orders_werk <- renderDT({
-        req(input$selected_werk)
-        req(input$view_selection_werk)
-        
-        df <- auftraege_lt_unit %>%
-            filter(
-                werk == input$selected_werk,
-                !is.na(abweichung_unit),
-                abweichung_unit < 0  # nur zu frühe
-            ) %>%
-            arrange(abweichung_unit) %>%  # früheste oben
-            slice_head(n = 200) %>%
-            transmute(
-                Auftragsnummer     = auftragsnummer,
-                Materialnummer     = materialnummer,
-                `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
-                `Abweichung [T/Auftr.]` = round(abweichung, 2)
-            )
-        
-        datatable(
-            df,
-            options = list(
-                pageLength = 10,
-                dom = 'tip',
-                ordering = TRUE
-            ),
-            rownames = FALSE,
-            class = "hover"
-        )
-    })
+# 3.2 Verfrühungen
     
+    # 3.2.1 Übersichtstabelle Verteilung der Verfrühungen
     output$early_quartile_summary_werk <- renderDT({
         req(input$selected_werk)
         req(input$view_selection_werk)
         
         col_early_quartile_summary <- lt_map[[input$view_selection_werk]]
         
-        df <- auftraege_lt_unit %>%
+        df_early_quartile_summary <- auftraege_lt_unit %>%
             filter(
                 werk == input$selected_werk,
                 abweichung_unit < 0,
@@ -1351,22 +1293,23 @@ werkServer <- function(input, output, session) {
                 !is.na(.data[[col_early_quartile_summary]])
             )
         
+        # Einteilen der verfrühten Aufträge nach Stärke der Abweichung
         labels_early_quartile_summary <- c("< -10", "-10 bis -5", "-5 bis -3", "-3 bis -1")
         counts <- c(
-            sum(df$abweichung_unit < -10),
-            sum(df$abweichung_unit >= -10 & df$abweichung_unit < -5),
-            sum(df$abweichung_unit >= -5 & df$abweichung_unit < -3),
-            sum(df$abweichung_unit >= -3 & df$abweichung_unit < -1)
+            sum(df_early_quartile_summary$abweichung_unit < -10),
+            sum(df_early_quartile_summary$abweichung_unit >= -10 & df_early_quartile_summary$abweichung_unit < -5),
+            sum(df_early_quartile_summary$abweichung_unit >= -5 & df_early_quartile_summary$abweichung_unit < -3),
+            sum(df_early_quartile_summary$abweichung_unit >= -3 & df_early_quartile_summary$abweichung_unit < -1)
         )
-        pcts <- round(counts / sum(counts) * 100, 1)
+        share_early_quartile_summary <- round(counts / sum(counts) * 100, 1)
         
-        summary_df <- tibble(
+        summary_early_quartile_summary <- tibble(
             `Verfrühung [T]` = labels_early_quartile_summary,
             `Anteil [%]` = paste0(
                 "<div style='display: flex; align-items: center; gap: 8px;'>",
-                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", pcts, "%</span>",
+                "<span style='color: #9e9e9e; font-size: 12px; min-width: 24px;'>", share_early_quartile_summary, "%</span>",
                 "<div style='background-color: #e0e0e0; width: 80px; height: 8px; border-radius: 4px; overflow: hidden;'>",
-                "<div style='width:", pcts, "%; background-color: #4285F4; height: 100%;'></div>",
+                "<div style='width:", share_early_quartile_summary, "%; background-color: #4285F4; height: 100%;'></div>",
                 "</div>",
                 "</div>"
             ),
@@ -1379,7 +1322,7 @@ werkServer <- function(input, output, session) {
         )
         
         datatable(
-            summary_df,
+            summary_early_quartile_summary,
             escape = FALSE,
             rownames = FALSE,
             selection = 'none',
@@ -1396,9 +1339,13 @@ werkServer <- function(input, output, session) {
             )
         )
     })
+    
+    # 3.2.2 Detail-Icons, die zu Detailtabellen führen
+    
+    # Verfrühung über 10 Tage
     observeEvent(input$btn_e_10_werk, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung < -10 Tage",
+            title = "Aufträge mit Verfrühung über 10 Tage",
             DTOutput("modal_e10_werk"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1406,7 +1353,7 @@ werkServer <- function(input, output, session) {
         output$modal_e10_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_10t_verfr <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung_unit < -10) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1416,13 +1363,14 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_10t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verfrühung 5-10 Tage
     observeEvent(input$btn_e_105_werk, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung zwischen -10 und -5 Tagen",
+            title = "Aufträge mit Verfrühung von 5-10 Tagen",
             DTOutput("modal_e105_werk"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1430,7 +1378,7 @@ werkServer <- function(input, output, session) {
         output$modal_e105_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_5_10t_verfr <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung_unit >= -10 & abweichung_unit < -5) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1440,13 +1388,14 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_5_10t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verfrühung 3-5 Tage
     observeEvent(input$btn_e_53_werk, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung zwischen -5 und -3 Tagen",
+            title = "Aufträge mit Verfrühung von 3-5 Tagen",
             DTOutput("modal_e53_werk"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1454,7 +1403,7 @@ werkServer <- function(input, output, session) {
         output$modal_e53_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_3_5t_verfr <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung_unit >= -5 & abweichung_unit < -3) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1464,13 +1413,14 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_3_5t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
+    # Verfrühung 1-3 Tage
     observeEvent(input$btn_e_31_werk, {
         showModal(modalDialog(
-            title = "Aufträge mit Verfrühung zwischen -3 und -1 Tagen",
+            title = "Aufträge mit Verfrühung von 1-3 Tagen",
             DTOutput("modal_e31_werk"),
             size = "l", easyClose = TRUE, footer = modalButton("Schließen")
         ))
@@ -1478,7 +1428,7 @@ werkServer <- function(input, output, session) {
         output$modal_e31_werk <- renderDT({
             req(input$selected_werk)
             
-            df <- auftraege_lt_unit %>%
+            df_order_1_3t_verfr <- auftraege_lt_unit %>%
                 filter(werk == input$selected_werk, abweichung_unit >= -3 & abweichung_unit < -1) %>%
                 transmute(
                     Auftragsnummer     = auftragsnummer,
@@ -1488,7 +1438,7 @@ werkServer <- function(input, output, session) {
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
-            datatable(df, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
+            datatable(df_order_1_3t_verfr, options = list(pageLength = 10, dom = 'lfrtip'), rownames = FALSE, class = "cell-border hover nowrap")
         })
     })
     
@@ -1498,14 +1448,14 @@ werkServer <- function(input, output, session) {
     output$abweichung_time_plot_werk <- renderPlotly({
         req(input$selected_werk)
         
-        # Sortiere nach tatsächlichem Starttermin, aber berücksichige nur jeden 
+        # Sortiere nach tatsächlichem Starttermin, aber berücksichtige nur jeden 
         # 10. Wert (aus Darstellungsgründen)
-        df <- auftraege_lt_unit %>%
+        df_abweichung_time_plot <- auftraege_lt_unit %>%
             filter(werk == input$selected_werk) %>%
             arrange(starttermin_ist) %>%
             slice(seq(1, n(), by = 10))
         
-        p <- ggplot(df, aes(x = starttermin_ist, y = abweichung)) +
+        plot_abweichung_time <- ggplot(df_abweichung_time_plot, aes(x = starttermin_ist, y = abweichung)) +
             geom_smooth(
                 method = "loess", se = FALSE, span = 0.2, color = "#6495ED", size = 0.7
             ) +
@@ -1513,9 +1463,9 @@ werkServer <- function(input, output, session) {
                 x = "Ist-Starttermin",
                 y = "Abweichung von Soll-LT [d]"
             ) +
-            app_theme()  # 👈 hier deine Theme-Funktion
+            app_theme()
         
-        ggplotly(p, tooltip = c("x", "y")) %>%
+        ggplotly(plot_abweichung_time, tooltip = c("x", "y")) %>%
             layout(
                 font = list(family = "Inter", size = 10, color = "#5f6368"),
                 xaxis = list(
@@ -1536,20 +1486,20 @@ werkServer <- function(input, output, session) {
         
         if (nrow(df_filtered) == 0) return(NULL)
         
-        # Dynamische Grenzen lhne obere und untere 2,5% (v.a. aus Darstellungsgründen)
-        x_min <- quantile(df_filtered$abweichung, 0.025)
-        x_max <- quantile(df_filtered$abweichung, 0.975)
+        # Dynamische Grenzen ohne obere und untere 2,5% der Abweichungswerte (v.a. aus Darstellungsgründen)
+        abw_min <- quantile(df_filtered$abweichung, 0.025)
+        abw_max <- quantile(df_filtered$abweichung, 0.975)
         
-        p <- ggplot(df_filtered, aes(x = abweichung)) +
+        plot_abweichung_histogram <- ggplot(df_filtered, aes(x = abweichung)) +
             geom_histogram(binwidth = 1, fill = "#cccccc", color = "white", boundary = 0) +
             labs(
                 x = "Lead-Time-Abweichung [Tage]",
                 y = "Anzahl Aufträge"
             ) +
-            scale_x_continuous(limits = c(x_min, x_max)) +
+            scale_x_continuous(limits = c(abw_min, abw_max)) +
             app_theme() 
         
-        ggplotly(p)
+        ggplotly(plot_abweichung_histogram)
     }
     
     output$abweichung_hist_plot_werk <- renderPlotly({
@@ -1562,7 +1512,7 @@ werkServer <- function(input, output, session) {
     abweichung_tabelle_werk <- reactive({
         req(input$selected_werk)
         
-        df <- auftraege_lt_unit %>%
+        df_abweichung_relativ <- auftraege_lt_unit %>%
             filter(werk == input$selected_werk) %>%
             filter(!is.na(lt_ist_order), !is.na(lt_soll_order), lt_soll_order > 0) %>%
             
