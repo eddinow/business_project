@@ -2,16 +2,16 @@
 library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
-library(shinyjs)           # für JS-Klassenmanipulation
+library(shinyjs)           
 library(DT)
 library(bsplus)
 
-source("02_model/create_workflows_overview.R")
-source("04_visualize/02.2_planer.R")
-source("04_visualize/02.2_werke.R")
-source("04_visualize/02.2_linien.R")
-source("04_visualize/02.2_workflows.R")
-source("04_visualize/02.2_material.R")
+source("02_model/create_overview_tables.R")
+source("04_visualize/dashboard_planer.R")
+source("04_visualize/dashboard_werke.R")
+source("04_visualize/dashboard_linien.R")
+source("04_visualize/dashboard_workflows.R")
+source("04_visualize/dashboard_material.R")
 
 # Mapping zwischen UI-Label und Datenspalte
 lt_map <- list(
