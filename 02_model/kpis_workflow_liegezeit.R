@@ -50,6 +50,6 @@ liegezeiten_df <- vorgaenge_mit_liegezeit %>%
         vorgangsfolge = vorgangsfolge
     )
 
-# Schritt 4: Original und Liegezeit-Zeilen kombinieren
+# Original und Liegezeit-Zeilen kombinieren
 df_lz_bz <- bind_rows(vorgaenge_chrono, liegezeiten_df) %>%
     arrange(Auftragsnummer, `Iststart Vorgang`, Vorgangsnummer)

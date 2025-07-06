@@ -1518,7 +1518,7 @@ vorgangsfolgeServer <- function(input, output, session) {
     
 # Plot Bearbeitungs- und Liegezeiten
     data_input <- reactive({
-        ausgabe_df %>%
+        df_lz_bz %>%
             filter(!is.na(vorgangsfolge))
     })
     
