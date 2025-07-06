@@ -21,7 +21,8 @@ vorgaenge_raw <- vorgaenge_raw %>%
     filter(Auftragsnummer %in% all_data_finalized$auftragsnummer)
 
 # Vorgänge cleaned enthält pro Vorgangsnummer noch eine Zeile pro Auftrag, so dass 
-# ein Auftrag mehrere Zeilen hat. Das ist notwendig für 
+# ein Auftrag mehrere Zeilen hat. Das ist notwendig um zwischen Prozesschritten
+# differenzieren zu können
 vorgaenge_cleaned <- vorgaenge_raw %>%
     left_join(
         all_data_finalized %>%

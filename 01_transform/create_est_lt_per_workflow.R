@@ -44,7 +44,7 @@ create_est_lt_combined <- function(df, selected_vorgangsfolge, fallback_bin_size
         
         # Erstellen von Klassengrenzen beginnend bei 0 bis zur maximalen Sollmenge im Abstand
         # der berechneten Bin-sizes; Nur wenn mindestens zwei breaks vorhanden sind
-        breaks <- seq(0, max(data_valid_to_use$sollmenge, na.rm = TRUE) + bin_size, by = bin_size)
+        breaks <- seq(0, max(data_valid_to_use$sollmenge, na.rm = TRUE) + bin_size_est_lt, by = bin_size_est_lt)
         if (length(breaks) < 2) return(NULL)
         
         # Erstellen einer neuen Kategorie-Spalte, in der jeder Auftrag dann einer Mengen-
