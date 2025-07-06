@@ -13,7 +13,7 @@ darzustellen.
 - `01_transform/` – Feature Engineering & Transformation
 - `02_model/` – Modelllogik (z. B. Klassifikation, Ausreißererkennung)
 - `04_visualize/` – Visualisierungen & App-Komponenten
-- `OPEN APP HERE/` – UI und Server der Shiny-App
+- `OPEN APP HERE/` – Start der Shiny-App
 
 ---
 
