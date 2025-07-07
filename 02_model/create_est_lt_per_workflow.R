@@ -19,14 +19,15 @@ all_data_finalized <- read_xlsx("00_tidy/all_data_finalized.xlsx")
 
 # Data Frames in create_lt_unit und kpis_workflow_arbeitsplatz für Analyse auf
 # Workflowebene aufbereitet
-source("02_model/kpis_workflow_arbeitsplatz.R", local = TRUE)  
 source("01_transform/create_lt_unit.R", local = TRUE)
 
 # Model ------------------------------------------------------------------------
 
-# Bilden perzentilabhängiger Cutoffs, um Ausreißer zu entfernen. Kategorisieren
-# der Sollmengen in dynamischen Bins. Dann bilden des Medians und der Ober- und
-# Unterperzentile für jeden Bin. User kann so mengenabhängig die LT abschätzen.
+# Der Zusammenhang der Lead Time und der Sollmenge soll dargestellt werden, um 
+# eine bessere Vorstellung davon zu bekommen, wie geplante Auftragsgrößen mit der
+# geplanten und der tatsächlichen LT zusammenhängen. Dazu entfernen wir die Ausreißer
+# und kategorisieren die Sollmengen in Bins. Für jeden Bin nutzen wir den Median
+# und Ober-/Unterperzentile.
 
 create_est_lt_combined <- function(df, selected_vorgangsfolge, fallback_bin_size = 100000, session = NULL) {
     compute_variant <- function(df, selected_vorgangsfolge, col_name, label) {

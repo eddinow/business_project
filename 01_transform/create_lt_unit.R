@@ -23,8 +23,12 @@ vorgaenge_raw <- vorgaenge_raw %>%
 # Vorgänge cleaned enthält pro Vorgangsnummer noch eine Zeile pro Auftrag, so dass 
 # ein Auftrag mehrere Zeilen hat. Das ist notwendig um zwischen Prozesschritten
 # differenzieren zu können
+
+# Ergänzen der benötigten Auftragsinformationen aus all_data_finalized zu den
+# Vorgangsdaten; Nur Auftragsnummern behalten die in all_data_finalized vorkommen
+# (weil das die bereinigten Aufträge sind)
 vorgaenge_cleaned <- vorgaenge_raw %>%
-    left_join(
+    inner_join(
         all_data_finalized %>%
             dplyr::select(
                 auftragsnummer,
@@ -58,6 +62,7 @@ vorgaenge_cleaned <- vorgaenge_cleaned %>%
     )
 
 
+# Sortieren für Prozessfolgen
 vorgaenge_cleaned <- vorgaenge_cleaned %>%
     arrange(vorgangsfolge, Vorgangsnummer)
 
