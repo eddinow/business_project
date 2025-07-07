@@ -13,7 +13,7 @@ source("04_visualize/dashboard_linien.R")
 source("04_visualize/dashboard_workflows.R")
 source("04_visualize/dashboard_material.R")
 
-# Mapping zwischen UI-Label und Datenspalte
+# Definiert, welcher Text im UI welcher Spalte in den Daten entspricht
 lt_map <- list(
     "Workflow" = "vorgangsfolge",
     "Werk"     = "werk",
@@ -22,12 +22,12 @@ lt_map <- list(
     "A-Material" = "materialnummer"
 )
 
-# UI -----------------------------------------------------------------------------
+# UI ---------------------------------------------------------------------------
 start_ui <- fluidPage(
-    useShinyjs(),             # shinyjs initialisieren
+    useShinyjs(),             
     
     tags$head(
-        # CSS inkl. Hover/Focus-Reset für Logo und Tabs
+        # Benutzerdefiniertes CSS für Navigationsleiste, Tabs, Logo und Datentabellen
         tags$style(HTML("
       .navbar {
         width: 100%;
@@ -152,7 +152,7 @@ start_ui <- fluidPage(
       }
       .dataTables_info { display: none !important; }
     ")),
-        # JS für automatische .active-Klassenpflege
+        # JS für automatisches Hinzufügen/Entfernen der 'active'-Klassen
         tags$script(HTML("
       $(document).on('click',
         '.navbar-logo.action-button, .nav-tabs-custom .action-button',
@@ -165,7 +165,7 @@ start_ui <- fluidPage(
     "))
     ),
     
-    # Navbar ----------------------------------------------------------------------
+    # Navbar (obere Navigationsleiste)------------------------------------------
     div(class = "navbar",
         # Logo als klickbarer Link
         actionLink("nav_home",
@@ -192,7 +192,7 @@ start_ui <- fluidPage(
         )
     ),
     
-    # Unsichtbares Tab-Panel für Dashboards -------------------------------------
+    # Unsichtbares Tab-Panel für Dashboards ------------------------------------
     tabsetPanel(id = "main_tabs", type = "hidden",
                 # … Home, Material, Workflows, Linien, Werke …
                 tabPanel("Material", value = "material", klassifikationUI()),
@@ -259,6 +259,7 @@ start_ui <- fluidPage(
                                         )
                                  )
                              ),
+                             
                              #Planer-Box
                              fluidRow(
                                  column(12,
@@ -293,6 +294,7 @@ start_ui <- fluidPage(
                                         )
                                  )
                              ),
+                             
                              # Workflows-Box
                              fluidRow(
                                  column(12,
@@ -327,6 +329,7 @@ start_ui <- fluidPage(
                                         )
                                  )
                              ),
+                             
                              # Fertigungslinien-Box
                              fluidRow(
                                  column(12,
@@ -361,6 +364,7 @@ start_ui <- fluidPage(
                                         )
                                  )
                              ),
+                             
                              # Werke-Box
                              fluidRow(
                                  column(12,
@@ -404,13 +408,14 @@ start_ui <- fluidPage(
 # Server ------------------------------------------------------------------------
 start_server <- function(input, output, session) {
     
-    
+    # Berechnung der Anzahl an Aufträgen 
     output$livetracker_auftraege <- renderUI({
         
         anzahl <- auftraege_lt_unit %>%
             summarise(n = n_distinct(auftragsnummer)) %>%
             pull(n)
         
+        # UI-Ausgabe der Anzahl an Aufträgen
         tags$div(
             style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
             tags$span(
@@ -433,13 +438,13 @@ start_server <- function(input, output, session) {
     
     output$livetracker_overall_servicelevel <- renderUI({
         
-        # Berechne den Overall Servicelevel direkt aus der gesamten Tabelle
+        # Berechnung des Overall Servicelevels
         overall_sl <- sum(auftraege_lt_unit$abweichung_unit <= 0, na.rm = TRUE) / 
             sum(!is.na(auftraege_lt_unit$auftragsnummer))
         
         sl_percent <- paste0(round(overall_sl * 100), "%")
         
-        # UI-Ausgabe: nur Zahl + Beschriftung
+        # UI-Ausgabe des Servicelevels
         tags$div(
             style = "display: flex; flex-direction: column; align-items: flex-start; justify-content: center;",
             tags$span(
@@ -453,7 +458,7 @@ start_server <- function(input, output, session) {
         )
     })
     
-    
+    # Erstellung der Downloadfunktion ------------------------------------------
     render_table_and_download <- function(data, sel_id, tbl_out, dl_out, prefix) {
         output[[tbl_out]] <- renderDT({
             df <- data
@@ -470,6 +475,7 @@ start_server <- function(input, output, session) {
         )
     }
     
+    # Tabellen und Downloads für alle Übersichten erstellen --------------------
     render_table_and_download(workflows_overview, "sortierung_workflows",
                               "workflow_table","download_csv_workflows","workflows")
     render_table_and_download(linien_overview,   "sortierung_linien",
@@ -481,20 +487,25 @@ start_server <- function(input, output, session) {
     render_table_and_download(material_overview,    "sortierung_material",
                               "material_table",   "download_csv_material",   "material")
     
-    # Navigation: nur updateTabsetPanel; visuelle Hervorhebung per JS ----------
+    # Navigation: Tabs wechseln und Module starten -----------------------------
     observeEvent(input$nav_home,      updateTabsetPanel(session,"main_tabs","home"))
+    
     observeEvent(input$nav_material,  updateTabsetPanel(session,"main_tabs","material"))
     klassifikationServer(input, output, session)
+    
     observeEvent(input$nav_workflows, updateTabsetPanel(session,"main_tabs","workflows"))
     vorgangsfolgeServer(input, output, session)
+    
     observeEvent(input$nav_linien,    updateTabsetPanel(session,"main_tabs","linien"))
     fertigungslinieServer(input, output, session)
+    
     observeEvent(input$nav_werke,     updateTabsetPanel(session,"main_tabs","werke"))
     werkServer(input, output, session)
+    
     observeEvent(input$nav_planer,    updateTabsetPanel(session,"main_tabs","planer"))
     planerServer(input, output, session)
     
-    # Starte immer auf Home ------------------------------------------------------
+    # Starte immer auf der Startseite ------------------------------------------
     isolate({
         updateTabsetPanel(session,"main_tabs","home")
         runjs("$('.navbar-logo.action-button').addClass('active');")
