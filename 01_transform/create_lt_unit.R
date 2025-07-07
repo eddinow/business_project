@@ -62,7 +62,7 @@ vorgaenge_cleaned <- vorgaenge_cleaned %>%
     )
 
 
-# Sortieren für Prozessfolgen
+# Sortieren nach Reihenfolge für Prozessfolgen
 vorgaenge_cleaned <- vorgaenge_cleaned %>%
     arrange(vorgangsfolge, Vorgangsnummer)
 
@@ -75,6 +75,7 @@ vorgaenge_sorted <- vorgaenge_cleaned %>%
 vorgaenge_sorted$starttermin_soll <- as.Date(vorgaenge_sorted$starttermin_soll)
 vorgaenge_sorted$`Istende Vorgang` <- as.Date(vorgaenge_sorted$`Istende Vorgang`)
 
+# Soll- und Leadtimes in Sekunden pro Einheit berechnen
 vorgaenge_sorted <- vorgaenge_sorted %>%
     mutate(
         lt_soll_order = ifelse(sollmenge > 0, round((solldauer / sollmenge) * 86400, 2), NA),
@@ -82,7 +83,7 @@ vorgaenge_sorted <- vorgaenge_sorted %>%
         abweichung_unit = round(istdauer - solldauer, 2)
     )
 
-# Klassifikation nach Sollmenge in vorgaenge_sorted
+# ABC-Klassifikation für Materialansicht
 material_klassifikation_vorgang <- vorgaenge_sorted %>%
     group_by(materialnummer) %>%
     summarise(
@@ -112,6 +113,7 @@ vorgaenge_sorted <- vorgaenge_sorted %>%
 
 # Vorgangsebene-----
 
+# Ordne den Auftragsnummern aus all_data_finalized A,B,C zu
 material_klassifikation_vorgang <- all_data_finalized %>%
     group_by(materialnummer) %>%
     summarise(
@@ -129,7 +131,7 @@ material_klassifikation_vorgang <- all_data_finalized %>%
     ) %>%
     dplyr::select(materialnummer, klassifikation)
 
-
+# Füge diesen Auftragsnummern die ausgewählten Spalten hinzu
 vorgaenge_lt_unit <- all_data_finalized %>%
     mutate(
         lt_soll_order    = (lead_time_soll / sollmenge) * 86400,
@@ -143,6 +145,7 @@ vorgaenge_lt_unit <- all_data_finalized %>%
 
 # Auftragsebene
 
+# Ordne den Auftragsnummern aus all_data_finalized A,B,C zu
 material_klassifikation_auftrag <- all_data_finalized %>%
     group_by(materialnummer) %>%
     summarise(
@@ -160,7 +163,7 @@ material_klassifikation_auftrag <- all_data_finalized %>%
     ) %>%
     dplyr::select(materialnummer, klassifikation)
 
-
+# Füge diesen Auftragsnummern die ausgewählten Spalten hinzu
 auftraege_lt_unit <- all_data_finalized %>%
     mutate(
         lt_soll_order    = (lead_time_soll / sollmenge) * 86400,
@@ -170,11 +173,3 @@ auftraege_lt_unit <- all_data_finalized %>%
         lt_ist_order     = round(lt_ist_order, 2)
     ) %>%
     left_join(material_klassifikation_auftrag, by = "materialnummer")
-
-
-
-# Model -----------
-
-# Visualize -------
-
-# Communicate ------
