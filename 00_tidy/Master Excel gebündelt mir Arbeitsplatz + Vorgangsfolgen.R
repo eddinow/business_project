@@ -13,27 +13,31 @@ library(MASS)
 auftraege_raw <- read_excel("auftragskoepfe_sap_raw.xlsx")
 vorgaenge_raw <- read_excel("vorgaenge_sap_raw.xlsx")
 
-# Vorgangsfolgen erzeugen -----------------------------------------------------
+# Transform --------------------------------------------------------------------
+
+# Vorgangsfolgen erzeugen 
 
 vorgangsfolgen <- vorgaenge_raw %>%
     arrange(Auftragsnummer, Vorgangsnummer) %>%
     group_by(Auftragsnummer) %>%
     summarise(Vorgangsfolge = paste(Vorgangsnummer, collapse = " → "), .groups = "drop")
 
-# Arbeitsplatzfolgen erzeugen --------------------------------------------------
+# Arbeitsplatzfolgen erzeugen 
 
 arbeitsplatzfolgen <- vorgaenge_raw %>%
     arrange(Auftragsnummer, Vorgangsnummer) %>%
     group_by(Auftragsnummer) %>%
     summarise(Arbeitsplatzfolge = paste(Arbeitsplatz, collapse = " → "), .groups = "drop")
 
-# Aufträge mit Vorgangs- und Arbeitsplatzfolgen verknüpfen ---------------------
+# Aufträge mit Vorgangs- und Arbeitsplatzfolgen verknüpfen
 
 auftraege_inkl_vorgangsfolgen <- auftraege_raw %>%
     left_join(vorgangsfolgen, by = "Auftragsnummer") %>%
     left_join(arbeitsplatzfolgen, by = "Auftragsnummer")
 
-# Vorgangsfolgen & Fertigungslinien --------------------------------------------
+# Model ------------------------------------------------------------------------
+
+# Vorgangsfolgen & Fertigungslinien 
 
 Vorgangsfolgen_und_Fertigungslinien <- auftraege_inkl_vorgangsfolgen %>%
     filter(!is.na(Fertigungslinie)) %>%
@@ -41,7 +45,7 @@ Vorgangsfolgen_und_Fertigungslinien <- auftraege_inkl_vorgangsfolgen %>%
     pivot_wider(names_from = Fertigungslinie, values_from = n, values_fill = 0) %>%
     mutate(Gesamt = rowSums(.[, -1]))
 
-# Materialnummern zu Vorgangsfolgen --------------------------------------------
+# Materialnummern zu Vorgangsfolgen 
 
 Vorgangsfolgen_und_Materialnummern <- auftraege_inkl_vorgangsfolgen %>%
     count(Vorgangsfolge, Materialnummer) %>%
