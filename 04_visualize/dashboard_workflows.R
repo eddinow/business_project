@@ -181,10 +181,10 @@ vorgangsfolgeUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Termintreue",
-                                        tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "termintreue_info_workflow", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     bsPopover(
-                                        id = "termintreue_info",
+                                        id = "termintreue_info_workflow",
                                         title = "Termintreue",
                                         content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                         placement = "top",
@@ -203,11 +203,11 @@ vorgangsfolgeUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Liefertreue",
-                                        tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "liefertreue_info_workflow", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     
                                     bsPopover(
-                                        id = "liefertreue_info",
+                                        id = "liefertreue_info_workflow",
                                         title = "Liefertreue",
                                         content = "Dieses Diagramm zeigt, bei wie vielen Aufträgen die komplette Sollmenge geliefert wurde. Liefertreue misst also, ob alle bestellten Teile vollständig angekommen sind – unabhängig vom Zeitpunkt.",
                                         placement = "top",
@@ -226,11 +226,11 @@ vorgangsfolgeUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Geschwindigkeit pro ME",
-                                        tags$span(icon("circle-question"), id = "geschwindigkeit_me_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_me_info_workflow", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     
                                     bsPopover(
-                                        id = "geschwindigkeit_me_info",
+                                        id = "geschwindigkeit_me_info_workflow",
                                         title = "Geschwindigkeit/ME [s]",
                                         content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
                                         placement = "top",
@@ -249,11 +249,11 @@ vorgangsfolgeUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Geschwindigkeit pro Auftrag",
-                                        tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info_workflow", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     
                                     bsPopover(
-                                        id = "geschwindigkeit_auftrag_info",
+                                        id = "geschwindigkeit_auftrag_info_workflow",
                                         title = "Geschwindigkeit/Auftrag [Tage]",
                                         content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
                                         placement = "top",
@@ -292,12 +292,12 @@ vorgangsfolgeUI <- function() {
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
                                             span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "performance_table_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "performance_table_info_workflow", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         DTOutput("delay_table_shared_workflow"),
                                         
                                         bsPopover(
-                                            id = "performance_table_info",
+                                            id = "performance_table_info_workflow",
                                             title = "Aktuelle Performance",
                                             content = "In der Tabelle wird die ausgewählte Ansicht (z. B. Werke, Linien, Materialien) für jede gewählte Entität (z. B. Planer, Workflows) dargestellt. Dadurch kann nachvollzogen werden, wie sich einzelne Entitäten auf unterschiedliche Strukturebenen auswirken. Grün steht für geringe (< 0,5 s/ME), Gelb für moderate (bis 2 s/ME) und Rot für kritische Verzögerungen (> 2 s/ME). Zusätzlich lassen sich die durchschnittlichen Ist- und Soll-Lead Times pro Mengeneinheit sowie die zugehörige Auftragsanzahl ablesen, um Zusammenhänge zwischen Auslastung und Performance sichtbar zu machen.",
                                             placement = "top",
@@ -318,11 +318,11 @@ vorgangsfolgeUI <- function() {
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
                                             span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "auftrverteilung_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "auftrverteilung_info_workflow", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
-                                            id = "auftrverteilung_info",
+                                            id = "auftrverteilung_info_workflow",
                                             title = "Verteilung der Aufträge",
                                             content = "Dieses Kreisdiagramm zeigt, wie sich die Anzahl der Aufträge auf die ausgewählte Kategorie verteilt. Dadurch wird sichtbar, welche Bereiche besonders häufig oder selten im Workflow vertreten sind. So lassen sich Schwerpunkte im Workflow erkennen und Kapazitätsengpässe frühzeitig identifizieren.",
                                             placement = "top",
@@ -344,11 +344,11 @@ vorgangsfolgeUI <- function() {
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
                                             span("Top 200 Aufträge mit Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "topdelay_info_workflow", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
-                                            id = "topdelay_info",
+                                            id = "topdelay_info_workflow",
                                             title = "Verfrühung & Verzögerung",
                                             content = "Passend zu der oben getroffenen Auswahl sieht man in dieser Darstellung die prozentualen Anteile von Aufträgen, die in vier Gruppen nach Dauer der Verzögerung bzw. Verfrühung kategorisiert sind. Je nach Bedarf kann man über die Lupen-Icons weiterführende Details zu den einzelnen Aufträgen einsehen und daraus gezielte Optimierungsmaßnahmen ableiten.",
                                             placement = "top",
@@ -394,7 +394,7 @@ vorgangsfolgeUI <- function() {
                             span("Bearbeitungs- und Liegezeiten [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                             tags$span(
                                 icon("circle-question"),
-                                id = "liegezeiten_info",
+                                id = "liegezeiten_info_workflow",
                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                             )
                         ),
@@ -403,7 +403,7 @@ vorgangsfolgeUI <- function() {
                     ),
                     
                     bsPopover(
-                        id = "liegezeiten_info",
+                        id = "liegezeiten_info_workflow",
                         title = "Was wird hier gezeigt?",
                         content = "Zeigt die Ist-Lead Times inklusive Liegezeiten als kumulierte Werte. Der blaue Anteil symbol_performance_vglisiert dabei die Lead Time des jeweiligen Prozessschrittes. Diese genaue Dauer steht als Wert ablesbar auch über den Balken. User kriegen so einen Eindruck, ob und in welchem Umfang Liegezeiten die Bearbeitung eines Auftrags treiben. Ausgangspunkt für qualitative Ursachenanalysen.",
                         placement = "right",
@@ -425,7 +425,7 @@ vorgangsfolgeUI <- function() {
                             span("Lead Time nach Sollmenge [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                             tags$span(
                                 icon("circle-question"),
-                                id = "abw_menge_info",
+                                id = "abw_menge_info_workflow",
                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                             )
                         ),
@@ -434,9 +434,9 @@ vorgangsfolgeUI <- function() {
                     ),
                     
                     bsPopover(
-                        id = "abw_menge_info",
+                        id = "abw_menge_info_workflow",
                         title = "Was wird hier gezeigt?",
-                        content = "Julia",
+                        content = "Die Darstellung zeigt die Lead Time in Abhängigkeit von der Sollmenge. Die Daten sind in Mengenbereiche (Bins) zusammengefasst. Für jeden Bin werden Median, Minimum und Maximum der Soll- und Istzeiten dargestellt. So lassen sich Effekte wie Effizienz bei großen Mengen oder Schwankungen in der Planungsqualität erkennen.",
                         placement = "right",
                         trigger = "hover"
                     ),
@@ -470,7 +470,7 @@ vorgangsfolgeUI <- function() {
                                             span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(
                                                 icon("circle-question"),
-                                                id = "abw_zeit_info",
+                                                id = "abw_zeit_info_workflow",
                                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                             )
                                         ),
@@ -479,7 +479,7 @@ vorgangsfolgeUI <- function() {
                                     ),
                                     
                                     bsPopover(
-                                        id = "abw_zeit_info",
+                                        id = "abw_zeit_info_workflow",
                                         title = "Was wird hier gezeigt?",
                                         content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
                                         placement = "right",
@@ -501,7 +501,7 @@ vorgangsfolgeUI <- function() {
                                             span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(
                                                 icon("circle-question"),
-                                                id = "abw_abs_info",
+                                                id = "abw_abs_info_workflow",
                                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                             )
                                         ),
@@ -510,7 +510,7 @@ vorgangsfolgeUI <- function() {
                                     ),
                                     
                                     bsPopover(
-                                        id = "abw_abs_info",
+                                        id = "abw_abs_info_workflow",
                                         title = "Was wird hier gezeigt?",
                                         content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
                                         placement = "right",
@@ -531,7 +531,7 @@ vorgangsfolgeUI <- function() {
                                             span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(
                                                 icon("circle-question"),
-                                                id = "abw_rel_info",
+                                                id = "abw_rel_info_workflow",
                                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                             )
                                         ),
@@ -540,7 +540,7 @@ vorgangsfolgeUI <- function() {
                                     ),
                                     
                                     bsPopover(
-                                        id = "abw_rel_info",
+                                        id = "abw_rel_info_workflow",
                                         title = "Was wird hier gezeigt?",
                                         content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
                                         placement = "right",
