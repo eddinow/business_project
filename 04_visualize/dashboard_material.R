@@ -846,56 +846,63 @@ klassifikationServer <- function(input, output, session) {
     
 # Alert-Übersicht
     
-    classify_outliers <- function(df) {
-        # Berechne Durchschnittswerte für Servicelevel, Abweichung und Lead Time pro Einheit
-        mean_sl    <- mean(df$Anteil_pünktlich, na.rm = TRUE)
-        mean_delay <- mean(df$Ø_Abweichung,     na.rm = TRUE)
-        mean_lt    <- mean(df$Ø_LT_pro_Unit,    na.rm = TRUE)
+    # Funktion zur Klassifikation auffälliger Materialien auf Basis von Mittelwertvergleichen
+    classify_outliers <- function(material_summary) {
         
-        # Klassifiziere Materialien, die in einem oder mehreren Bereichen unterdurchschnittlich sind
-        df %>%
+        # Durchschnittswerte als Referenz ermitteln
+        mean_servicelevel <- mean(material_summary$Anteil_pünktlich, na.rm = TRUE)
+        mean_deviation    <- mean(material_summary$Ø_Abweichung,     na.rm = TRUE)
+        mean_lt_per_unit  <- mean(material_summary$Ø_LT_pro_Unit,    na.rm = TRUE)
+        
+        material_summary |>
             mutate(
-                flag_sl    = Anteil_pünktlich < mean_sl,
-                flag_delay = Ø_Abweichung     < mean_delay,
-                flag_lt    = Ø_LT_pro_Unit    < mean_lt,
-                Alert      = flag_sl | flag_delay | flag_lt,
-                Priority   = (flag_sl * 3) + (flag_delay * 2) + flag_lt,
+                # Prüfe, ob Material in einem KPI unter dem Mittel liegt
+                is_low_sl    = Anteil_pünktlich < mean_servicelevel,
+                is_low_delay = Ø_Abweichung     < mean_deviation,
+                is_low_lt    = Ø_LT_pro_Unit    < mean_lt_per_unit,
                 
-                # Generiere Textbeschreibung, warum das Material als auffällig gilt
-                Alert_Grund = (
-                    paste(
-                        ifelse(flag_sl,    "Servicelevel unter Durchschnitt", ""),
-                        ifelse(flag_delay, "Ø‑Abweichung unter Durchschnitt",  ""),
-                        ifelse(flag_lt,    "Ø‑LT unter Durchschnitt",          ""),
-                        sep = "; "
-                    ) %>%
-                        gsub("(^; |; $)", "", .) %>%
-                        gsub("; ;", ";", .)
-                )
+                # Flag & Priorität (gewichtete Summe für Sortierung)
+                Alert    = is_low_sl | is_low_delay | is_low_lt,
+                Priority = (is_low_sl * 3) + (is_low_delay * 2) + is_low_lt,
+                
+                # Textbasierte Begründung für Alert
+                Alert_Grund = paste(
+                    ifelse(is_low_sl,    "Servicelevel unter Durchschnitt", ""),
+                    ifelse(is_low_delay, "Ø‑Abweichung unter Durchschnitt",  ""),
+                    ifelse(is_low_lt,    "Ø‑LT unter Durchschnitt",          ""),
+                    sep = "; "
+                ) |>
+                    gsub("(^; |; $)", "", x = _) |>
+                    gsub("; ;", ";", x = _)
             )
     }
     
-    
+    # Reaktive Berechnung: Materialien + Alert-Kennzeichnung für ausgewählte Klassifikation
     annotated_materials <- reactive({
         req(input$selected_klassifikation)
-        materialnummer_overview %>%
-            filter(ABC_Klasse == input$selected_klassifikation) %>%
+        
+        materialnummer_overview |>
+            filter(ABC_Klasse == input$selected_klassifikation) |>
             classify_outliers()
     })
     
-    # Filterung nach ausgewähltem Alert-Grund
+    # Reaktive Filterung nach Alert-Typ (Dropdown-Auswahl)
     filtered_alerts <- reactive({
-        df <- annotated_materials()
+        materials_with_alerts <- annotated_materials()
+        
         if (is.null(input$alert_filter) || input$alert_filter == "Alle") {
-            return(df %>% filter(Alert))
+            return(materials_with_alerts |> filter(Alert))
         }
-        df %>% filter(grepl(input$alert_filter, Alert_Grund, fixed = TRUE))
+        
+        materials_with_alerts |> 
+            filter(grepl(input$alert_filter, Alert_Grund, fixed = TRUE))
     })
     
-    # Anzeige der Tabelle
+    # Ausgabe der Alert-Tabelle (DataTable)
     output$alert_table <- renderDT({
-        df <- filtered_alerts()
-        if (nrow(df) == 0) {
+        alert_table_data <- filtered_alerts()
+        
+        if (nrow(alert_table_data) == 0) {
             return(datatable(
                 data.frame(Hinweis = "Keine Materialnummern mit dem gewählten Alert-Kriterium gefunden."),
                 options = list(dom = 't'),
@@ -903,15 +910,14 @@ klassifikationServer <- function(input, output, session) {
             ))
         }
         
-        df %>%
-            arrange(desc(Alert), desc(Priority)) %>%
+        alert_table_data |>
+            arrange(desc(Alert), desc(Priority)) |>
             transmute(
-                Materialnummer       = materialnummer,
-                `Ø Abweichung [s]`    = round(Ø_Abweichung, 2),
-                `Ø LT/Unit [s]`       = round(Ø_LT_pro_Unit, 2),
-                Servicelevel         = paste0(round(Anteil_pünktlich * 100, 2), " %"),
-                #Alert_Grund
-            ) %>%
+                Materialnummer     = materialnummer,
+                `Ø Abweichung [s]` = round(Ø_Abweichung, 2),
+                `Ø LT/Unit [s]`     = round(Ø_LT_pro_Unit, 2),
+                Servicelevel        = paste0(round(Anteil_pünktlich * 100, 2), " %")
+            ) |>
             datatable(
                 options = list(pageLength = 10, scrollX = TRUE, dom = 'tp'),
                 rownames = FALSE,
