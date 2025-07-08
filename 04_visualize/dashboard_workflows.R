@@ -1107,7 +1107,7 @@ vorgangsfolgeServer <- function(input, output, session) {
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
         col_allocation_pie <- lt_map_workflow[[input$view_selection_workflow]]
         
-        df_allocation_pie <- vorgaenge_sorted %>%
+        df_allocation_pie_shared_workflow <- vorgaenge_sorted %>%
             dplyr::filter(vorgangsfolge == input$selected_vorgangsfolge) %>%
             dplyr::filter(if (input$view_selection_workflow == "A-Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[col_allocation_pie]])) %>%
@@ -1119,8 +1119,8 @@ vorgangsfolgeServer <- function(input, output, session) {
         # Splitten der Daten in Gruppen: Jede Linie, Workflow usw. dessen Anteil am 
         # Gesamtanteil aller Aufträge über 5% ausmacht wird einzeln abgebildet, alle 
         # anderen, die unter 5% ausmachen werden in einer Gruppe zusammengefasst
-        df_main_groups <- df_allocation_pie %>% dplyr::filter(share >= 0.05)
-        df_small_groups <- df_allocation_pie %>% dplyr::filter(share < 0.05)
+        df_main_groups <- df_allocation_pie_shared_workflow %>% dplyr::filter(share >= 0.05)
+        df_small_groups <- df_allocation_pie_shared_workflow %>% dplyr::filter(share < 0.05)
         
         if (nrow(df_small_groups) > 0) {
             small_groups_total <- sum(df_small_groups$count)
@@ -1129,7 +1129,7 @@ vorgangsfolgeServer <- function(input, output, session) {
             
             df_main_groups <- dplyr::bind_rows(
                 df_main_groups,
-                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df$count))
+                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df_allocation_pie_shared_workflow_shared_workflow$count))
             )
         } else {
             small_groups_tooltip <- NULL

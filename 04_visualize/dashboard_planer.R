@@ -166,10 +166,10 @@ planerUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Termintreue",
-                                        tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "termintreue_info_planer", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     bsPopover(
-                                        id = "termintreue_info",
+                                        id = "termintreue_info_planer",
                                         title = "Termintreue",
                                         content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                         placement = "top",
@@ -188,11 +188,11 @@ planerUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Liefertreue",
-                                        tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "liefertreue_info_planer", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     
                                     bsPopover(
-                                        id = "liefertreue_info",
+                                        id = "liefertreue_info_planer",
                                         title = "Liefertreue",
                                         content = "Dieses Diagramm zeigt, bei wie vielen Aufträgen die komplette Sollmenge geliefert wurde. Liefertreue misst also, ob alle bestellten Teile vollständig angekommen sind – unabhängig vom Zeitpunkt.",
                                         placement = "top",
@@ -1037,7 +1037,7 @@ planerServer <- function(input, output, session) {
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
         col_allocation_pie <- lt_map[[input$view_selection_planer]]
         
-        df_allocation_pie <- auftraege_lt_unit %>%
+        df_allocation_pie_shared_planer <- auftraege_lt_unit %>%
             dplyr::filter(planer == input$selected_planer) %>%
             dplyr::filter(if (input$view_selection_planer == "A-Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[col_allocation_pie]])) %>%
@@ -1049,8 +1049,8 @@ planerServer <- function(input, output, session) {
         # Splitten der Daten in Gruppen: Jede Linie, Workflow usw. dessen Anteil am 
         # Gesamtanteil aller Aufträge über 5% ausmacht wird einzeln abgebildet, alle 
         # anderen, die unter 5% ausmachen werden in einer Gruppe zusammengefasst
-        df_main_groups <- df_allocation_pie %>% dplyr::filter(share >= 0.05)
-        df_small_groups <- df_allocation_pie %>% dplyr::filter(share < 0.05)
+        df_main_groups <- df_allocation_pie_shared_planer %>% dplyr::filter(share >= 0.05)
+        df_small_groups <- df_allocation_pie_shared_planer %>% dplyr::filter(share < 0.05)
         
         if (nrow(df_small_groups) > 0) {
             small_groups_total <- sum(df_small_groups$count)
@@ -1059,7 +1059,7 @@ planerServer <- function(input, output, session) {
             
             df_main_groups <- dplyr::bind_rows(
                 df_main_groups,
-                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df$count))
+                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df_allocation_pie_shared_planer$count))
             )
         } else {
             small_groups_tooltip <- NULL

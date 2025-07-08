@@ -152,10 +152,10 @@ klassifikationUI <- function() {
                                         span(
                                             style = "display: flex; align-items: center; gap: 6px;",
                                             "Termintreue",
-                                            tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "termintreue_info_material", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         bsPopover(
-                                            id = "termintreue_info",
+                                            id = "termintreue_info_material",
                                             title = "Termintreue",
                                             content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                             placement = "top",
@@ -174,13 +174,13 @@ klassifikationUI <- function() {
                                         span(
                                             style = "display: flex; align-items: center; gap: 6px;",
                                             "Liefertreue",
-                                            tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "liefertreue_info_material", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
-                                            id = "liefertreue_info",
+                                            id = "liefertreue_info_material",
                                             title = "Liefertreue",
-                                            content = "Asli Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
+                                            content = "Anteil der Aufträge, bei denen die gesamte Sollmenge geliefert wurde.",
                                             placement = "top",
                                             trigger = "hover"
                                         )
@@ -197,11 +197,11 @@ klassifikationUI <- function() {
                                         span(
                                             style = "display: flex; align-items: center; gap: 6px;",
                                             "Geschwindigkeit pro ME",
-                                            tags$span(icon("circle-question"), id = "geschwindigkeit_me_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "geschwindigkeit_me_info_material", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
-                                            id = "geschwindigkeit_me_info",
+                                            id = "geschwindigkeit_me_info_material",
                                             title = "Geschwindigkeit/ME [s]",
                                             content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
                                             placement = "top",
@@ -220,11 +220,11 @@ klassifikationUI <- function() {
                                         span(
                                             style = "display: flex; align-items: center; gap: 6px;",
                                             "Geschwindigkeit pro Auftrag",
-                                            tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info_material", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
-                                            id = "geschwindigkeit_auftrag_info",
+                                            id = "geschwindigkeit_auftrag_info_material",
                                             title = "Geschwindigkeit/Auftrag [Tage]",
                                             content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
                                             placement = "top",
@@ -252,7 +252,7 @@ klassifikationUI <- function() {
                                     span("Alerts", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                     tags$span(
                                         icon("circle-question"),
-                                        id = "alerts_info",
+                                        id = "alerts_info_material",
                                         style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                     )
                                 ),
@@ -269,9 +269,9 @@ klassifikationUI <- function() {
                             DTOutput("alert_table")
                         ),
                         bsPopover(
-                            id = "alerts_info",
+                            id = "alerts_info_material",
                             title = "Was wird hier gezeigt?",
-                            content = "„Die Tabelle zeigt alle Materialien, die in mindestens einem der drei Bereiche unterdurchschnittlich abschneiden: Servicelevel, mittlere Abweichung zur Soll-Lead Time oder durchschnittliche Lead Time pro Einheit. Je mehr Kriterien betroffen sind, desto höher die Priorität des Alerts. So können besonders kritische Materialien schnell identifiziert werden.“",
+                            content = "Die Tabelle zeigt alle Materialien, die in mindestens einem der drei Bereiche unterdurchschnittlich abschneiden: Servicelevel, mittlere Abweichung zur Soll-Lead Time oder durchschnittliche Lead Time pro Einheit. Je mehr Kriterien betroffen sind, desto höher die Priorität des Alerts. So können besonders kritische Materialien schnell identifiziert werden.",
                             placement = "right",
                             trigger = "hover"
                         )
@@ -305,7 +305,7 @@ klassifikationUI <- function() {
                                                 span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                                 tags$span(
                                                     icon("circle-question"),
-                                                    id = "abw_zeit_info",
+                                                    id = "abw_zeit_info_material",
                                                     style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                                 )
                                             ),
@@ -314,7 +314,7 @@ klassifikationUI <- function() {
                                         ),
                                         
                                         bsPopover(
-                                            id = "abw_zeit_info",
+                                            id = "abw_zeit_info_material",
                                             title = "Was wird hier gezeigt?",
                                             content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
                                             placement = "right",
@@ -336,7 +336,7 @@ klassifikationUI <- function() {
                                                 span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                                 tags$span(
                                                     icon("circle-question"),
-                                                    id = "abw_abs_info",
+                                                    id = "abw_abs_info_material",
                                                     style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                                 )
                                             ),
@@ -345,7 +345,7 @@ klassifikationUI <- function() {
                                         ),
                                         
                                         bsPopover(
-                                            id = "abw_abs_info",
+                                            id = "abw_abs_info_material",
                                             title = "Was wird hier gezeigt?",
                                             content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
                                             placement = "right",
@@ -366,7 +366,7 @@ klassifikationUI <- function() {
                                                 span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                                 tags$span(
                                                     icon("circle-question"),
-                                                    id = "abw_rel_info",
+                                                    id = "abw_rel_info_material",
                                                     style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                                 )
                                             ),
@@ -375,7 +375,7 @@ klassifikationUI <- function() {
                                         ),
                                         
                                         bsPopover(
-                                            id = "abw_rel_info",
+                                            id = "abw_rel_info_material",
                                             title = "Was wird hier gezeigt?",
                                             content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
                                             placement = "right",

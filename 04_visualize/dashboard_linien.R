@@ -170,10 +170,10 @@ fertigungslinieUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Termintreue",
-                                        tags$span(icon("circle-question"), id = "termintreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "termintreue_info_fertigungslinien", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     bsPopover(
-                                        id = "termintreue_info",
+                                        id = "termintreue_info_fertigungslinien",
                                         title = "Termintreue",
                                         content = "Der prozentuale Anteil aller Aufträge, die bis zum geplanten Liefer- oder Fertigstellungstermin abgeschlossen wurden. Frühere Fertigstellungen werden dabei ebenfalls als termingerecht gewertet.",
                                         placement = "top",
@@ -192,11 +192,11 @@ fertigungslinieUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Liefertreue",
-                                        tags$span(icon("circle-question"), id = "liefertreue_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "liefertreue_info_fertigungslinien", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     
                                     bsPopover(
-                                        id = "liefertreue_info",
+                                        id = "liefertreue_info_fertigungslinien",
                                         title = "Liefertreue",
                                         content = "Dieses Diagramm zeigt, bei wie vielen Aufträgen die komplette Sollmenge geliefert wurde. Liefertreue misst also, ob alle bestellten Teile vollständig angekommen sind – unabhängig vom Zeitpunkt.",
                                         placement = "top",
@@ -215,11 +215,11 @@ fertigungslinieUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Geschwindigkeit pro ME",
-                                        tags$span(icon("circle-question"), id = "geschwindigkeit_me_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_me_info_fertigungslinien", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     
                                     bsPopover(
-                                        id = "geschwindigkeit_me_info",
+                                        id = "geschwindigkeit_me_info_fertigungslinien",
                                         title = "Geschwindigkeit/ME [s]",
                                         content = "Gibt an, wie viel Zeit im Schnitt pro geliefertem Stück benötigt wurde. Dadurch können Aufträge mit unterschiedlichen Mengen vergleichbar gemacht und ineffiziente Prozesse leichter erkannt werden.",
                                         placement = "top",
@@ -238,11 +238,11 @@ fertigungslinieUI <- function() {
                                     span(
                                         style = "display: flex; align-items: center; gap: 6px;",
                                         "Geschwindigkeit pro Auftrag",
-                                        tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                        tags$span(icon("circle-question"), id = "geschwindigkeit_auftrag_info_fertigungslinien", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                     ),
                                     
                                     bsPopover(
-                                        id = "geschwindigkeit_auftrag_info",
+                                        id = "geschwindigkeit_auftrag_info_fertigungslinien",
                                         title = "Geschwindigkeit/Auftrag [Tage]",
                                         content = "Gibt an, wie lange eine Entität im Median für die Bearbeitung eines Auftrags benötigt. Dadurch kann die typische Durchlaufzeit erkannt und von extremen Einzelfällen abgegrenzt werden.",
                                         placement = "top",
@@ -280,12 +280,12 @@ fertigungslinieUI <- function() {
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
                                             span("Aktuelle Performance", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "performance_table_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "performance_table_info_fertigungslinien", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         DTOutput("delay_table_shared_fertigungslinie"),
                                         
                                         bsPopover(
-                                            id = "performance_table_info",
+                                            id = "performance_table_info_fertigungslinien",
                                             title = "Aktuelle Performance",
                                             content = "In der Tabelle wird die ausgewählte Ansicht (z. B. Werke, Linien, Materialien) für jede gewählte Entität (z. B. Planer, Workflows) dargestellt. Dadurch kann nachvollzogen werden, wie sich einzelne Entitäten auf unterschiedliche Strukturebenen auswirken. Grün steht für geringe (< 0,5 s/ME), Gelb für moderate (bis 2 s/ME) und Rot für kritische Verzögerungen (> 2 s/ME). Zusätzlich lassen sich die durchschnittlichen Ist- und Soll-Lead Times pro Mengeneinheit sowie die zugehörige Auftragsanzahl ablesen, um Zusammenhänge zwischen Auslastung und Performance sichtbar zu machen.",
                                             placement = "top",
@@ -306,11 +306,11 @@ fertigungslinieUI <- function() {
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
                                             span("Verteilung der Aufträge", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "auftrverteilung_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "auftrverteilung_info_fertigungslinien", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
-                                            id = "auftrverteilung_info",
+                                            id = "auftrverteilung_info_fertigungslinien",
                                             title = "Verteilung der Aufträge",
                                             content = "Dieses Kreisdiagramm zeigt, wie sich die Anzahl der Aufträge auf die ausgewählte Kategorie verteilt. Dadurch wird sichtbar, welche Bereiche besonders häufig oder selten im Workflow vertreten sind. So lassen sich Schwerpunkte im Workflow erkennen und Kapazitätsengpässe frühzeitig identifizieren.",
                                             placement = "top",
@@ -332,11 +332,11 @@ fertigungslinieUI <- function() {
                                         div(
                                             style = "display: flex; align-items: center; gap: 6px; margin-bottom: 16px;",
                                             span("Top 200 Aufträge mit Abweichung", style = "font-weight: 600; font-size: 16px; color: #202124;"),
-                                            tags$span(icon("circle-question"), id = "topdelay_info", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
+                                            tags$span(icon("circle-question"), id = "topdelay_info_fertigungslinien", style = "color: #5f6368; font-size: 14px; cursor: pointer;")
                                         ),
                                         
                                         bsPopover(
-                                            id = "topdelay_info",
+                                            id = "topdelay_info_fertigungslinien",
                                             title = "Verfrühung & Verzögerung",
                                             content = "Passend zu der oben getroffenen Auswahl sieht man in dieser Darstellung die prozentualen Anteile von Aufträgen, die in vier Gruppen nach Dauer der Verzögerung bzw. Verfrühung kategorisiert sind. Je nach Bedarf kann man über die Lupen-Icons weiterführende Details zu den einzelnen Aufträgen einsehen und daraus gezielte Optimierungsmaßnahmen ableiten.",
                                             placement = "top",
@@ -395,7 +395,7 @@ fertigungslinieUI <- function() {
                                             span("Lead Time Abweichung im Zeitverlauf [Tage]", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(
                                                 icon("circle-question"),
-                                                id = "abw_zeit_info",
+                                                id = "abw_zeit_info_fertigungslinien",
                                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                             )
                                         ),
@@ -404,7 +404,7 @@ fertigungslinieUI <- function() {
                                     ),
                                     
                                     bsPopover(
-                                        id = "abw_zeit_info",
+                                        id = "abw_zeit_info_fertigungslinien",
                                         title = "Was wird hier gezeigt?",
                                         content = "Die zeitliche Entwicklung der Lead Time Abweichung gibt Aufschluss darüber, ob eine Entität über aufeinanderfolgende Aufträge hinweg konstanter, ungenauer oder präziser arbeitet. Aufträge sind nach Starttermin sortiert, die y-Achse zeigt die absolute Abweichung in Tagen.",
                                         placement = "right",
@@ -426,7 +426,7 @@ fertigungslinieUI <- function() {
                                             span("Lead Time Abweichung absolut", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(
                                                 icon("circle-question"),
-                                                id = "abw_abs_info",
+                                                id = "abw_abs_info_fertigungslinien",
                                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                             )
                                         ),
@@ -435,7 +435,7 @@ fertigungslinieUI <- function() {
                                     ),
                                     
                                     bsPopover(
-                                        id = "abw_abs_info",
+                                        id = "abw_abs_info_fertigungslinien",
                                         title = "Was wird hier gezeigt?",
                                         content = "Da die Lead Time Abweichungen je Entität keiner einheitlichen Verteilung folgen, sind Mittelwert und Standardabweichung oft wenig aussagekräftig. Stattdessen zeigt das Histogramm die tatsächliche Häufigkeitsverteilung – begrenzt auf das 2,5. bis 97,5. Perzentil, um extreme Ausreißer auszublenden. So lassen sich typische Muster und Verzögerungstendenzen erkennen.",
                                         placement = "right",
@@ -456,7 +456,7 @@ fertigungslinieUI <- function() {
                                             span("Lead Time Abweichung relativ", style = "font-weight: 600; font-size: 16px; color: #202124;"),
                                             tags$span(
                                                 icon("circle-question"),
-                                                id = "abw_rel_info",
+                                                id = "abw_rel_info_fertigungslinien",
                                                 style = "color: #5f6368; margin-left: 8px; cursor: pointer;"
                                             )
                                         ),
@@ -465,7 +465,7 @@ fertigungslinieUI <- function() {
                                     ),
                                     
                                     bsPopover(
-                                        id = "abw_rel_info",
+                                        id = "abw_rel_info_fertigungslinien",
                                         title = "Was wird hier gezeigt?",
                                         content = "Die Darstellung zeigt die prozentuale Abweichung der Ist- von der Soll-Lead Time je Auftrag. Dadurch wird sichtbar, ob Verzögerungen systematisch auftreten und in welcher Größenordnung sie relativ zur geplanten Bearbeitungszeit liegen",
                                         placement = "right",
@@ -1040,7 +1040,7 @@ fertigungslinieServer <- function(input, output, session) {
         blau_palette <- c("#DCEEFF", "#A0C4FF", "#87BFFF", "#6495ED", "#1A73E8", "#4285F4", "#2B63B9", "#0B47A1")
         col_allocation_pie <- lt_map[[input$view_selection_fertigungslinie]]
         
-        df <- auftraege_lt_unit %>%
+        df_allocation_pie_shared_fertigungslinie <- auftraege_lt_unit %>%
             dplyr::filter(fertigungslinie == input$selected_fertigungslinie) %>%
             dplyr::filter(if (input$view_selection_fertigungslinie == "A-Material") klassifikation == "A" else TRUE) %>%
             dplyr::filter(!is.na(.data[[col_allocation_pie]])) %>%
@@ -1052,8 +1052,8 @@ fertigungslinieServer <- function(input, output, session) {
         # Splitten der Daten in Gruppen: Jede Linie, Workflow usw. dessen Anteil am 
         # Gesamtanteil aller Aufträge über 5% ausmacht wird einzeln abgebildet, alle 
         # anderen, die unter 5% ausmachen werden in einer Gruppe zusammengefasst
-        df_main_groups <- df %>% dplyr::filter(share >= 0.05)
-        df_small_groups <- df %>% dplyr::filter(share < 0.05)
+        df_main_groups <- df_allocation_pie_shared_fertigungslinie %>% dplyr::filter(share >= 0.05)
+        df_small_groups <- df_allocation_pie_shared_fertigungslinie %>% dplyr::filter(share < 0.05)
         
         if (nrow(df_small_groups) > 0) {
             small_groups_total <- sum(df_small_groups$count)
@@ -1062,7 +1062,7 @@ fertigungslinieServer <- function(input, output, session) {
             
             df_main_groups <- dplyr::bind_rows(
                 df_main_groups,
-                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df$count))
+                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df_allocation_pie_shared_fertigungslinie$count))
             )
         } else {
             small_groups_tooltip <- NULL
