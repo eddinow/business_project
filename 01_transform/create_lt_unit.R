@@ -111,7 +111,7 @@ vorgaenge_sorted <- vorgaenge_sorted %>%
 # wird auf Gutmenge umgelegt. Diese LT-Konvertierung nehmen wir sowohl für das DF
 # der Auftragsdaten, als auch auf das der Vorgänge vor.
 
-# Vorgangsebene-----
+# Vorgangsebene
 
 # Ordne den Auftragsnummern aus all_data_finalized A,B,C zu
 material_klassifikation_vorgang <- all_data_finalized %>%
