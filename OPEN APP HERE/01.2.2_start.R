@@ -182,14 +182,7 @@ start_ui <- fluidPage(
             actionLink("nav_werke",     "Werke"),
             actionLink("nav_planer",    "Planer")
         ),
-        # Rechte Icons
-        div(class = "navbar-right",
-            actionButton("download_report", label = NULL,
-                         icon = icon("file-arrow-down"),
-                         style = "background: none; border: none; color: #5f6368; font-size: 16px;"),
-            tags$span(icon("user-circle"),
-                      style = "font-size: 20px; color: #5f6368; cursor: pointer;")
-        )
+ 
     ),
     
     # Unsichtbares Tab-Panel für Dashboards ------------------------------------
@@ -248,9 +241,7 @@ start_ui <- fluidPage(
                                                                         choices = c("Top","Kritisch"),
                                                                         selected = "Top", width = "140px")
                                                         ),
-                                                        downloadButton("download_csv_material", label = NULL,
-                                                                       icon = icon("download"),
-                                                                       style = "padding:6px 10px; margin-top:-16px;")
+
                                                     )
                                                 ),
                                                 br(),
@@ -283,9 +274,7 @@ start_ui <- fluidPage(
                                                                         choices = c("Top","Kritisch"),
                                                                         selected = "Top", width = "140px")
                                                         ),
-                                                        downloadButton("download_csv_planer", label = NULL,
-                                                                       icon = icon("download"),
-                                                                       style = "padding:6px 10px; margin-top:-16px;")
+
                                                     )
                                                 ),
                                                 br(),
@@ -318,9 +307,7 @@ start_ui <- fluidPage(
                                                                         choices = c("Top","Kritisch"),
                                                                         selected = "Top", width = "140px")
                                                         ),
-                                                        downloadButton("download_csv_workflows", label = NULL,
-                                                                       icon = icon("download"),
-                                                                       style = "padding:6px 10px; margin-top:-16px;")
+
                                                     )
                                                 ),
                                                 br(),
@@ -353,9 +340,7 @@ start_ui <- fluidPage(
                                                                         choices = c("Top","Kritisch"),
                                                                         selected = "Top", width = "140px")
                                                         ),
-                                                        downloadButton("download_csv_linien", label = NULL,
-                                                                       icon = icon("download"),
-                                                                       style = "padding:6px 10px; margin-top:-16px;")
+
                                                     )
                                                 ),
                                                 br(),
@@ -388,9 +373,7 @@ start_ui <- fluidPage(
                                                                         choices = c("Top","Kritisch"),
                                                                         selected = "Top", width = "140px")
                                                         ),
-                                                        downloadButton("download_csv_werke", label = NULL,
-                                                                       icon = icon("download"),
-                                                                       style = "padding:6px 10px; margin-top:-16px;")
+
                                                     )
                                                 ),
                                                 br(),
@@ -459,7 +442,7 @@ start_server <- function(input, output, session) {
     })
     
     # Erstellung der Downloadfunktion ------------------------------------------
-    render_table_and_download <- function(data, sel_id, tbl_out, dl_out, prefix) {
+    render_table <- function(data, sel_id, tbl_out) {
         output[[tbl_out]] <- renderDT({
             df <- data
             df$servicelevel_numeric <- as.numeric(gsub('%','',df$Servicelevel))/100
@@ -469,23 +452,20 @@ start_server <- function(input, output, session) {
                       options = list(pageLength=10, dom='tip', ordering=FALSE),
                       rownames=FALSE, class='hover', width='100%')
         })
-        output[[dl_out]] <- downloadHandler(
-            filename = function() paste0(prefix,"_",Sys.Date(),".csv"),
-            content = function(file) write.csv(data, file, row.names=FALSE)
-        )
+        
     }
     
     # Tabellen und Downloads für alle Übersichten erstellen --------------------
-    render_table_and_download(workflows_overview, "sortierung_workflows",
-                              "workflow_table","download_csv_workflows","workflows")
-    render_table_and_download(linien_overview,   "sortierung_linien",
-                              "linien_table",  "download_csv_linien",  "linien")
-    render_table_and_download(werke_overview,    "sortierung_werke",
-                              "werke_table",   "download_csv_werke",   "werke")
-    render_table_and_download(planer_overview,    "sortierung_planer",
-                              "planer_table",   "download_csv_planer",   "planer")
-    render_table_and_download(material_overview,    "sortierung_material",
-                              "material_table",   "download_csv_material",   "material")
+    render_table(workflows_overview, "sortierung_workflows",
+                              "workflow_table")
+    render_table(linien_overview, "sortierung_linien",
+                              "linien_table")
+    render_table(werke_overview,    "sortierung_werke",
+                              "werke_table")
+    render_table(planer_overview,    "sortierung_planer",
+                              "planer_table")
+    render_table(material_overview,    "sortierung_material",
+                              "material_table")
     
     # Navigation: Tabs wechseln und Module starten -----------------------------
     observeEvent(input$nav_home,      updateTabsetPanel(session,"main_tabs","home"))
