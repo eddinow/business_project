@@ -441,21 +441,21 @@ start_server <- function(input, output, session) {
         )
     })
     
-    # Erstellung der Downloadfunktion ------------------------------------------
+    # Erstellung einer sortiebaren und formartierten Datentablle ---------------
     render_table <- function(data, sel_id, tbl_out) {
         output[[tbl_out]] <- renderDT({
-            df <- data
-            df$servicelevel_numeric <- as.numeric(gsub('%','',df$Servicelevel))/100
-            df <- if (input[[sel_id]]=="Top") df[order(-df$servicelevel_numeric),] else df[order(df$servicelevel_numeric),]
-            df <- df |> dplyr::select(-servicelevel_numeric)
-            datatable(df, escape = which(names(df)!="Status"),
+            df_datatable <- data
+            df_datatable$servicelevel_numeric <- as.numeric(gsub('%','',df_datatable$Servicelevel))/100
+            df_datatable <- if (input[[sel_id]]=="Top") df_datatable[order(-df_datatable$servicelevel_numeric),] else df_datatable[order(df_datatable$servicelevel_numeric),]
+            df_datatable <- df_datatable |> dplyr::select(-servicelevel_numeric)
+            datatable(df_datatable, escape = which(names(df_datatable)!="Status"),
                       options = list(pageLength=10, dom='tip', ordering=FALSE),
                       rownames=FALSE, class='hover', width='100%')
         })
         
     }
     
-    # Tabellen und Downloads für alle Übersichten erstellen --------------------
+    # Tabellen für alle Übersichten erstellen --------------------
     render_table(workflows_overview, "sortierung_workflows",
                               "workflow_table")
     render_table(linien_overview, "sortierung_linien",
