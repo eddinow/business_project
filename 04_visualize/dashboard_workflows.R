@@ -1129,7 +1129,7 @@ vorgangsfolgeServer <- function(input, output, session) {
             
             df_main_groups <- dplyr::bind_rows(
                 df_main_groups,
-                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df_allocation_pie_shared_workflow_shared_workflow$count))
+                tibble::tibble(category = small_groups_label, count = small_groups_total, share = small_groups_total / sum(df_allocation_pie_shared_workflow$count))
             )
         } else {
             small_groups_tooltip <- NULL
