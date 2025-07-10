@@ -1,3 +1,6 @@
+rm(list = ls())
+set.seed(1)
+
 # Packages ---------------------------------------------------------------------
 library(shiny)
 library(shinydashboard)

@@ -1259,10 +1259,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_10t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung > 10) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1284,10 +1284,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_5_10t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 10 & abweichung_unit > 5) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1309,10 +1309,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_3_5t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 5 & abweichung_unit > 3) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1334,10 +1334,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_1_3t_versp <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit <= 3 & abweichung_unit > 1) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1428,10 +1428,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_10t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit < -10) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1453,10 +1453,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_5_10t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -10 & abweichung_unit < -5) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1478,10 +1478,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_3_5t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -5 & abweichung_unit < -3) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
@@ -1503,10 +1503,10 @@ vorgangsfolgeServer <- function(input, output, session) {
             df_order_1_3t_verfr <- vorgaenge_sorted %>%
                 filter(vorgangsfolge == input$selected_vorgangsfolge, abweichung_unit >= -3 & abweichung_unit < -1) %>%
                 transmute(
-                    Auftragsnummer     = auftragsnummer,
+                    Auftragsnummer     = Auftragsnummer,
                     Materialnummer     = materialnummer,
-                    `Soll-LT [T/Auftr.]`   = round(lead_time_soll, 2),
-                    `Ist-LT [T/Auftr.]`    = round(lead_time_ist, 2),
+                    `Soll-LT [T/Auftr.]`   = round(solldauer, 2),
+                    `Ist-LT [T/Auftr.]`    = round(istdauer, 2),
                     `Abweichung [T/Auftr.]` = round(abweichung, 2)
                 )
             
